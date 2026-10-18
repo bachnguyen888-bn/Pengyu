@@ -1,8 +1,8 @@
 # Netlify response headers (also honoured by drag-and-drop deploys).
 # The CSP matches the pages' <meta> tags and adds frame-ancestors, which a meta tag cannot set.
-# The two hashes allow clearhealth-pengu.html's inline <style> and <script>; tools/update-pengu-csp.py keeps them current.
+# The pages keep no inline CSS or script: styles are in pengu.css and scripts in js/, so 'self' is all they need.
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'self' 'sha256-5b6nQVAPAPh3htpAdPQvhN+jcgLm15g1yAGFxAR514s='; style-src 'self' 'sha256-7FUVGr/X21agFUq8zKZFTcgQfKjN6sN/XSEDeasd9sU='; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer

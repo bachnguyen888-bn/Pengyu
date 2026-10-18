@@ -17,9 +17,10 @@ with tempfile.TemporaryDirectory() as tmp:
     dest = pathlib.Path(tmp) / 'pengu-site'
     (dest / 'img').mkdir(parents=True)
     shutil.copy(SITE / 'clearhealth-pengu.html', dest / 'index.html')
-    for name in ['styles.css', 'favicon.svg', 'og-pengu.jpg', '_headers']:
+    for name in ['pengu.css', 'favicon.svg', 'og-pengu.jpg', '_headers']:
         shutil.copy(SITE / name, dest / name)
     shutil.copytree(SITE / 'fonts', dest / 'fonts')
+    shutil.copytree(SITE / 'js', dest / 'js')
     for img in SITE.glob('img/*.webp'):
         if img.name.startswith(('stage-pengu-', 'station-')):
             shutil.copy(img, dest / 'img' / img.name)
