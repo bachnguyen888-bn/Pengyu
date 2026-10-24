@@ -12,6 +12,7 @@ import { createSlingshot } from './slingshot.js';
 import { createGlide } from './glide.js';
 import { renderReceipt } from './receipts.js';
 import { initForm } from './form.js';
+import { initPengyu } from './pengyu/app.js';
 
 const $ = (id) => document.getElementById(id);
 const root = document.documentElement;
@@ -71,7 +72,7 @@ function initTry() {
     game.textContent = '';
     const b = fx.el('div', { class: 'banner banner-error', role: 'alert' });
     b.append(fx.el('p', {}, 'This game needs canvas support, which this browser doesn’t have. You can still play Facts or Cap on the app.'));
-    const a = fx.el('a', { class: 'btn btn-primary btn-sm', href: 'https://play.bachnguyenclearhealth.com' }, 'Play Facts or Cap');
+    const a = fx.el('a', { class: 'btn btn-primary btn-sm', href: '#games' }, 'Play Facts or Cap');
     b.append(a);
     game.append(b);
     return { focus() { a.focus(); } };
@@ -289,6 +290,7 @@ const companion = initCompanion({
 initForm();
 initCarousel();
 initUtility();
+initPengyu();
 
 function renderAll() {
   dashboard.render();

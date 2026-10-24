@@ -2,6 +2,7 @@
    One file, no build step. Sections:
    1. Fonts   2. Tokens   3. Themes   4. Base and type   5. Layout   6. Components
    7. Page sections   8. Interactive preview   9. Dialogs, toasts, effects   10. Motion and print
+   11. Week planner (Pengu's route)
    Every colour, space, radius and shadow comes from a token in sections 2 and 3. */
 
 /* ---------- 1. Fonts (self-hosted, OFL) ---------- */
@@ -1121,6 +1122,101 @@ dialog::backdrop { background: rgba(15, 12, 32, 0.55); -webkit-backdrop-filter: 
   body { background: #FFFFFF; color: #000000; padding: 0; }
   .theme-dark { --bg: #FFFFFF; --surface: #FFFFFF; --text: #000000; --text-muted: #333333; }
   a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; }
+}
+
+/* ---------- 11. Week planner (Pengu's route) ---------- */
+/* Lives at the top of #games. Stations and the train share one coordinate: --at runs from 0 (the depot)
+   to 1 (the last station), set from js/pengyu/route.js. */
+.py { max-width: 760px; margin: 0 auto var(--space-16); padding: var(--space-4); display: grid; gap: var(--space-4); }
+.py-top { display: flex; align-items: center; gap: var(--space-3); }
+.py-top .h3 { margin-top: var(--space-1); }
+.py-app, .py-view, .py-flow, .py-today { display: grid; gap: var(--space-4); min-width: 0; }
+.py [tabindex="-1"]:focus { outline: none; }
+
+/* Plan flow */
+.py-flow-top { display: grid; gap: var(--space-2); }
+.py-progress { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-1); }
+.py-progress span { height: 4px; border-radius: var(--radius-pill); background: var(--surface-3); }
+.py-progress span.is-on { background: var(--brand-purple); }
+.py-step-title { font-family: var(--font-serif); font-size: 1.5rem; line-height: 1.2; }
+.py-hint { margin-top: calc(-1 * var(--space-2)); }
+.py-choices { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.py-chip:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.py-chip > span { display: grid; text-align: left; line-height: 1.25; }
+.py-chip small { font-size: 0.75rem; font-weight: 400; color: var(--text-muted); }
+.py-targets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.py-targets .py-chip { justify-content: center; min-height: 72px; border-radius: var(--radius-md); }
+.py-target { justify-items: center; text-align: center; }
+.py-target strong { font-size: 1.75rem; line-height: 1.1; }
+.py-nowrap { white-space: nowrap; }
+.py-days { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); }
+.py-days .py-chip { justify-content: center; min-height: 56px; padding: 0 var(--space-1); border-radius: var(--radius-md); }
+.py-days .py-day-chip { justify-items: center; text-align: center; }
+.py-counter { margin-top: var(--space-2); color: var(--text-muted); }
+.py-custom { max-width: 280px; margin-top: var(--space-3); }
+.py-flow-nav { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.py-flow-nav .btn-primary { min-width: 140px; }
+.py-review { display: grid; gap: var(--space-2); }
+.py-review li { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-2); font-weight: 600; }
+.py-review .icon { margin-top: 4px; color: var(--live-ink); }
+
+/* Today: headline, stats and the route */
+.py-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--space-3) var(--space-6); }
+.py-count { font-family: var(--font-serif); font-size: clamp(1.5rem, 2vw + 1rem, 2rem); line-height: 1.15; margin-top: var(--space-1); }
+.py-count strong { color: var(--accent-ink); }
+.py-stats { display: flex; gap: var(--space-6); }
+.py-stats .stat-value { display: inline-flex; align-items: center; gap: var(--space-1); font-size: 1.25rem; }
+.py-route-wrap { position: relative; height: 140px; }
+.py-route { position: absolute; left: 0; right: 0; top: 60px; height: 80px; margin: 0; }
+.py-route::before { content: ""; position: absolute; left: 22px; right: 22px; top: 20px; height: 4px; border-radius: 2px; background: var(--line-strong); }
+.py-station, .py-depot, .py-train { position: absolute; left: calc(22px + var(--at, 0) * (100% - 44px)); transform: translateX(-50%); }
+.py-station { top: 0; }
+.py-depot { top: 14px; width: 16px; height: 16px; border-radius: 4px; background: var(--line-strong); }
+.py-station-btn { display: grid; justify-items: center; gap: var(--space-1); min-width: 44px; padding: 0; border: 0; background: none; color: var(--text); }
+button.py-station-btn { border-radius: var(--radius-sm); }
+.py-stop {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+  background: var(--surface); border: 3px solid var(--line-strong); color: #FFFFFF;
+  transition: background-color var(--dur-base) var(--ease-spring), border-color var(--dur-base), transform var(--dur-base) var(--ease-spring);
+}
+.py-stop .icon { width: 22px; height: 22px; stroke-width: 2.4; }
+.py-stop-day { font-size: var(--fs-small); font-weight: 600; line-height: 1.2; white-space: nowrap; }
+.is-done .py-stop { background: var(--accent-emerald-strong); border-color: var(--accent-emerald-strong); }
+.is-today .py-stop { border-color: var(--brand-purple); box-shadow: 0 0 0 4px var(--accent-tint); }
+.is-today .py-stop-day { color: var(--accent-ink); }
+.is-missed .py-stop { border-style: dashed; background: transparent; }
+.is-missed .py-stop-day { color: var(--text-muted); font-weight: 400; }
+button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transform: translateY(-2px); }
+.py-station-btn[aria-expanded="true"] .py-stop { border-color: var(--brand-purple); background: var(--accent-tint); }
+.py-train { top: 0; width: 64px; height: 60px; pointer-events: none; transition: left 900ms var(--ease-spring); }
+.py-car { position: absolute; left: 0; bottom: 0; width: 64px; height: 32px; }
+.py-rider { position: absolute; left: 50%; bottom: 12px; width: 40px; height: 40px; transform: translateX(-50%); }
+
+.py-goal { font-weight: 600; }
+.py-goal.is-goal { color: var(--accent-ink); }
+.py-goal.is-hit { color: var(--live-ink); }
+.py-goal.is-calm { color: var(--text-muted); font-weight: 400; }
+.py-move { display: grid; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--surface-2); }
+.py-move-title { font-weight: 600; }
+.py-log { display: grid; gap: var(--space-2); }
+.py-fish-badge { padding: 2px var(--space-2); border-radius: var(--radius-pill); background: rgba(255, 255, 255, 0.2); font-size: var(--fs-small); }
+.btn-secondary .py-fish-badge { background: var(--accent-tint); }
+.py-logged { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 48px; padding: 0 var(--space-4); border-radius: var(--radius-md); background: var(--live-bg); color: var(--live-ink); font-weight: 600; }
+.py-logged .icon { width: 18px; height: 18px; stroke-width: 2.2; }
+.py-link { padding: 0; border: 0; background: none; color: var(--accent-ink); font: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.py-link:hover { text-decoration-thickness: 2px; }
+.py-settings { border-top: 1px solid var(--line); padding-top: var(--space-2); }
+.py-settings summary { display: flex; align-items: center; width: fit-content; min-height: var(--tap); cursor: pointer; font-size: var(--fs-small); color: var(--text-muted); }
+.py-settings-body { display: grid; gap: var(--space-2); justify-items: start; }
+
+@media (min-width: 520px) {
+  .py { padding: var(--card-pad); }
+  .py-days { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-1); }
+  .py-route-wrap { height: 150px; }
+  .py-route { top: 66px; }
+  .py-train { width: 80px; height: 66px; }
+  .py-car { width: 80px; height: 40px; }
+  .py-rider { width: 48px; height: 48px; bottom: 16px; }
 }
 
 /* ---------- 404 page ---------- */

@@ -396,6 +396,16 @@
   <symbol id="i-mail" viewBox="0 0 16 16"><rect x="1.75" y="3.25" width="12.5" height="9.5" rx="1.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m2.5 4.25 5.5 4.25 5.5-4.25" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
   <symbol id="i-menu" viewBox="0 0 16 16"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
   <symbol id="i-cookie" viewBox="0 0 16 16"><path d="M13.9 8.6A6 6 0 1 1 7.4 2.1a2 2 0 0 0 2.4 2.4 2 2 0 0 0 2.4 2.4 2 2 0 0 0 1.7 1.7Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M5.5 7h.01M8 10.5h.01M5.5 11h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <!-- Week planner: Fish (the currency) and the train car Pengu rides along the week's route -->
+  <symbol id="i-fish" viewBox="0 0 16 16"><path d="M15 8c-1.5 2.5-3.8 3.7-6.4 3.7-2.3 0-4-1.1-5.1-2.5L1 11.2V4.8l2.5 2C4.6 5.4 6.3 4.3 8.6 4.3c2.6 0 4.9 1.2 6.4 3.7Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="11.6" cy="7.4" r="0.9" fill="currentColor"/></symbol>
+  <symbol id="py-car" viewBox="0 0 96 48">
+    <rect x="2" y="30" width="92" height="5" rx="2.5" fill="#4B3CC4"/>
+    <rect x="8" y="14" width="80" height="20" rx="7" fill="#6C5CE7"/>
+    <rect x="8" y="14" width="80" height="6" rx="3" fill="#4B3CC4"/>
+    <rect x="18" y="24" width="60" height="3" rx="1.5" fill="#A29BFE"/>
+    <circle cx="26" cy="40" r="7" fill="#26262E"/><circle cx="26" cy="40" r="2.6" fill="#C9C2F5"/>
+    <circle cx="70" cy="40" r="7" fill="#26262E"/><circle cx="70" cy="40" r="2.6" fill="#C9C2F5"/>
+  </symbol>
 </svg>
 
 <a class="skip" href="#main">Skip to content</a>
@@ -472,7 +482,7 @@
           <div class="nojs-only nojs-claim">
             <p class="muted"><span class="verdict-stamp cap">CAP</span></p>
             <p>Years of cracking showed no link to hand arthritis.<sup class="fn"><a href="#src-5" aria-label="Source 5">5</a></sup></p>
-            <a class="btn btn-primary" href="https://play.bachnguyenclearhealth.com">Play Facts or Cap</a>
+            <a class="btn btn-primary" href="#games">Play Facts or Cap</a>
           </div>
 
           <div class="js-only" id="try-game">
@@ -495,7 +505,7 @@
             <div class="receipt" id="receipt-try" data-receipt="knuckles"></div>
             <div class="actions">
               <button class="btn btn-primary" id="plant-first" type="button"><svg class="icon" aria-hidden="true"><use href="#i-sprout"/></svg>Plant your seed</button>
-              <a class="btn btn-secondary" href="https://play.bachnguyenclearhealth.com">Play today’s full round</a>
+              <a class="btn btn-secondary" href="#games">Play today’s full round</a>
               <button class="btn btn-ghost" id="try-again" type="button"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>Shoot again</button>
             </div>
           </div>
@@ -837,6 +847,19 @@
   <!-- Mini games -->
   <section id="games" class="section section-alt" aria-labelledby="games-title">
     <div class="container">
+      <!-- Week planner: plan 2 to 4 workouts, ride the route, earn Fish. Runs in js/pengyu/, saved only in this browser. -->
+      <article class="card py" id="week" aria-labelledby="py-title">
+        <header class="py-top">
+          <svg class="pengu pengu-sm" viewBox="0 0 120 120" aria-hidden="true" focusable="false"><use href="#pg-idle"/></svg>
+          <div>
+            <p class="eyebrow">Your week with Pengu</p>
+            <h2 id="py-title" class="h3">Plan it. Ride the route. Earn Fish.</h2>
+          </div>
+        </header>
+        <div id="py-app" class="py-app js-only"></div>
+        <p class="nojs-only muted">The week planner runs in your browser. Turn on JavaScript to plan your week and log workouts. Everything stays on your device.</p>
+      </article>
+
       <div class="carousel-head">
         <div class="section-head">
           <p class="eyebrow">Mini games</p>
@@ -860,7 +883,7 @@
             <ul class="tag-list"><li class="tag"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>~1 min</li><li class="tag"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Daily</li></ul>
             <div class="card-foot">
               <a class="btn btn-primary btn-sm" href="#try" data-action="focus-try">Try the slingshot preview</a>
-              <a class="btn btn-ghost btn-sm" href="https://play.bachnguyenclearhealth.com">Play Facts or Cap</a>
+              <a class="btn btn-ghost btn-sm" href="#games">Play Facts or Cap</a>
             </div>
           </article>
         </li>
@@ -1150,7 +1173,7 @@
             <li>Studies linked on every answer</li>
             <li>No account needed</li>
           </ul>
-          <div class="card-foot"><a class="btn btn-secondary btn-block" href="https://play.bachnguyenclearhealth.com">Play today’s claim</a></div>
+          <div class="card-foot"><a class="btn btn-secondary btn-block" href="#games">Play today’s claim</a></div>
         </article>
         <article class="card plan-main">
           <div class="tier-head"><h3>Early access</h3><span class="pill pill-preview">Free to join</span></div>
@@ -1236,7 +1259,7 @@
           <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Help pick the next mini game.</li>
           <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Rest days count. Pengu wants you consistent, not exhausted.</li>
         </ul>
-        <p>Can’t wait? <a href="https://play.bachnguyenclearhealth.com">Play today’s Facts or Cap</a></p>
+        <p>Can’t wait? <a href="#games">Play today’s Facts or Cap</a></p>
       </div>
 
       <div class="span-7">
@@ -1349,7 +1372,7 @@
 
     <nav class="footer-cols" aria-label="Footer">
       <div><p class="col-title">Pengu</p><ul><li><a href="#how-it-works">How it works</a></li><li><a href="#games">Mini games</a></li><li><a href="#inside">Inside Pengu</a></li></ul></div>
-      <div><p class="col-title">Play</p><ul><li><a href="https://play.bachnguyenclearhealth.com">Facts or Cap</a></li><li><a href="#sanctuary">Sanctuary</a></li><li><a href="#stars">Health Stars</a></li></ul></div>
+      <div><p class="col-title">Play</p><ul><li><a href="#games">Facts or Cap</a></li><li><a href="#sanctuary">Sanctuary</a></li><li><a href="#stars">Health Stars</a></li></ul></div>
       <div><p class="col-title">Healthy by design</p><ul><li><a href="#healthy">Our rules</a></li><li><a href="mailto:hello@bachnguyenclearhealth.com?subject=Pengu%20got%20one%20wrong">Report a mistake</a></li><li><a href="#sources">Sources</a></li></ul></div>
       <div><p class="col-title">Join in</p><ul><li><a href="#early-access">Early access</a></li><li><a href="mailto:hello@bachnguyenclearhealth.com?subject=Partnering%20with%20Pengu">Partner with us</a></li></ul></div>
       <div><p class="col-title">Learn</p><ul><li><a href="#why">Why it matters</a></li><li><a href="#faq">FAQ</a></li></ul></div>
