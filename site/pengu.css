@@ -1166,8 +1166,8 @@ dialog::backdrop { background: rgba(15, 12, 32, 0.55); -webkit-backdrop-filter: 
 .py-count strong { color: var(--accent-ink); }
 .py-stats { display: flex; gap: var(--space-6); }
 .py-stats .stat-value { display: inline-flex; align-items: center; gap: var(--space-1); font-size: 1.25rem; }
-.py-route-wrap { position: relative; height: 154px; }
-.py-route { position: absolute; left: 0; right: 0; top: 74px; height: 80px; margin: 0; }
+.py-route-wrap { position: relative; height: 166px; }
+.py-route { position: absolute; left: 0; right: 0; top: 86px; height: 80px; margin: 0; }
 .py-route::before { content: ""; position: absolute; left: 22px; right: 22px; top: 20px; height: 4px; border-radius: 2px; background: var(--line-strong); }
 .py-station, .py-depot, .py-train { position: absolute; left: calc(22px + var(--at, 0) * (100% - 44px)); transform: translateX(-50%); }
 .py-station { top: 0; }
@@ -1198,8 +1198,11 @@ button.py-station-btn { border-radius: var(--radius-sm); }
 .is-missed .py-stop-day { color: var(--text-muted); font-weight: 400; }
 button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transform: translateY(-2px); }
 .py-station-btn[aria-expanded="true"] .py-stop { border-color: var(--brand-purple); background: var(--accent-tint); }
-.py-train { top: 0; width: 64px; height: 74px; pointer-events: none; transition: left 900ms var(--ease-spring); }
+.py-train { top: 0; width: 64px; height: 86px; pointer-events: none; transition: left 900ms var(--ease-spring); }
 .py-car { position: absolute; left: 0; bottom: 0; width: 64px; height: 32px; }
+/* The extra car rides behind; near the depot the pair is nudged in so it never leaves the card. */
+.py-car2 { position: absolute; right: calc(100% - 6px); bottom: 0; width: 52px; height: auto; }
+.py-train.has-car2 { left: max(calc(22px + var(--at, 0) * (100% - 44px)), 82px); }
 /* Pengu is the pink penguin lamp (img/pengu-lamp-192.webp); the car hides the lamp's base so Pengu sits inside */
 .py-art { display: block; height: auto; user-select: none; -webkit-user-drag: none; }
 .py-rider { position: absolute; left: 50%; bottom: 16px; width: 40px; transform: translateX(-50%); }
@@ -1238,11 +1241,88 @@ button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transf
 @media (min-width: 520px) {
   .py { padding: var(--card-pad); }
   .py-days { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-1); }
-  .py-route-wrap { height: 170px; }
-  .py-route { top: 88px; }
-  .py-train { width: 80px; height: 88px; }
+  .py-route-wrap { height: 184px; }
+  .py-route { top: 102px; }
+  .py-train { width: 80px; height: 102px; }
   .py-car { width: 80px; height: 40px; }
+  .py-car2 { width: 64px; }
+  .py-train.has-car2 { left: max(calc(22px + var(--at, 0) * (100% - 44px)), 102px); }
   .py-rider { width: 50px; bottom: 20px; }
+}
+
+/* Tabs: "Your week" and "Pengu & train" */
+.py-tabs { display: inline-flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-pill); background: var(--surface-2); justify-self: start; max-width: 100%; }
+.py-tab { min-height: var(--tap); padding: 0 var(--space-4); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--text-muted); font-size: var(--fs-small); font-weight: 600; cursor: pointer; }
+.py-tab:hover { color: var(--text); }
+.py-tab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-card); }
+
+/* Next unlock, on the week view */
+.py-next { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-2); }
+.py-glyph-chip { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--surface); overflow: hidden; }
+.py-next-art { width: 42px; }
+
+/* Pengu & train: the showcase, the next goal, and the fixed-price lists */
+.py-shop { display: grid; gap: var(--space-6); }
+.py-shop-top { display: grid; gap: var(--space-4); }
+.py-show { margin: 0; }
+.py-show-stage {
+  position: relative; display: flex; justify-content: center; align-items: flex-end; height: 196px;
+  padding: 0 var(--space-4) 18px; border-radius: var(--radius-lg); overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 100%, var(--accent-tint), transparent 70%), var(--surface-2);
+}
+.py-show-rail { position: absolute; left: 0; right: 0; bottom: 15px; height: 3px; background: var(--line-strong); }
+.py-show-train { --rw: 70px; position: relative; z-index: 1; width: calc(var(--rw) * 1.6); height: calc(var(--rw) * 2.15); }
+.py-show-train.has-car2 { margin-left: calc(var(--rw) * 1.15); }
+.py-show-train .py-car { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; }
+.py-show-train .py-car2 { position: absolute; right: calc(100% - 8px); bottom: 0; width: calc(var(--rw) * 1.27); height: auto; }
+.py-show-train .py-rider { position: absolute; left: 50%; bottom: calc(var(--rw) * 0.4); width: var(--rw); transform: translateX(-50%); }
+.py-shop-side { display: grid; gap: var(--space-3); align-content: center; }
+.py-wallet { display: flex; align-items: center; gap: var(--space-2); color: var(--text); }
+.py-wallet .icon { width: 22px; height: 22px; color: var(--star-ink); }
+.py-wallet strong { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 500; color: var(--star-ink); }
+.py-goalcard { display: grid; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-md); background: var(--surface-2); }
+.py-goalcard-title { display: flex; align-items: center; gap: var(--space-2); font-size: 1.0625rem; font-weight: 600; }
+.py-goalcard.is-done .icon { color: var(--live-ink); }
+.py-bar { height: 10px; border-radius: var(--radius-pill); background: var(--surface-3); overflow: hidden; }
+.py-bar-fill { display: block; width: var(--p, 0%); height: 100%; border-radius: inherit; background: var(--brand-purple); transition: width var(--dur-base) var(--ease-spring); }
+
+.py-shop-sec { display: grid; gap: var(--space-3); }
+.py-shop-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-1) var(--space-3); }
+.py-shop-h { font-size: 1.0625rem; }
+.py-items { display: grid; gap: var(--space-2); }
+.py-item {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); grid-template-areas: "g t" ". a";
+  align-items: center; gap: var(--space-2) var(--space-3);
+  padding: var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--line); background: var(--surface);
+}
+.py-item.is-ready { border-color: var(--brand-purple); box-shadow: 0 0 0 3px var(--accent-tint); }
+.py-glyph-tile { grid-area: g; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); }
+.py-glyph { width: 34px; height: 34px; }
+.py-item.is-locked .py-glyph { opacity: 0.55; filter: grayscale(0.5); }
+.py-item-text { grid-area: t; min-width: 0; }
+.py-item-name { font-weight: 600; line-height: 1.3; }
+.py-item-status { font-weight: 600; color: var(--text); }
+.py-act { grid-area: a; justify-self: start; }
+.py-lock, .py-owned { display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--tap); font-size: var(--fs-small); font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.py-owned { color: var(--live-ink); }
+.py-lock .icon, .py-owned .icon { width: 16px; height: 16px; }
+.py-wear[aria-pressed="true"] { background: var(--accent-tint); }
+.py-confirm { grid-column: 1 / -1; display: grid; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-sm); background: var(--surface-2); }
+.py-confirm-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.py-swatches { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.py-swatch { display: grid; place-items: center; width: var(--tap); height: var(--tap); padding: 0; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface); cursor: pointer; }
+.py-swatch[aria-pressed="true"] { border-color: var(--brand-purple); box-shadow: 0 0 0 3px var(--accent-tint); }
+.py-swatch-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--sw); }
+.py-shop-note { text-align: center; }
+
+@media (min-width: 420px) {
+  .py-item { grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: "g t a"; }
+  .py-act { justify-self: end; }
+}
+@media (min-width: 640px) {
+  .py-shop-top { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: center; }
+  .py-show-stage { height: 236px; }
+  .py-show-train { --rw: 88px; }
 }
 
 /* ---------- 404 page ---------- */

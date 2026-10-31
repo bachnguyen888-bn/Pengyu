@@ -5,10 +5,11 @@
 
 import * as S from './state.js';
 import { downloadIcs } from './ics.js';
-import { h, icon, weekday, monthDay, plural, penguArt } from './ui.js';
+import { h, icon, weekday, monthDay, plural } from './ui.js';
+import { penguFigure, carFigure, extraCarFigure } from './art.js';
 import { countTo, toast as fxToast } from '../fx.js';
 
-const toast = (title, sub, mood) => fxToast(title, sub, mood, penguArt('py-toast-art'));
+const toast = (title, sub, mood) => fxToast(title, sub, mood, penguFigure(S.look(), { cls: 'py-toast-art', view: 'bust' }));
 
 let moving = '';        // the station whose "move to" picker is open
 let lastTrainAt = null; // where the train was drawn last, so a log can roll it forward
@@ -49,10 +50,11 @@ function stationNode(s, i, count) {
 }
 
 function trainNode(r) {
-  const train = h('div', { class: 'py-train', 'aria-hidden': 'true' });
+  const look = S.look();
+  const train = h('div', { class: `py-train${look.car ? ' has-car2' : ''}`, 'aria-hidden': 'true' });
   const todayLog = S.state.log[S.today()];
-  const rider = penguArt(`py-rider${r.hit || (todayLog && todayLog.comeback) ? ' is-cheer' : ''}`);
-  train.append(rider, icon('py-car', 'py-car'));
+  const rider = penguFigure(look, { cls: `py-rider${r.hit || (todayLog && todayLog.comeback) ? ' is-cheer' : ''}` });
+  train.append(look.car ? extraCarFigure(look, 'py-car2') : '', rider, carFigure(look, 'py-car'));
   const at = r.trainAt / r.stations.length;
   const from = lastTrainAt === null ? at : lastTrainAt;
   train.style.setProperty('--at', String(from));
@@ -70,7 +72,7 @@ function logArea(r) {
     const log = S.state.log[S.today()];
     if (log.comeback) {
       wrap.append(h('div', { class: 'py-celebrate', role: 'status' },
-        penguArt('py-celebrate-art is-cheer'),
+        penguFigure(S.look(), { cls: 'py-celebrate-art is-cheer' }),
         h('div', {},
           h('p', { class: 'py-celebrate-title' }, 'Welcome back! Comeback stamp earned.'),
           h('p', { class: 'small' }, `That’s ${S.FISH.comeback} bonus Fish. Pengu’s glad to ride with you again.`))));
@@ -172,9 +174,30 @@ function coverLine() {
       : 'Free streak cover used this month');
 }
 
+// The next piece of gear and how far off it is, so every unlock has a visible price and a preview.
+function nextUnlockLine(onShop) {
+  const g = S.nextGear();
+  if (!g) return null;
+  const st = S.unlockStatus(g.id);
+  const text = st.state === 'ready'
+    ? `You can unlock the ${g.name} now (${g.price} Fish).`
+    : `Next unlock: ${g.name} · ${g.price} Fish · ${st.short} more to go.`;
+  return h('div', { class: 'py-next' },
+    h('span', { class: 'py-glyph-chip', 'aria-hidden': 'true' }, penguFigure({ ...S.look(), ...gearPreview(g.id) }, { cls: 'py-next-art', view: 'bust' })),
+    h('p', { class: 'small' }, text, ' ',
+      h('button', { class: 'py-link', type: 'button', onclick: onShop }, 'See Pengu’s upgrades')));
+}
+// Pengu shown wearing the next piece, as a preview of what it unlocks.
+function gearPreview(id) {
+  if (id === 'scarf') return { scarf: true };
+  if (id === 'cap') return { hat: 'cap', outfit: false };
+  if (id === 'backpack') return { backpack: true };
+  return { outfit: true, hat: 'conductor' };
+}
+
 let rerenderRef = () => {};
 
-export function renderToday(root, rerender, { focus } = {}) {
+export function renderToday(root, rerender, { focus, onShop = () => {} } = {}) {
   rerenderRef = rerender;
   const r = S.route();
   const monday = S.thisWeek();
@@ -203,6 +226,7 @@ export function renderToday(root, rerender, { focus } = {}) {
         r.extras ? h('span', { class: 'muted' }, ` Extra rides: ${r.extras}.`) : null),
       movePicker(),
       logArea(r),
+      nextUnlockLine(onShop),
       collection(),
       calendarArea(r.plan),
       h('p', { class: 'small muted py-plan-line' }, `Your plan: ${r.plan.window}, ${r.plan.place}. Tap an open station to move it.`),

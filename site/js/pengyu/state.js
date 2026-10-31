@@ -40,6 +40,8 @@ function fresh() {
     weekBonusPaid: [],    // mondays whose full-week bonus has been paid
     extras: [],           // [{ id, earnedOn }] in EXTRAS order
     coversAnnounced: [],  // mondays whose free streak cover has been shown to the player
+    owned: {},            // unlock id -> { at, price }; kept for good
+    wear: { hat: null, scarf: false, backpack: false, outfit: false, decal: null, paint: 'purple' },
     events: [],           // { type, at, ...details }, for "Export my data"
   };
 }
@@ -55,8 +57,9 @@ function load() {
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (!saved || saved.v !== 1) return fresh();
     const base = fresh();
-    const out = { ...base, ...saved, fish: { ...base.fish, ...saved.fish } };
+    const out = { ...base, ...saved, fish: { ...base.fish, ...saved.fish }, wear: { ...base.wear, ...saved.wear } };
     for (const k of ['weekBonusPaid', 'extras', 'coversAnnounced', 'events']) if (!Array.isArray(out[k])) out[k] = [];
+    if (!out.owned || typeof out.owned !== 'object' || Array.isArray(out.owned)) out.owned = {};
     return out;
   } catch { return fresh(); }
 }
@@ -225,6 +228,8 @@ export function logWorkout() {
   if (extra) {
     state.extras.push({ id: extra.id, earnedOn: t });
     state.log[t].extra = extra.id;
+    if (extra.kind === 'hat' && !state.wear.hat) state.wear.hat = extra.id;
+    if (extra.kind === 'train decal' && !state.wear.decal) state.wear.decal = extra.id;
   }
   let bonus = 0;
   if (weekHit(monday) && !state.weekBonusPaid.includes(monday)) {
@@ -263,6 +268,108 @@ export function announceCovers() {
   }
   commit({ type: 'cover', weeks: fresh });
   return fresh;
+}
+
+// ---------- The unlock tree (M2) ----------
+// Pengu's gear comes in a fixed order; train upgrades can be bought in any order. Every price is fixed
+// and shown up front, nothing is random, and everything bought is kept for good: nothing decays,
+// rusts or rolls back. Upgrades are looks only; they never change how Fish are earned.
+export const GEAR = [
+  { id: 'scarf', name: 'Scarf', price: 40, line: 'A cosy coral scarf.' },
+  { id: 'cap', name: 'Cap', price: 90, line: 'A sunny yellow cap.' },
+  { id: 'backpack', name: 'Backpack', price: 150, line: 'A mint backpack for the long route.' },
+  { id: 'conductor', name: 'Conductor outfit', price: 240, line: 'Navy jacket, gold buttons and a conductor’s cap.' },
+];
+export const TRAIN = [
+  { id: 'headlamp', name: 'Headlamp', price: 50, line: 'Lights the way on early starts.' },
+  { id: 'paint', name: 'Paint colours', price: 80, line: 'Five colours for Pengu’s car. Switch any time.' },
+  { id: 'car', name: 'Extra car', price: 130, line: 'A second car to carry the cargo.' },
+];
+export const PAINTS = [
+  { id: 'purple', name: 'Pengu purple' },
+  { id: 'coral', name: 'Coral' },
+  { id: 'sunny', name: 'Sunny' },
+  { id: 'mint', name: 'Mint' },
+  { id: 'navy', name: 'Night navy' },
+];
+const UNLOCKS = [...GEAR.map((g) => ({ ...g, kind: 'gear' })), ...TRAIN.map((t) => ({ ...t, kind: 'train' }))];
+export const unlockById = (id) => UNLOCKS.find((u) => u.id === id) || null;
+export const owns = (id) => Boolean(state.owned[id]);
+const hasExtra = (id) => state.extras.some((x) => x.id === id);
+
+// owned | locked (the gear before it comes first) | saving (needs more Fish) | ready
+export function unlockStatus(id) {
+  const u = unlockById(id);
+  if (!u) return null;
+  if (owns(id)) return { state: 'owned' };
+  if (u.kind === 'gear') {
+    const i = GEAR.findIndex((g) => g.id === id);
+    if (i > 0 && !owns(GEAR[i - 1].id)) return { state: 'locked', after: GEAR[i - 1] };
+  }
+  const short = u.price - state.fish.balance;
+  return short > 0 ? { state: 'saving', short } : { state: 'ready' };
+}
+export const nextGear = () => GEAR.find((g) => !owns(g.id)) || null;
+
+export function buy(id) {
+  const u = unlockById(id);
+  const st = unlockStatus(id);
+  if (!u || !st || st.state !== 'ready') return null;
+  state.fish.balance -= u.price;
+  state.owned[id] = { at: new Date().toISOString(), price: u.price };
+  if (id === 'scarf') state.wear.scarf = true;
+  if (id === 'cap') state.wear.hat = 'cap';
+  if (id === 'backpack') state.wear.backpack = true;
+  if (id === 'conductor') state.wear.outfit = true;
+  logEvent('upgrade_purchased', { id, kind: u.kind, price: u.price, balance: state.fish.balance });
+  return commit({ type: 'buy', id, item: u });
+}
+
+// Wearing changes only what shows. One hat at a time; the conductor outfit brings its own cap.
+export function canWear(id) {
+  if (['scarf', 'cap', 'backpack', 'conductor'].includes(id)) return owns(id);
+  return hasExtra(id);
+}
+export function isWorn(id) {
+  const w = state.wear;
+  if (id === 'scarf') return w.scarf;
+  if (id === 'backpack') return w.backpack;
+  if (id === 'conductor') return w.outfit;
+  if (id === 'cap' || id.startsWith('hat-')) return w.hat === id && !w.outfit;
+  if (id.startsWith('decal-')) return w.decal === id;
+  return false;
+}
+export function toggleWear(id) {
+  if (!canWear(id)) return null;
+  const w = state.wear;
+  const on = !isWorn(id);
+  if (id === 'scarf') w.scarf = on;
+  else if (id === 'backpack') w.backpack = on;
+  else if (id === 'conductor') w.outfit = on;
+  else if (id === 'cap' || id.startsWith('hat-')) { w.hat = on ? id : null; if (on) w.outfit = false; }
+  else if (id.startsWith('decal-')) w.decal = on ? id : null;
+  return commit({ type: 'wear', id, on });
+}
+export function setPaint(id) {
+  if (!PAINTS.some((p) => p.id === id) || (id !== 'purple' && !owns('paint'))) return null;
+  state.wear.paint = id;
+  return commit({ type: 'wear', id: `paint-${id}`, on: true });
+}
+
+// Everything Pengu and the train show right now, for the drawings.
+export function look() {
+  const w = state.wear;
+  const hat = w.outfit && owns('conductor') ? 'conductor' : (w.hat && canWear(w.hat) ? w.hat : null);
+  return {
+    hat,
+    scarf: w.scarf && owns('scarf'),
+    backpack: w.backpack && owns('backpack'),
+    outfit: w.outfit && owns('conductor'),
+    decal: w.decal && hasExtra(w.decal) ? w.decal : null,
+    paint: owns('paint') && PAINTS.some((p) => p.id === w.paint) ? w.paint : 'purple',
+    headlamp: owns('headlamp'),
+    car: owns('car'),
+  };
 }
 
 // ---------- Export ----------
