@@ -9,7 +9,7 @@ import { h, icon, weekday, monthDay, plural } from './ui.js';
 import { penguFigure, carFigure, extraCarFigure } from './art.js';
 import { countTo, toast as fxToast } from '../fx.js';
 
-const toast = (title, sub, mood) => fxToast(title, sub, mood, penguFigure(S.look(), { cls: 'py-toast-art', view: 'bust' }));
+const toast = (title, sub) => fxToast(title, sub, penguFigure(S.look(), { cls: 'py-toast-art', view: 'bust' }));
 
 let moving = '';        // the station whose "move to" picker is open
 let lastTrainAt = null; // where the train was drawn last, so a log can roll it forward
@@ -91,12 +91,12 @@ function logArea(r) {
       const got = res.extra ? ` You collected the ${res.extra.name} (looks only).` : '';
       if (res.comeback) {
         const parts = [res.fish && `${res.fish} for the station`, `${res.comeback} for your Comeback stamp`, res.bonus && `${res.bonus} for the full week`].filter(Boolean);
-        toast(`Welcome back! +${res.fish + res.comeback + res.bonus} Fish`, `${parts.join(', ')}.${got}`, 'celebrate');
-      } else if (res.kind === 'extra') toast('Extra ride logged', `Nice work.${got || ' You’ve collected every extra, and this still counts for you.'}`, 'idle');
-      else if (res.bonus) toast(`You hit your week! +${res.fish + res.bonus} Fish`, `${res.fish} for the station and ${res.bonus} for the full week. Week streak: ${S.weekStreak()}.`, 'celebrate');
+        toast(`Welcome back! +${res.fish + res.comeback + res.bonus} Fish`, `${parts.join(', ')}.${got}`);
+      } else if (res.kind === 'extra') toast('Extra ride logged', `Nice work.${got || ' You’ve collected every extra, and this still counts for you.'}`);
+      else if (res.bonus) toast(`You hit your week! +${res.fish + res.bonus} Fish`, `${res.fish} for the station and ${res.bonus} for the full week. Week streak: ${S.weekStreak()}.`);
       else {
         const nr = S.route();
-        toast(`Station punched. +${res.fish} Fish`, `${goalLine(nr).text}${res.movedFrom ? ` Your ${weekday(S.parseKey(res.movedFrom))} station moved to today.` : ''}`, 'fire');
+        toast(`Station punched. +${res.fish} Fish`, `${goalLine(nr).text}${res.movedFrom ? ` Your ${weekday(S.parseKey(res.movedFrom))} station moved to today.` : ''}`);
       }
       const again = document.querySelector('.py-count');
       if (again) again.focus({ preventScroll: true });
@@ -127,7 +127,7 @@ function movePicker() {
       onclick: () => {
         const from = moving;
         moving = '';
-        if (S.moveStation(from, d)) toast(`Moved to ${weekday(S.parseKey(d))}`, 'No penalty. Download your updated calendar file below.', 'idle');
+        if (S.moveStation(from, d)) toast(`Moved to ${weekday(S.parseKey(d))}`, 'No penalty. Download your updated calendar file below.');
       },
     }, d === S.today() ? 'Today' : `${weekday(S.parseKey(d), 'short')} ${monthDay(S.parseKey(d))}`)),
     h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { moving = ''; rerenderRef(); } }, 'Keep it')));
@@ -203,7 +203,7 @@ export function renderToday(root, rerender, { focus, onShop = () => {} } = {}) {
   const monday = S.thisWeek();
   const sunday = S.addDays(monday, 6);
   const goal = goalLine(r);
-  const fishValue = h('span', { class: 'stat-value star' }, icon('i-fish'), h('span', { class: 'py-fish-n' }));
+  const fishValue = h('span', { class: 'stat-value fish' }, icon('i-fish'), h('span', { class: 'py-fish-n' }));
   const heading = h('h3', { class: 'py-count', tabindex: '-1' },
     'Workouts this week: ', h('span', { class: 'py-nowrap' }, h('strong', {}, String(r.done)), ` of ${r.target}`));
 

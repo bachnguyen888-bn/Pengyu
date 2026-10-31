@@ -1,5 +1,5 @@
 // Pengu's week planner: its memory and rules. One object in this browser's localStorage under its
-// own key, so it never touches the preview's saved data, and it is never sent anywhere.
+// own key, and it is never sent anywhere.
 // Workouts are the currency: a planned workout pays Fish, a full week pays a bonus, and coming back
 // after a missed day pays a Comeback stamp. Workouts beyond the plan pay no Fish; they collect
 // looks-only extras in a fixed order. Nothing here is random, and nothing is ever sold.
@@ -8,7 +8,7 @@ const KEY = 'pengyu.v1';
 export const TARGETS = [2, 3, 4];
 export const FISH = { station: 10, weekBonus: 25, comeback: 15 };
 
-// Extras for workouts beyond the plan: looks only, never power, always in this order.
+// Extras for workouts beyond the plan: looks only, they never change how Fish are earned, always in this order.
 export const EXTRAS = [
   { id: 'decal-star', name: 'Star decal', kind: 'train decal' },
   { id: 'hat-bobble', name: 'Bobble hat', kind: 'hat' },

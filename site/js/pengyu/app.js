@@ -79,7 +79,7 @@ export function initPengyu() {
     const weeks = S.announceCovers();
     if (!weeks.length) return;
     const d = S.parseKey(weeks[weeks.length - 1]);
-    toast('Your week streak is safe', `Pengu used this month’s free streak cover for the week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`, 'rest', penguFigure(S.look(), { cls: 'py-toast-art', view: 'bust' }));
+    toast('Your week streak is safe', `Pengu used this month’s free streak cover for the week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`, penguFigure(S.look(), { cls: 'py-toast-art', view: 'bust' }));
   }
 
   S.subscribe(render);

@@ -57,7 +57,7 @@ function buyNow(item, rerender) {
   if (!res) { refocus = `buy-${item.id}`; rerender(); return; }
   fxToast(`New ${item.kind === 'gear' ? 'gear' : 'train upgrade'}: ${item.name}!`,
     `${item.kind === 'gear' ? 'Pengu’s wearing it now.' : 'It’s on your train now.'} −${item.price} Fish. It’s yours for good.`,
-    'celebrate', bust());
+    bust());
 }
 
 function itemRow(item, rerender) {
