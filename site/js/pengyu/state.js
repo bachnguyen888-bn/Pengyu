@@ -1,10 +1,22 @@
 // Pengu's week planner: its memory and rules. One object in this browser's localStorage under its
 // own key, so it never touches the preview's saved data, and it is never sent anywhere.
-// Workouts are the currency: a planned workout pays Fish, and a full week pays a bonus.
+// Workouts are the currency: a planned workout pays Fish, a full week pays a bonus, and coming back
+// after a missed day pays a Comeback stamp. Workouts beyond the plan pay no Fish; they collect
+// looks-only extras in a fixed order. Nothing here is random, and nothing is ever sold.
 
 const KEY = 'pengyu.v1';
 export const TARGETS = [2, 3, 4];
-export const FISH = { station: 10, weekBonus: 25 };
+export const FISH = { station: 10, weekBonus: 25, comeback: 15 };
+
+// Extras for workouts beyond the plan: looks only, never power, always in this order.
+export const EXTRAS = [
+  { id: 'decal-star', name: 'Star decal', kind: 'train decal' },
+  { id: 'hat-bobble', name: 'Bobble hat', kind: 'hat' },
+  { id: 'decal-wave', name: 'Wave decal', kind: 'train decal' },
+  { id: 'hat-sun', name: 'Sun hat', kind: 'hat' },
+  { id: 'decal-bolt', name: 'Lightning decal', kind: 'train decal' },
+  { id: 'hat-party', name: 'Party hat', kind: 'hat' },
+];
 
 // ---------- Dates (local time, as YYYY-MM-DD keys; weeks start on Monday) ----------
 export function dayKey(d = new Date()) {
@@ -23,9 +35,11 @@ function fresh() {
     v: 1,
     createdAt: new Date().toISOString(),
     plans: {},            // monday -> { target, days, time, window, place, createdAt, moves: [{ from, to, at }] }
-    log: {},              // day -> { at, kind: 'planned' | 'extra' }; one workout per day
+    log: {},              // day -> { at, kind: 'planned' | 'extra', comeback?: missedDay, extra?: id }; one a day
     fish: { balance: 0, lifetime: 0 },
     weekBonusPaid: [],    // mondays whose full-week bonus has been paid
+    extras: [],           // [{ id, earnedOn }] in EXTRAS order
+    coversAnnounced: [],  // mondays whose free streak cover has been shown to the player
     events: [],           // { type, at, ...details }, for "Export my data"
   };
 }
@@ -41,7 +55,9 @@ function load() {
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (!saved || saved.v !== 1) return fresh();
     const base = fresh();
-    return { ...base, ...saved, fish: { ...base.fish, ...saved.fish } };
+    const out = { ...base, ...saved, fish: { ...base.fish, ...saved.fish } };
+    for (const k of ['weekBonusPaid', 'extras', 'coversAnnounced', 'events']) if (!Array.isArray(out[k])) out[k] = [];
+    return out;
   } catch { return fresh(); }
 }
 function save() {
@@ -97,15 +113,43 @@ export function weekHit(monday) {
   return Boolean(plan && plan.days.every(isDone));
 }
 
-// Consecutive weeks where the plan was hit. This week only adds once it is hit; until then it is
-// still open and does not break the streak.
-export function weekStreak() {
-  let monday = thisWeek();
-  let n = weekHit(monday) ? 1 : 0;
-  monday = addDays(monday, -7);
-  while (weekHit(monday)) { n += 1; monday = addDays(monday, -7); }
-  return n;
+// Week streak: consecutive weeks where the plan was hit, counted from the first planned week.
+// This week only adds once it is hit; until then it is open and cannot break anything.
+// One free streak cover per calendar month: the first missed week of a month (counted by its
+// Monday) keeps a running streak alive without adding to it. It is automatic and never sold.
+export function streakInfo() {
+  const current = thisWeek();
+  const first = Object.keys(state.plans).sort()[0];
+  const usedMonths = new Set();
+  const covered = [];
+  let streak = 0;
+  if (first) {
+    for (let monday = first; monday < current; monday = addDays(monday, 7)) {
+      if (weekHit(monday)) streak += 1;
+      else if (streak > 0 && !usedMonths.has(monday.slice(0, 7))) { usedMonths.add(monday.slice(0, 7)); covered.push(monday); }
+      else streak = 0;
+    }
+  }
+  if (weekHit(current)) streak += 1;
+  return { streak, covered, coverReady: !usedMonths.has(current.slice(0, 7)) };
 }
+export const weekStreak = () => streakInfo().streak;
+
+// ---------- Comebacks and extras ----------
+function lastMissedBefore(t) {
+  let last = '';
+  for (const plan of Object.values(state.plans)) for (const d of plan.days) if (d < t && !state.log[d] && d > last) last = d;
+  return last;
+}
+// The missed planned day this workout comes back from, if it is the first workout since then.
+export function comebackDue(t = today()) {
+  const missed = lastMissedBefore(t);
+  const lastWorkout = Object.keys(state.log).filter((d) => d < t).sort().pop() || '';
+  return missed && lastWorkout < missed ? missed : '';
+}
+export const comebackStamps = () => Object.values(state.log).filter((l) => l.comeback).length;
+export const nextExtra = () => EXTRAS.find((e) => !state.extras.some((x) => x.id === e.id)) || null;
+export const extraById = (id) => EXTRAS.find((e) => e.id === id) || null;
 
 // What a tap on "I worked out today" will do, so the button can say so before it is pressed.
 export function logPreview() {
@@ -113,10 +157,12 @@ export function logPreview() {
   if (state.log[t]) return { kind: 'logged' };
   const plan = planFor();
   if (!plan) return { kind: 'no-plan' };
-  if (plan.days.includes(t)) return { kind: 'planned', fish: FISH.station };
+  const comeback = comebackDue(t);
+  const bonus = comeback ? FISH.comeback : 0;
+  if (plan.days.includes(t)) return { kind: 'planned', fish: FISH.station + bonus, comeback };
   const next = stations(plan).find((d) => d > t && !isDone(d));
-  if (next) return { kind: 'moved', from: next, fish: FISH.station };
-  return { kind: 'extra', fish: 0 };
+  if (next) return { kind: 'moved', from: next, fish: FISH.station + bonus, comeback };
+  return { kind: 'extra', fish: bonus, comeback, extra: nextExtra() };
 }
 
 // ---------- Changes ----------
@@ -153,7 +199,8 @@ export function moveStation(from, to) {
 }
 
 // One tap, once a day, any workout of any length. A planned day punches its station; another day
-// moves the next upcoming station here; with no station left it is an extra ride that pays no Fish.
+// moves the next upcoming station here; with no station left it is an extra ride: no Fish, and the
+// next looks-only extra. The first workout after a missed planned day also earns a Comeback stamp.
 export function logWorkout() {
   const preview = logPreview();
   if (preview.kind === 'logged' || preview.kind === 'no-plan') return null;
@@ -168,6 +215,17 @@ export function logWorkout() {
   state.log[t] = { at: new Date().toISOString(), kind };
   let fish = 0;
   if (kind === 'planned') { pay(FISH.station); fish += FISH.station; }
+  let comeback = 0;
+  if (preview.comeback) {
+    state.log[t].comeback = preview.comeback;
+    pay(FISH.comeback);
+    comeback = FISH.comeback;
+  }
+  const extra = kind === 'extra' ? nextExtra() : null;
+  if (extra) {
+    state.extras.push({ id: extra.id, earnedOn: t });
+    state.log[t].extra = extra.id;
+  }
   let bonus = 0;
   if (weekHit(monday) && !state.weekBonusPaid.includes(monday)) {
     state.weekBonusPaid.push(monday);
@@ -177,9 +235,14 @@ export function logWorkout() {
   const r = route(monday);
   logEvent('workout_logged', {
     day: t, kind, movedFrom: preview.kind === 'moved' ? preview.from : undefined,
-    fish: fish + bonus, done: r.done, target: r.target, weekHit: r.hit,
+    fish: fish + bonus + comeback, done: r.done, target: r.target, weekHit: r.hit,
   });
-  return commit({ type: 'log', kind, fish, bonus, movedFrom: preview.kind === 'moved' ? preview.from : null, hit: r.hit });
+  if (comeback) logEvent('comeback_earned', { day: t, after: preview.comeback, fish: comeback });
+  if (extra) logEvent('extra_earned', { day: t, id: extra.id });
+  return commit({
+    type: 'log', kind, fish, bonus, comeback, extra,
+    movedFrom: preview.kind === 'moved' ? preview.from : null, hit: r.hit,
+  });
 }
 
 // The calendar file now matches the plan (the Today screen stops asking until a day moves).
@@ -188,6 +251,18 @@ export function markCalendarSaved() {
   if (!plan) return null;
   plan.icsSeq = plan.moves.length;
   return commit({ type: 'calendar' });
+}
+
+// Covers are applied by the rules above; this records each one once, so Pengu can say so.
+export function announceCovers() {
+  const fresh = streakInfo().covered.filter((m) => !state.coversAnnounced.includes(m));
+  if (!fresh.length) return [];
+  for (const m of fresh) {
+    state.coversAnnounced.push(m);
+    logEvent('streak_cover_used', { week: m, month: m.slice(0, 7) });
+  }
+  commit({ type: 'cover', weeks: fresh });
+  return fresh;
 }
 
 // ---------- Export ----------

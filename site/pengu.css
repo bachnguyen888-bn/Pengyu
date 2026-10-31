@@ -1179,7 +1179,17 @@ button.py-station-btn { border-radius: var(--radius-sm); }
   background: var(--surface); border: 3px solid var(--line-strong); color: #FFFFFF;
   transition: background-color var(--dur-base) var(--ease-spring), border-color var(--dur-base), transform var(--dur-base) var(--ease-spring);
 }
+.py-stop { position: relative; }
 .py-stop .icon { width: 22px; height: 22px; stroke-width: 2.4; }
+/* Comeback stamp: a gold seal on the station where the player came back */
+.py-stamp {
+  position: absolute; top: -8px; right: -10px; display: grid; place-items: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent-gold); color: #3B2604; border: 2px solid var(--surface);
+}
+.py-stop .py-stamp .icon { width: 12px; height: 12px; stroke-width: 2.2; }
+.py-stamp.is-new { animation: py-stamp-in 700ms var(--ease-spring); }
+@keyframes py-stamp-in { 0% { transform: scale(2.4) rotate(-30deg); opacity: 0; } 60% { transform: scale(0.9) rotate(6deg); opacity: 1; } 100% { transform: none; } }
 .py-stop-day { font-size: var(--fs-small); font-weight: 600; line-height: 1.2; white-space: nowrap; }
 .is-done .py-stop { background: var(--accent-emerald-strong); border-color: var(--accent-emerald-strong); }
 .is-today .py-stop { border-color: var(--brand-purple); box-shadow: 0 0 0 4px var(--accent-tint); }
@@ -1203,6 +1213,13 @@ button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transf
 .btn-secondary .py-fish-badge { background: var(--accent-tint); }
 .py-logged { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 48px; padding: 0 var(--space-4); border-radius: var(--radius-md); background: var(--live-bg); color: var(--live-ink); font-weight: 600; }
 .py-logged .icon { width: 18px; height: 18px; stroke-width: 2.2; }
+.py-celebrate { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--star-bg); color: var(--text); }
+.py-celebrate .pengu { width: 56px; height: 56px; }
+.py-celebrate-title { font-weight: 600; color: var(--star-ink); }
+.py-cover { display: flex; align-items: center; gap: var(--space-2); margin-top: calc(-1 * var(--space-2)); }
+.py-cover .icon { color: var(--live-ink); }
+.py-collection { display: grid; gap: var(--space-2); }
+.py-tag-stamp { background: var(--star-bg); color: var(--star-ink); }
 .py-link { padding: 0; border: 0; background: none; color: var(--accent-ink); font: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .py-link:hover { text-decoration-thickness: 2px; }
 .py-settings { border-top: 1px solid var(--line); padding-top: var(--space-2); }

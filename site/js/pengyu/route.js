@@ -1,6 +1,7 @@
 // Today: "Workouts this week: X of N", the week drawn as a train route, and the one-tap log.
 // Each planned day is a station. Logging a workout punches it and Pengu's train rolls up to it.
-// A missed station stays visibly empty. No penalties, no shame: missing only means fewer Fish.
+// A missed station stays visibly empty. No penalties, no shame: missing only means fewer Fish, and
+// the first workout after a miss earns a Comeback stamp.
 
 import * as S from './state.js';
 import { downloadIcs } from './ics.js';
@@ -26,7 +27,9 @@ function stationNode(s, i, count) {
   const date = S.parseKey(s.day);
   const name = weekday(date);
   const label = s.status === 'today' ? 'Today' : weekday(date, 'short');
-  const stop = h('span', { class: 'py-stop' }, s.status === 'done' ? icon('i-check') : null);
+  const stamped = Boolean(S.state.log[s.day] && S.state.log[s.day].comeback);
+  const stop = h('span', { class: 'py-stop' }, s.status === 'done' ? icon('i-check') : null,
+    stamped ? h('span', { class: `py-stamp${s.day === S.today() ? ' is-new' : ''}` }, icon('i-refresh')) : null);
   const text = h('span', { class: 'py-stop-day' }, label);
   const movable = S.canMove(s.day);
   const inner = movable
@@ -35,7 +38,7 @@ function stationNode(s, i, count) {
       'aria-label': `${name}, ${STATUS[s.status]}. Move this station.`,
       onclick: () => { moving = moving === s.day ? '' : s.day; focusMove = Boolean(moving); rerenderRef(); },
     }, stop, text)
-    : h('span', { class: 'py-station-btn' }, stop, text, h('span', { class: 'sr-only' }, `${name}, ${STATUS[s.status]}`));
+    : h('span', { class: 'py-station-btn' }, stop, text, h('span', { class: 'sr-only' }, `${name}, ${STATUS[s.status]}${stamped ? ', with a Comeback stamp' : ''}`));
   const li = h('li', { class: `py-station is-${s.status}` }, inner);
   li.style.setProperty('--at', String((i + 1) / count));
   if (movable) inner.querySelector('.py-stop-day').setAttribute('aria-hidden', 'true');
@@ -45,7 +48,8 @@ function stationNode(s, i, count) {
 
 function trainNode(r) {
   const train = h('div', { class: 'py-train', 'aria-hidden': 'true' });
-  const rider = penguSvg(r.hit ? 'celebrate' : 'idle', 'pengu py-rider');
+  const todayLog = S.state.log[S.today()];
+  const rider = penguSvg(r.hit || (todayLog && todayLog.comeback) ? 'celebrate' : 'idle', 'pengu py-rider');
   train.append(rider, icon('py-car', 'py-car'));
   const at = r.trainAt / r.stations.length;
   const from = lastTrainAt === null ? at : lastTrainAt;
@@ -61,9 +65,16 @@ function logArea(r) {
   const p = S.logPreview();
   const wrap = h('div', { class: 'py-log' });
   if (p.kind === 'logged') {
-    const extra = S.state.log[S.today()].kind === 'extra';
+    const log = S.state.log[S.today()];
+    if (log.comeback) {
+      wrap.append(h('div', { class: 'py-celebrate', role: 'status' },
+        penguSvg('celebrate', 'pengu'),
+        h('div', {},
+          h('p', { class: 'py-celebrate-title' }, 'Welcome back! Comeback stamp earned.'),
+          h('p', { class: 'small' }, `That’s ${S.FISH.comeback} bonus Fish. Pengu’s glad to ride with you again.`))));
+    }
     wrap.append(
-      h('p', { class: 'py-logged' }, icon('i-check'), extra ? 'Logged today as an extra ride' : 'Logged today'),
+      h('p', { class: 'py-logged' }, icon('i-check'), log.kind === 'extra' ? 'Logged today as an extra ride' : 'Logged today'),
       h('p', { class: 'small muted' }, r.hit ? 'Your week is hit. Anything more this week is an extra ride.' : 'See you at your next station.'),
     );
     return wrap;
@@ -73,7 +84,11 @@ function logArea(r) {
     onclick: () => {
       const res = S.logWorkout();
       if (!res) return;
-      if (res.kind === 'extra') toast('Extra ride logged', 'Nice work. Extra rides don’t pay Fish, and they still count for you.', 'idle');
+      const got = res.extra ? ` You collected the ${res.extra.name} (looks only).` : '';
+      if (res.comeback) {
+        const parts = [res.fish && `${res.fish} for the station`, `${res.comeback} for your Comeback stamp`, res.bonus && `${res.bonus} for the full week`].filter(Boolean);
+        toast(`Welcome back! +${res.fish + res.comeback + res.bonus} Fish`, `${parts.join(', ')}.${got}`, 'celebrate');
+      } else if (res.kind === 'extra') toast('Extra ride logged', `Nice work.${got || ' You’ve collected every extra, and this still counts for you.'}`, 'idle');
       else if (res.bonus) toast(`You hit your week! +${res.fish + res.bonus} Fish`, `${res.fish} for the station and ${res.bonus} for the full week. Week streak: ${S.weekStreak()}.`, 'celebrate');
       else {
         const nr = S.route();
@@ -82,14 +97,16 @@ function logArea(r) {
       const again = document.querySelector('.py-count');
       if (again) again.focus({ preventScroll: true });
     },
-  }, p.kind === 'extra' ? 'Log an extra ride' : 'I worked out today', p.fish ? h('span', { class: 'py-fish-badge' }, `+${p.fish} Fish`) : null);
+  }, p.kind === 'extra' ? 'Log an extra ride' : 'I worked out today',
+  p.fish ? h('span', { class: 'py-fish-badge' }, `+${p.fish} Fish`) : null,
+  p.kind === 'extra' && p.extra ? h('span', { class: 'py-fish-badge' }, `+ ${p.extra.name}`) : null);
   wrap.append(btn);
-  const note = p.kind === 'moved'
-    ? `Today isn’t on your plan, so this moves your ${weekday(S.parseKey(p.from))} station to today.`
-    : p.kind === 'extra'
-      ? 'Your stations are done or past, so this one is an extra ride. Extra rides don’t pay Fish.'
-      : 'Any workout, any length. One tap, once a day.';
-  wrap.append(h('p', { class: 'small muted' }, note));
+  const notes = [];
+  if (p.kind === 'moved') notes.push(`Today isn’t on your plan, so this moves your ${weekday(S.parseKey(p.from))} station to today.`);
+  else if (p.kind === 'extra') notes.push(`Your stations are done or past, so this is an extra ride. Extra rides pay no Fish${p.extra ? `; this one adds the ${p.extra.name} to your extras (looks only)` : ''}.`);
+  else notes.push('Any workout, any length. One tap, once a day.');
+  if (p.comeback) notes.push(`Your first workout after a break earns a Comeback stamp and ${S.FISH.comeback} bonus Fish.`);
+  wrap.append(h('p', { class: 'small muted' }, notes.join(' ')));
   return wrap;
 }
 
@@ -129,6 +146,30 @@ function calendarArea(plan) {
     h('button', { class: 'py-link', type: 'button', onclick: get }, 'Download the calendar file again'));
 }
 
+// Comeback stamps and looks-only extras, with the next extra always shown: no mystery items.
+function collection() {
+  const stamps = S.comebackStamps();
+  const owned = S.state.extras.map((x) => S.extraById(x.id)).filter(Boolean);
+  if (!stamps && !owned.length) return null;
+  const next = S.nextExtra();
+  return h('div', { class: 'py-collection' },
+    h('p', { class: 'stat-label' }, 'Stamps and extras'),
+    h('ul', { class: 'tag-list' },
+      stamps ? h('li', { class: 'tag py-tag-stamp' }, icon('i-refresh'), `${plural(stamps, 'Comeback stamp')}`) : null,
+      owned.map((e) => h('li', { class: 'tag' }, `${e.name}`))),
+    h('p', { class: 'small muted' }, next
+      ? `Extras are looks only and come in a set order. Next extra ride: ${next.name}.`
+      : 'You’ve collected every extra. They’re looks only.'));
+}
+
+function coverLine() {
+  const info = S.streakInfo();
+  return h('p', { class: 'small muted py-cover' }, icon('i-shield'),
+    info.coverReady
+      ? 'Free streak cover ready this month'
+      : 'Free streak cover used this month');
+}
+
 let rerenderRef = () => {};
 
 export function renderToday(root, rerender, { focus } = {}) {
@@ -150,6 +191,7 @@ export function renderToday(root, rerender, { focus } = {}) {
         h('div', { class: 'py-stats' },
           h('div', { class: 'stat' }, h('span', { class: 'stat-label' }, 'Fish'), fishValue),
           h('div', { class: 'stat' }, h('span', { class: 'stat-label' }, 'Week streak'), h('span', { class: 'stat-value live' }, String(S.weekStreak()))))),
+      coverLine(),
       h('div', { class: 'py-route-wrap' },
         h('ol', { class: 'py-route', 'aria-label': 'Your route this week' },
           h('li', { class: 'py-depot', 'aria-hidden': 'true' }),
@@ -159,6 +201,7 @@ export function renderToday(root, rerender, { focus } = {}) {
         r.extras ? h('span', { class: 'muted' }, ` Extra rides: ${r.extras}.`) : null),
       movePicker(),
       logArea(r),
+      collection(),
       calendarArea(r.plan),
       h('p', { class: 'small muted py-plan-line' }, `Your plan: ${r.plan.window}, ${r.plan.place}. Tap an open station to move it.`),
     ),

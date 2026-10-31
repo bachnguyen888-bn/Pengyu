@@ -6,6 +6,7 @@ import { renderPlanFlow, takeFocusRequest } from './plan.js';
 import { renderToday } from './route.js';
 import { download } from './ics.js';
 import { h, icon } from './ui.js';
+import { toast } from '../fx.js';
 
 export function initPengyu() {
   const root = document.getElementById('py-app');
@@ -40,11 +41,20 @@ export function initPengyu() {
     root.append(box);
   }
 
+  // When a free streak cover kicks in, Pengu says so once, kindly.
+  function covers() {
+    const weeks = S.announceCovers();
+    if (!weeks.length) return;
+    const d = S.parseKey(weeks[weeks.length - 1]);
+    toast('Your week streak is safe', `Pengu used this month’s free streak cover for the week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`, 'rest');
+  }
+
   S.subscribe(render);
   render();
+  covers();
 
   // A new day or week can change everything on screen (a missed station, a fresh plan).
-  const refresh = () => { if (S.today() !== day) { day = S.today(); render(); } };
+  const refresh = () => { if (S.today() !== day) { day = S.today(); render(); covers(); } };
   setInterval(refresh, 60000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 }
