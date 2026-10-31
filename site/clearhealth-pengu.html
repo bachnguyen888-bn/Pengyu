@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="day">
+<html lang="en">
 <head>
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
 <meta charset="utf-8">
@@ -18,16 +18,16 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#F7F7FA">
+<meta name="theme-color" content="#FAF6F0">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preload" href="fonts/public-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/source-serif-4-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/public-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="pengu.css">
 <script src="js/boot.js"></script>
 <script type="module" src="js/main.js"></script>
 </head>
-<body id="top">
-<!-- Line icons for the week planner. Pengu and the train are drawn in js/pengyu/art.js -->
+<body>
+<!-- Line icons. Pengu and the train are drawn in js/pengyu/art.js -->
 <svg class="sprite" aria-hidden="true" focusable="false">
   <symbol id="i-alert" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5M8 11h.01"/></symbol>
   <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -36,25 +36,24 @@
   <symbol id="i-lock" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7H4a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 4 15h8a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 12 7h-.5V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3"/></symbol>
   <symbol id="i-shield" viewBox="0 0 16 16"><path d="M8 1.75 13.25 3.8v3.95c0 3.05-2.15 5.45-5.25 6.5-3.1-1.05-5.25-3.45-5.25-6.5V3.8Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m5.6 8 1.7 1.7 3.1-3.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <!-- Bottom nav -->
+  <symbol id="i-today" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="15.2" r="2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-pengu" viewBox="0 0 24 24"><path d="M12 3C8.6 3 6.4 6.1 6.4 10.4c0 4.8 2.3 9.6 5.6 9.6s5.6-4.8 5.6-9.6C17.6 6.1 15.4 3 12 3Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6.6 11.5 4 15M17.4 11.5 20 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="14" cy="9" r="1.1" fill="currentColor" stroke="none"/><path d="M11 11.2h2l-1 1.4Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4.5 4.5v4.2h4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v4.4l2.8 1.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 
 <a class="skip" href="#main">Skip to content</a>
 
-<main id="main" class="container">
-  <!-- Week planner: plan 2 to 4 workouts, ride the route, earn Fish. Runs in js/pengyu/, saved only in this browser. -->
-  <article class="card py" id="week" aria-labelledby="py-title">
-    <header class="py-top">
-      <span class="py-avatar" aria-hidden="true"></span>
-      <div>
-        <p class="eyebrow">Your week with Pengu</p>
-        <h1 id="py-title" class="h3">Plan it. Ride the route. Earn Fish.</h1>
-      </div>
-    </header>
-    <div id="py-app" class="py-app js-only"></div>
-    <p class="nojs-only muted">The week planner runs in your browser. Turn on JavaScript to plan your week and log workouts. Everything stays on your device.</p>
-  </article>
+<!-- Pengyu: plan 2 to 4 workouts a week, ride the route, earn Fish. Runs in js/pengyu/, saved only in this browser. -->
+<main id="main" class="app">
+  <div id="py-app" class="js-only"></div>
+  <div class="nojs nojs-only">
+    <h1 class="py-greet">Pengyu</h1>
+    <p class="muted">Pengyu runs in your browser. Turn on JavaScript to plan your week and log workouts. Everything stays on your device.</p>
+  </div>
 </main>
 
+<nav class="tabbar js-only" id="py-nav" aria-label="Pengyu"></nav>
 <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 </body>
 </html>

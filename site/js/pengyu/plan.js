@@ -24,6 +24,8 @@ let refocusKey = '';   // the chip that was just pressed, refocused after a re-r
 function resetDraft() {
   draft = { week: S.thisWeek(), step: 1, target: 0, days: [], timeId: '', customTime: '16:00', placeId: '', customPlace: '' };
 }
+// After a reset, the flow starts again from step 1.
+export function resetPlanDraft() { draft = null; }
 
 const openDays = () => S.weekDays(S.thisWeek()).filter((d) => d >= S.today());
 
@@ -62,7 +64,7 @@ export function renderPlanFlow(root, rerender) {
   if (days.length < S.TARGETS[0]) {
     root.append(
       h('div', { class: 'py-flow' },
-        h('h3', { class: 'py-step-title' }, 'Your next week starts Monday'),
+        h('h2', { class: 'py-step-title' }, 'Your next week starts Monday'),
         h('p', { class: 'muted' }, 'Plans run Monday to Sunday, and the smallest one is two workouts. Come back Monday to plan your week. Any workout you do today still counts for you.')),
     );
     return;
@@ -123,7 +125,7 @@ export function renderPlanFlow(root, rerender) {
         h('input', { class: 'input', id: 'py-place', type: 'text', maxlength: '40', autocomplete: 'off', placeholder: 'the pool', value: draft.customPlace, oninput: (e) => { draft.customPlace = e.target.value; next.disabled = !stepReady(); } })) : null);
   } else {
     title = 'Your week';
-    hint = 'One line per day. Tap a station later to move it, with no penalty.';
+    hint = 'One line per day. You can move a day later from its card, with no penalty.';
     const t = timeChoice();
     const preview = { window: t.window, place: placeChoice() };
     body = h('ol', { class: 'py-review' },
@@ -141,7 +143,7 @@ export function renderPlanFlow(root, rerender) {
     },
   }, draft.step < STEPS ? 'Next' : 'Start my week');
 
-  const heading = h('h3', { class: 'py-step-title', id: 'py-step-title', tabindex: '-1' }, title);
+  const heading = h('h2', { class: 'py-step-title', id: 'py-step-title', tabindex: '-1' }, title);
   root.append(h('div', { class: 'py-flow' },
     h('div', { class: 'py-flow-top' },
       h('p', { class: 'eyebrow' }, `Plan your week · Step ${draft.step} of ${STEPS}`),

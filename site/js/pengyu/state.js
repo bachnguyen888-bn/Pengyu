@@ -375,7 +375,18 @@ export function look() {
   };
 }
 
-// ---------- Export ----------
+// ---------- Export and reset ----------
 export function exportData() {
   return JSON.stringify({ exportedAt: new Date().toISOString(), storageKey: KEY, ...state }, null, 2);
+}
+
+// Start over: forget everything Pengyu saved in this browser, and the old preview's leftovers too.
+const OLD_KEYS = ['pengu.preview.v1', 'pengu.theme'];
+export function reset() {
+  for (const key of [KEY, ...OLD_KEYS]) {
+    try { localStorage.removeItem(key); } catch { /* storage blocked: there is nothing saved to forget */ }
+  }
+  state = fresh();
+  for (const fn of listeners) fn({ type: 'reset', saved: canSave });
+  return true;
 }

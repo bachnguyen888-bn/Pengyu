@@ -126,11 +126,11 @@ function extrasSection() {
   const next = S.nextExtra();
   if (!owned.length) {
     return h('section', { class: 'py-shop-sec', 'aria-labelledby': 'py-extras-title' },
-      h('h4', { class: 'py-shop-h', id: 'py-extras-title' }, 'Extras'),
+      h('h2', { class: 'py-shop-h', id: 'py-extras-title' }, 'Extras'),
       h('p', { class: 'small muted' }, `Workouts beyond your plan collect looks-only extras in a set order. ${next ? `The first is the ${next.name}.` : ''}`));
   }
   return h('section', { class: 'py-shop-sec', 'aria-labelledby': 'py-extras-title' },
-    h('h4', { class: 'py-shop-h', id: 'py-extras-title' }, 'Extras'),
+    h('h2', { class: 'py-shop-h', id: 'py-extras-title' }, 'Extras'),
     h('ul', { class: 'py-items' }, owned.map((e) => {
       const worn = S.isWorn(e.id);
       return h('li', { class: 'py-item is-owned' },
@@ -150,6 +150,7 @@ function extrasSection() {
 export function renderShop(root, rerender) {
   const look = S.look();
   root.append(h('div', { class: 'py-shop' },
+    h('h1', { class: 'py-view-title' }, 'Pengu & train'),
     h('div', { class: 'py-shop-top' },
       showcase(look),
       h('div', { class: 'py-shop-side' },
@@ -157,12 +158,12 @@ export function renderShop(root, rerender) {
         nextGoal())),
     h('section', { class: 'py-shop-sec', 'aria-labelledby': 'py-gear-title' },
       h('div', { class: 'py-shop-head' },
-        h('h4', { class: 'py-shop-h', id: 'py-gear-title' }, 'Pengu’s gear'),
+        h('h2', { class: 'py-shop-h', id: 'py-gear-title' }, 'Pengu’s gear'),
         h('span', { class: 'small muted' }, 'Unlocks in this order')),
       h('ol', { class: 'py-items' }, S.GEAR.map((g) => itemRow({ ...g, kind: 'gear' }, rerender)))),
     h('section', { class: 'py-shop-sec', 'aria-labelledby': 'py-train-title' },
       h('div', { class: 'py-shop-head' },
-        h('h4', { class: 'py-shop-h', id: 'py-train-title' }, 'Train upgrades'),
+        h('h2', { class: 'py-shop-h', id: 'py-train-title' }, 'Train upgrades'),
         h('span', { class: 'small muted' }, 'Any order')),
       h('ul', { class: 'py-items' }, S.TRAIN.map((t) => itemRow({ ...t, kind: 'train' }, rerender)))),
     extrasSection(),
