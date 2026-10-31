@@ -2,7 +2,7 @@
 // unlock is yours for good. "Wear" switches only change what shows, never what you own.
 
 import * as S from './state.js';
-import { penguFigure, carFigure, extraCarFigure, glyph, PAINT_COLORS } from './art.js';
+import { penguFigure, sceneFigure, glyph, PAINT_COLORS } from './art.js';
 import { h, icon, plural } from './ui.js';
 import { toast as fxToast } from '../fx.js';
 
@@ -11,12 +11,8 @@ let refocus = '';      // the control to put focus back on after a re-render
 
 const bust = () => penguFigure(S.look(), { cls: 'py-toast-art', view: 'bust' });
 
-// The big preview: Pengu riding the train, wearing and pulling everything that's switched on.
+// The big preview: Pengu on the platform in front of the train, wearing everything that's switched on.
 function showcase(look) {
-  const train = h('div', { class: `py-show-train${look.car ? ' has-car2' : ''}`, 'aria-hidden': 'true' },
-    look.car ? extraCarFigure(look, 'py-car2') : null,
-    penguFigure(look, { cls: 'py-rider' }),
-    carFigure(look, 'py-car'));
   const hat = look.hat && look.hat !== 'conductor' ? `the ${look.hat === 'cap' ? 'cap' : (S.extraById(look.hat)?.name || '').toLowerCase()}` : null;
   const worn = [
     look.outfit ? 'the conductor outfit' : null,
@@ -24,9 +20,15 @@ function showcase(look) {
     look.scarf ? 'the scarf' : null,
     look.backpack ? 'the backpack' : null,
   ].filter(Boolean);
-  const label = worn.length ? `Pengu is wearing ${worn.join(', ')}.` : 'Pengu isn’t wearing any gear yet.';
+  const upgrades = [
+    look.headlamp ? 'the headlamp' : null,
+    look.paint !== 'navy' ? `${S.PAINTS.find((p) => p.id === look.paint).name.toLowerCase()} paint` : null,
+    look.car ? 'the extra car' : null,
+    look.decal ? `the ${S.extraById(look.decal).name.toLowerCase()}` : null,
+  ].filter(Boolean);
+  const label = `${worn.length ? `Pengu is wearing ${worn.join(', ')}.` : 'Pengu isn’t wearing any gear yet.'} ${upgrades.length ? `The train has ${upgrades.join(', ')}.` : 'The train is navy with no upgrades yet.'}`;
   return h('figure', { class: 'py-show' },
-    h('div', { class: 'py-show-stage' }, train, h('span', { class: 'py-show-rail', 'aria-hidden': 'true' })),
+    h('div', { class: 'py-show-stage' }, sceneFigure(look, 'py-scene')),
     h('figcaption', { class: 'sr-only' }, label));
 }
 

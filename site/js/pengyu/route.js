@@ -6,7 +6,7 @@
 import * as S from './state.js';
 import { downloadIcs } from './ics.js';
 import { h, icon, weekday, monthDay, plural } from './ui.js';
-import { penguFigure, carFigure, extraCarFigure } from './art.js';
+import { penguFigure, trainFigure } from './art.js';
 import { countTo, toast as fxToast } from '../fx.js';
 
 const toast = (title, sub) => fxToast(title, sub, penguFigure(S.look(), { cls: 'py-toast-art', view: 'bust' }));
@@ -50,11 +50,9 @@ function stationNode(s, i, count) {
 }
 
 function trainNode(r) {
-  const look = S.look();
-  const train = h('div', { class: `py-train${look.car ? ' has-car2' : ''}`, 'aria-hidden': 'true' });
   const todayLog = S.state.log[S.today()];
-  const rider = penguFigure(look, { cls: `py-rider${r.hit || (todayLog && todayLog.comeback) ? ' is-cheer' : ''}` });
-  train.append(look.car ? extraCarFigure(look, 'py-car2') : '', rider, carFigure(look, 'py-car'));
+  const cheer = r.hit || Boolean(todayLog && todayLog.comeback);
+  const train = h('div', { class: 'py-train', 'aria-hidden': 'true' }, trainFigure(S.look(), { cls: 'py-train-art', cheer }));
   const at = r.trainAt / r.stations.length;
   const from = lastTrainAt === null ? at : lastTrainAt;
   train.style.setProperty('--at', String(from));
@@ -224,7 +222,7 @@ export function renderToday(root, rerender, { focus, onShop = () => {} } = {}) {
           h('div', { class: 'stat' }, h('span', { class: 'stat-label' }, 'Fish'), fishValue))),
       h('div', { class: 'py-route-box' },
         streakLine(),
-        h('div', { class: 'py-route-wrap' },
+        h('div', { class: `py-route-wrap${S.look().car ? ' has-car2' : ''}` },
           h('ol', { class: 'py-route', 'aria-label': 'Your route this week' },
             h('li', { class: 'py-depot', 'aria-hidden': 'true' }),
             r.stations.map((s, i) => stationNode(s, i, r.stations.length))),

@@ -430,7 +430,8 @@ html:not(.js) .js-only { display: none !important; }
 
 /* ---------- 10. Week planner (Pengu's route) ---------- */
 /* The page is the week planner. Stations and the train share one coordinate: --at runs from 0 (the depot)
-   to 1 (the last station), set from js/pengyu/route.js. */
+   to 1 (the last station), set from js/pengyu/route.js. The train is --tw wide, and Pengu's cab sits --cab
+   from its left edge, so the cab lines up with each station and the engine never leaves the route. */
 .py { max-width: 760px; margin: 0 auto var(--space-16); padding: var(--space-4); display: grid; gap: var(--space-4); }
 .py-top { display: flex; align-items: center; gap: var(--space-3); }
 .py-top .h3 { margin-top: var(--space-1); }
@@ -470,10 +471,11 @@ html:not(.js) .js-only { display: none !important; }
 .py-count strong { color: var(--accent-ink); }
 .py-stats { display: flex; gap: var(--space-6); }
 .py-stats .stat-value { display: inline-flex; align-items: center; gap: var(--space-1); font-size: 1.25rem; }
-.py-route-wrap { position: relative; height: 166px; }
-.py-route { position: absolute; left: 0; right: 0; top: 86px; height: 80px; margin: 0; }
-.py-route::before { content: ""; position: absolute; left: 22px; right: 22px; top: 20px; height: 4px; border-radius: 2px; background: var(--line-strong); }
-.py-station, .py-depot, .py-train { position: absolute; left: calc(22px + var(--at, 0) * (100% - 44px)); transform: translateX(-50%); }
+.py-route-wrap { --th: 52px; --tw: calc(var(--th) * 1.786); --cab: calc(var(--tw) * 0.1933); position: relative; height: calc(var(--th) + 80px); }
+.py-route-wrap.has-car2 { --tw: calc(var(--th) * 2.452); --cab: calc(var(--tw) * 0.4126); }
+.py-route { position: absolute; left: 0; right: 0; top: var(--th); height: 80px; margin: 0; }
+.py-route::before { content: ""; position: absolute; left: 0; right: 0; top: 20px; height: 4px; border-radius: 2px; background: var(--line-strong); }
+.py-station, .py-depot { position: absolute; left: calc(var(--cab) + var(--at, 0) * (100% - var(--tw))); transform: translateX(-50%); }
 .py-station { top: 0; }
 .py-depot { top: 14px; width: 16px; height: 16px; border-radius: 4px; background: var(--line-strong); }
 .py-station-btn { display: grid; justify-items: center; gap: var(--space-1); min-width: 44px; padding: 0; border: 0; background: none; color: var(--text); }
@@ -502,21 +504,28 @@ button.py-station-btn { border-radius: var(--radius-sm); }
 .is-missed .py-stop-day { color: var(--text-muted); font-weight: 400; }
 button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transform: translateY(-2px); }
 .py-station-btn[aria-expanded="true"] .py-stop { border-color: var(--brand-purple); background: var(--accent-tint); }
-.py-train { top: 0; width: 64px; height: 86px; pointer-events: none; transition: left 900ms var(--ease-spring); }
-.py-car { position: absolute; left: 0; bottom: 0; width: 64px; height: 32px; }
-/* The extra car rides behind; near the depot the pair is nudged in so it never leaves the card. */
-.py-car2 { position: absolute; right: calc(100% - 6px); bottom: 0; width: 52px; height: auto; }
-.py-train.has-car2 { left: max(calc(22px + var(--at, 0) * (100% - 44px)), 82px); }
-/* Pengu is the pink penguin lamp (img/pengu-lamp-192.webp); the car hides the lamp's base so Pengu sits inside */
+/* Small phones: a smaller train and stations, so four stations still fit beside the extra car. */
+@media (max-width: 359px) {
+  .py-route-wrap { --th: 46px; }
+  .py-station { top: 4px; }
+  .py-stop { width: 36px; height: 36px; }
+  .py-stop .icon { width: 18px; height: 18px; }
+}
+@media (max-width: 419px) {
+  .has-car2 .py-station { top: 7px; }
+  .has-car2 .py-stop { width: 30px; height: 30px; border-width: 2px; }
+  .has-car2 .py-stop .icon { width: 16px; height: 16px; }
+}
+.py-train { position: absolute; top: 0; left: calc(var(--at, 0) * (100% - var(--tw))); width: var(--tw); height: var(--th); pointer-events: none; transition: left 900ms var(--ease-spring); }
+/* Pengu and the train are flat SVG drawings from js/pengyu/art.js */
 .py-art { display: block; height: auto; user-select: none; -webkit-user-drag: none; }
-.py-rider { position: absolute; left: 50%; bottom: 16px; width: 40px; transform: translateX(-50%); }
+.py-train-art { width: 100%; height: 100%; }
 .py-avatar { width: 34px; flex: none; }
 .py-toast-art { width: 32px; flex: none; }
 .py-celebrate-art { width: 44px; flex: none; }
+.py-rider { transform-box: fill-box; }
 .is-cheer { animation: py-hop 1.6s var(--ease-spring) 2; transform-origin: 50% 100%; }
-.py-rider.is-cheer { animation-name: py-hop-rider; }
 @keyframes py-hop { 0%, 100% { transform: none; } 30% { transform: translateY(-6px) scale(1.04, 0.97); } 55% { transform: translateY(0) scale(0.97, 1.03); } }
-@keyframes py-hop-rider { 0%, 100% { transform: translateX(-50%); } 30% { transform: translateX(-50%) translateY(-6px); } 55% { transform: translateX(-50%); } }
 
 .py-goal { font-weight: 600; }
 .py-goal.is-goal { color: var(--accent-ink); }
@@ -549,13 +558,7 @@ button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transf
 @media (min-width: 520px) {
   .py { padding: var(--card-pad); }
   .py-days { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-1); }
-  .py-route-wrap { height: 184px; }
-  .py-route { top: 102px; }
-  .py-train { width: 80px; height: 102px; }
-  .py-car { width: 80px; height: 40px; }
-  .py-car2 { width: 64px; }
-  .py-train.has-car2 { left: max(calc(22px + var(--at, 0) * (100% - 44px)), 102px); }
-  .py-rider { width: 50px; bottom: 20px; }
+  .py-route-wrap { --th: 72px; }
 }
 
 /* Tabs: "Your week" and "Pengu & train" */
@@ -573,17 +576,8 @@ button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transf
 .py-shop { display: grid; gap: var(--space-6); }
 .py-shop-top { display: grid; gap: var(--space-4); }
 .py-show { margin: 0; }
-.py-show-stage {
-  position: relative; display: flex; justify-content: center; align-items: flex-end; height: 196px;
-  padding: 0 var(--space-4) 18px; border-radius: var(--radius-lg); overflow: hidden;
-  background: radial-gradient(120% 90% at 50% 100%, var(--accent-tint), transparent 70%), var(--surface-2);
-}
-.py-show-rail { position: absolute; left: 0; right: 0; bottom: 15px; height: 3px; background: var(--line-strong); }
-.py-show-train { --rw: 70px; position: relative; z-index: 1; width: calc(var(--rw) * 1.6); height: calc(var(--rw) * 2.15); }
-.py-show-train.has-car2 { margin-left: calc(var(--rw) * 1.15); }
-.py-show-train .py-car { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; }
-.py-show-train .py-car2 { position: absolute; right: calc(100% - 8px); bottom: 0; width: calc(var(--rw) * 1.27); height: auto; }
-.py-show-train .py-rider { position: absolute; left: 50%; bottom: calc(var(--rw) * 0.4); width: var(--rw); transform: translateX(-50%); }
+.py-show-stage { display: grid; place-items: end center; padding: var(--space-4) var(--space-3) var(--space-2); border-radius: var(--radius-lg); background: var(--surface-2); }
+.py-scene { width: 100%; max-width: 440px; }
 .py-shop-side { display: grid; gap: var(--space-3); align-content: center; }
 .py-wallet { display: flex; align-items: center; gap: var(--space-2); color: var(--text); }
 .py-wallet .icon { width: 22px; height: 22px; color: var(--gold-ink); }
@@ -629,8 +623,6 @@ button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transf
 }
 @media (min-width: 640px) {
   .py-shop-top { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: center; }
-  .py-show-stage { height: 236px; }
-  .py-show-train { --rw: 88px; }
 }
 
 /* ---------- 404 page ---------- */

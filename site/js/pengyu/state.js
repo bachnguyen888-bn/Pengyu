@@ -42,7 +42,7 @@ function fresh() {
     extras: [],           // [{ id, earnedOn }] in EXTRAS order
     coversAnnounced: [],  // mondays whose free streak cover has been shown to the player
     owned: {},            // unlock id -> { at, price }; kept for good
-    wear: { hat: null, scarf: false, backpack: false, outfit: false, decal: null, paint: 'purple' },
+    wear: { hat: null, scarf: false, backpack: false, outfit: false, decal: null, paint: 'navy' },
     events: [],           // { type, at, ...details }, for "Export my data"
   };
 }
@@ -285,15 +285,15 @@ export const GEAR = [
 ];
 export const TRAIN = [
   { id: 'headlamp', name: 'Headlamp', price: 50, line: 'Lights the way on early starts.' },
-  { id: 'paint', name: 'Paint colours', price: 80, line: 'Five colours for Pengu’s car. Switch any time.' },
+  { id: 'paint', name: 'Paint colours', price: 80, line: 'Repaint the engine coral, sunny, mint or purple, or keep it navy. Switch any time.' },
   { id: 'car', name: 'Extra car', price: 130, line: 'A second car to carry the cargo.' },
 ];
 export const PAINTS = [
-  { id: 'purple', name: 'Pengu purple' },
+  { id: 'navy', name: 'Night navy' },
   { id: 'coral', name: 'Coral' },
   { id: 'sunny', name: 'Sunny' },
   { id: 'mint', name: 'Mint' },
-  { id: 'navy', name: 'Night navy' },
+  { id: 'purple', name: 'Pengu purple' },
 ];
 const UNLOCKS = [...GEAR.map((g) => ({ ...g, kind: 'gear' })), ...TRAIN.map((t) => ({ ...t, kind: 'train' }))];
 export const unlockById = (id) => UNLOCKS.find((u) => u.id === id) || null;
@@ -354,7 +354,7 @@ export function toggleWear(id) {
   return commit({ type: 'wear', id, on });
 }
 export function setPaint(id) {
-  if (!PAINTS.some((p) => p.id === id) || (id !== 'purple' && !owns('paint'))) return null;
+  if (!PAINTS.some((p) => p.id === id) || (id !== 'navy' && !owns('paint'))) return null;
   state.wear.paint = id;
   return commit({ type: 'wear', id: `paint-${id}`, on: true });
 }
@@ -369,7 +369,7 @@ export function look() {
     backpack: w.backpack && owns('backpack'),
     outfit: w.outfit && owns('conductor'),
     decal: w.decal && hasExtra(w.decal) ? w.decal : null,
-    paint: owns('paint') && PAINTS.some((p) => p.id === w.paint) ? w.paint : 'purple',
+    paint: owns('paint') && PAINTS.some((p) => p.id === w.paint) ? w.paint : 'navy',
     headlamp: owns('headlamp'),
     car: owns('car'),
   };
