@@ -1,7 +1,7 @@
 // Today: "Workouts this week: X of N", the week drawn as a train route, and the one-tap log.
 // Each planned day is a station. Logging a workout punches it and Pengu's train rolls up to it.
 // A missed station stays visibly empty. No penalties, no shame: missing only means fewer Fish, and
-// the first workout after a miss earns a Comeback stamp.
+// the first planned workout after a miss earns a Comeback stamp. The week streak sits on the route.
 
 import * as S from './state.js';
 import { downloadIcs } from './ics.js';
@@ -92,7 +92,7 @@ function logArea(r) {
       if (res.comeback) {
         const parts = [res.fish && `${res.fish} for the station`, `${res.comeback} for your Comeback stamp`, res.bonus && `${res.bonus} for the full week`].filter(Boolean);
         toast(`Welcome back! +${res.fish + res.comeback + res.bonus} Fish`, `${parts.join(', ')}.${got}`);
-      } else if (res.kind === 'extra') toast('Extra ride logged', `Nice work.${got || ' You’ve collected every extra, and this still counts for you.'}`);
+      } else if (res.kind === 'extra') toast('Extra ride logged', `Extra rides pay no Fish.${got || ' You’ve collected every extra, and this still counts for you.'}`);
       else if (res.bonus) toast(`You hit your week! +${res.fish + res.bonus} Fish`, `${res.fish} for the station and ${res.bonus} for the full week. Week streak: ${S.weekStreak()}.`);
       else {
         const nr = S.route();
@@ -109,7 +109,7 @@ function logArea(r) {
   if (p.kind === 'moved') notes.push(`Today isn’t on your plan, so this moves your ${weekday(S.parseKey(p.from))} station to today.`);
   else if (p.kind === 'extra') notes.push(`Your stations are done or past, so this is an extra ride. Extra rides pay no Fish${p.extra ? `; this one adds the ${p.extra.name} to your extras (looks only)` : ''}.`);
   else notes.push('Any workout, any length. One tap, once a day.');
-  if (p.comeback) notes.push(`Your first workout after a break earns a Comeback stamp and ${S.FISH.comeback} bonus Fish.`);
+  if (p.comeback) notes.push(`Your first planned workout after a missed day earns a Comeback stamp and ${S.FISH.comeback} bonus Fish.`);
   wrap.append(h('p', { class: 'small muted' }, notes.join(' ')));
   return wrap;
 }
@@ -174,6 +174,13 @@ function coverLine() {
       : 'Free streak cover used this month');
 }
 
+// Weeks only: the streak counts weeks hit, never days, and it rides along with the route.
+function streakLine() {
+  return h('div', { class: 'py-route-top' },
+    h('p', { class: 'py-streak' }, h('span', { class: 'stat-label' }, 'Week streak'), h('span', { class: 'stat-value live' }, String(S.weekStreak()))),
+    coverLine());
+}
+
 // The next piece of gear and how far off it is, so every unlock has a visible price and a preview.
 function nextUnlockLine(onShop) {
   const g = S.nextGear();
@@ -214,14 +221,14 @@ export function renderToday(root, rerender, { focus, onShop = () => {} } = {}) {
           h('p', { class: 'eyebrow' }, `This week · ${monthDay(S.parseKey(monday))} – ${monthDay(S.parseKey(sunday))}`),
           heading),
         h('div', { class: 'py-stats' },
-          h('div', { class: 'stat' }, h('span', { class: 'stat-label' }, 'Fish'), fishValue),
-          h('div', { class: 'stat' }, h('span', { class: 'stat-label' }, 'Week streak'), h('span', { class: 'stat-value live' }, String(S.weekStreak()))))),
-      coverLine(),
-      h('div', { class: 'py-route-wrap' },
-        h('ol', { class: 'py-route', 'aria-label': 'Your route this week' },
-          h('li', { class: 'py-depot', 'aria-hidden': 'true' }),
-          r.stations.map((s, i) => stationNode(s, i, r.stations.length))),
-        trainNode(r)),
+          h('div', { class: 'stat' }, h('span', { class: 'stat-label' }, 'Fish'), fishValue))),
+      h('div', { class: 'py-route-box' },
+        streakLine(),
+        h('div', { class: 'py-route-wrap' },
+          h('ol', { class: 'py-route', 'aria-label': 'Your route this week' },
+            h('li', { class: 'py-depot', 'aria-hidden': 'true' }),
+            r.stations.map((s, i) => stationNode(s, i, r.stations.length))),
+          trainNode(r))),
       h('p', { class: `py-goal is-${goal.tone}`, 'aria-live': 'polite' }, goal.text,
         r.extras ? h('span', { class: 'muted' }, ` Extra rides: ${r.extras}.`) : null),
       movePicker(),

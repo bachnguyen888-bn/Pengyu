@@ -1,8 +1,9 @@
 // Pengu's week planner: its memory and rules. One object in this browser's localStorage under its
 // own key, and it is never sent anywhere.
-// Workouts are the currency: a planned workout pays Fish, a full week pays a bonus, and coming back
-// after a missed day pays a Comeback stamp. Workouts beyond the plan pay no Fish; they collect
-// looks-only extras in a fixed order. Nothing here is random, and nothing is ever sold.
+// Workouts are the currency: a planned workout pays Fish, a full week pays a bonus, and the first
+// planned workout after a missed planned day pays a Comeback stamp. Workouts beyond the plan pay no
+// Fish at all; they collect looks-only extras in a fixed order. Nothing here is random, and nothing
+// is ever sold.
 
 const KEY = 'pengyu.v1';
 export const TARGETS = [2, 3, 4];
@@ -144,11 +145,12 @@ function lastMissedBefore(t) {
   for (const plan of Object.values(state.plans)) for (const d of plan.days) if (d < t && !state.log[d] && d > last) last = d;
   return last;
 }
-// The missed planned day this workout comes back from, if it is the first workout since then.
+// The missed planned day a planned workout today comes back from, if none has been logged since.
+// Extra rides never pay Fish, so they neither earn the comeback nor use it up.
 export function comebackDue(t = today()) {
   const missed = lastMissedBefore(t);
-  const lastWorkout = Object.keys(state.log).filter((d) => d < t).sort().pop() || '';
-  return missed && lastWorkout < missed ? missed : '';
+  const lastPlanned = Object.keys(state.log).filter((d) => d < t && state.log[d].kind === 'planned').sort().pop() || '';
+  return missed && lastPlanned < missed ? missed : '';
 }
 export const comebackStamps = () => Object.values(state.log).filter((l) => l.comeback).length;
 export const nextExtra = () => EXTRAS.find((e) => !state.extras.some((x) => x.id === e.id)) || null;
@@ -165,7 +167,7 @@ export function logPreview() {
   if (plan.days.includes(t)) return { kind: 'planned', fish: FISH.station + bonus, comeback };
   const next = stations(plan).find((d) => d > t && !isDone(d));
   if (next) return { kind: 'moved', from: next, fish: FISH.station + bonus, comeback };
-  return { kind: 'extra', fish: bonus, comeback, extra: nextExtra() };
+  return { kind: 'extra', fish: 0, comeback: '', extra: nextExtra() };
 }
 
 // ---------- Changes ----------
@@ -203,7 +205,8 @@ export function moveStation(from, to) {
 
 // One tap, once a day, any workout of any length. A planned day punches its station; another day
 // moves the next upcoming station here; with no station left it is an extra ride: no Fish, and the
-// next looks-only extra. The first workout after a missed planned day also earns a Comeback stamp.
+// next looks-only extra. The first planned workout after a missed planned day also earns a Comeback
+// stamp.
 export function logWorkout() {
   const preview = logPreview();
   if (preview.kind === 'logged' || preview.kind === 'no-plan') return null;
