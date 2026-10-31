@@ -57,14 +57,14 @@ export function penguSvg(state = 'idle', cls = 'pengu') {
   return svg;
 }
 
-export function toast(title, sub = '', mood = 'idle') {
+export function toast(title, sub = '', mood = 'idle', art = null) {
   const box = document.getElementById('toasts');
   if (!box) return;
   const t = el('div', { class: 'toast' });
   const copy = el('div');
   copy.append(document.createTextNode(title));
   if (sub) copy.append(el('small', {}, sub));
-  t.append(penguSvg(mood), copy);
+  t.append(art || penguSvg(mood), copy);
   box.append(t);
   while (box.children.length > 3) box.firstElementChild.remove();
   setTimeout(() => {

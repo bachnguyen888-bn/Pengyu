@@ -5,7 +5,7 @@ import * as S from './state.js';
 import { renderPlanFlow, takeFocusRequest } from './plan.js';
 import { renderToday } from './route.js';
 import { download } from './ics.js';
-import { h, icon } from './ui.js';
+import { h, icon, penguArt } from './ui.js';
 import { toast } from '../fx.js';
 
 export function initPengyu() {
@@ -46,7 +46,7 @@ export function initPengyu() {
     const weeks = S.announceCovers();
     if (!weeks.length) return;
     const d = S.parseKey(weeks[weeks.length - 1]);
-    toast('Your week streak is safe', `Pengu used this month’s free streak cover for the week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`, 'rest');
+    toast('Your week streak is safe', `Pengu used this month’s free streak cover for the week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`, 'rest', penguArt('py-toast-art'));
   }
 
   S.subscribe(render);

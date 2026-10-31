@@ -26,6 +26,12 @@ export function icon(name, cls = 'icon') {
   return svg;
 }
 
+// The week planner's Pengu: the pink penguin lamp. Decorative, so screen readers skip it.
+export const PENGU_ART = { src: 'img/pengu-lamp-192.webp', width: 192, height: 260 };
+export function penguArt(cls = '') {
+  return h('img', { class: `py-art ${cls}`.trim(), src: PENGU_ART.src, width: PENGU_ART.width, height: PENGU_ART.height, alt: '', decoding: 'async', draggable: 'false' });
+}
+
 export const weekday = (d, style = 'long') => d.toLocaleDateString('en-US', { weekday: style });
 export const monthDay = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 export function clock(hhmm) {

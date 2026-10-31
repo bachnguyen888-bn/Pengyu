@@ -1166,8 +1166,8 @@ dialog::backdrop { background: rgba(15, 12, 32, 0.55); -webkit-backdrop-filter: 
 .py-count strong { color: var(--accent-ink); }
 .py-stats { display: flex; gap: var(--space-6); }
 .py-stats .stat-value { display: inline-flex; align-items: center; gap: var(--space-1); font-size: 1.25rem; }
-.py-route-wrap { position: relative; height: 140px; }
-.py-route { position: absolute; left: 0; right: 0; top: 60px; height: 80px; margin: 0; }
+.py-route-wrap { position: relative; height: 154px; }
+.py-route { position: absolute; left: 0; right: 0; top: 74px; height: 80px; margin: 0; }
 .py-route::before { content: ""; position: absolute; left: 22px; right: 22px; top: 20px; height: 4px; border-radius: 2px; background: var(--line-strong); }
 .py-station, .py-depot, .py-train { position: absolute; left: calc(22px + var(--at, 0) * (100% - 44px)); transform: translateX(-50%); }
 .py-station { top: 0; }
@@ -1198,9 +1198,18 @@ button.py-station-btn { border-radius: var(--radius-sm); }
 .is-missed .py-stop-day { color: var(--text-muted); font-weight: 400; }
 button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transform: translateY(-2px); }
 .py-station-btn[aria-expanded="true"] .py-stop { border-color: var(--brand-purple); background: var(--accent-tint); }
-.py-train { top: 0; width: 64px; height: 60px; pointer-events: none; transition: left 900ms var(--ease-spring); }
+.py-train { top: 0; width: 64px; height: 74px; pointer-events: none; transition: left 900ms var(--ease-spring); }
 .py-car { position: absolute; left: 0; bottom: 0; width: 64px; height: 32px; }
-.py-rider { position: absolute; left: 50%; bottom: 12px; width: 40px; height: 40px; transform: translateX(-50%); }
+/* Pengu is the pink penguin lamp (img/pengu-lamp-192.webp); the car hides the lamp's base so Pengu sits inside */
+.py-art { display: block; height: auto; user-select: none; -webkit-user-drag: none; }
+.py-rider { position: absolute; left: 50%; bottom: 16px; width: 40px; transform: translateX(-50%); }
+.py-avatar { width: 34px; flex: none; }
+.py-toast-art { width: 32px; flex: none; }
+.py-celebrate-art { width: 44px; flex: none; }
+.is-cheer { animation: py-hop 1.6s var(--ease-spring) 2; transform-origin: 50% 100%; }
+.py-rider.is-cheer { animation-name: py-hop-rider; }
+@keyframes py-hop { 0%, 100% { transform: none; } 30% { transform: translateY(-6px) scale(1.04, 0.97); } 55% { transform: translateY(0) scale(0.97, 1.03); } }
+@keyframes py-hop-rider { 0%, 100% { transform: translateX(-50%); } 30% { transform: translateX(-50%) translateY(-6px); } 55% { transform: translateX(-50%); } }
 
 .py-goal { font-weight: 600; }
 .py-goal.is-goal { color: var(--accent-ink); }
@@ -1214,7 +1223,7 @@ button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transf
 .py-logged { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 48px; padding: 0 var(--space-4); border-radius: var(--radius-md); background: var(--live-bg); color: var(--live-ink); font-weight: 600; }
 .py-logged .icon { width: 18px; height: 18px; stroke-width: 2.2; }
 .py-celebrate { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--star-bg); color: var(--text); }
-.py-celebrate .pengu { width: 56px; height: 56px; }
+
 .py-celebrate-title { font-weight: 600; color: var(--star-ink); }
 .py-cover { display: flex; align-items: center; gap: var(--space-2); margin-top: calc(-1 * var(--space-2)); }
 .py-cover .icon { color: var(--live-ink); }
@@ -1229,11 +1238,11 @@ button.py-station-btn:hover .py-stop { border-color: var(--brand-purple); transf
 @media (min-width: 520px) {
   .py { padding: var(--card-pad); }
   .py-days { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-1); }
-  .py-route-wrap { height: 150px; }
-  .py-route { top: 66px; }
-  .py-train { width: 80px; height: 66px; }
+  .py-route-wrap { height: 170px; }
+  .py-route { top: 88px; }
+  .py-train { width: 80px; height: 88px; }
   .py-car { width: 80px; height: 40px; }
-  .py-rider { width: 48px; height: 48px; bottom: 16px; }
+  .py-rider { width: 50px; bottom: 20px; }
 }
 
 /* ---------- 404 page ---------- */

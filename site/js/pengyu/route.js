@@ -5,8 +5,10 @@
 
 import * as S from './state.js';
 import { downloadIcs } from './ics.js';
-import { h, icon, weekday, monthDay, plural } from './ui.js';
-import { penguSvg, countTo, toast } from '../fx.js';
+import { h, icon, weekday, monthDay, plural, penguArt } from './ui.js';
+import { countTo, toast as fxToast } from '../fx.js';
+
+const toast = (title, sub, mood) => fxToast(title, sub, mood, penguArt('py-toast-art'));
 
 let moving = '';        // the station whose "move to" picker is open
 let lastTrainAt = null; // where the train was drawn last, so a log can roll it forward
@@ -49,7 +51,7 @@ function stationNode(s, i, count) {
 function trainNode(r) {
   const train = h('div', { class: 'py-train', 'aria-hidden': 'true' });
   const todayLog = S.state.log[S.today()];
-  const rider = penguSvg(r.hit || (todayLog && todayLog.comeback) ? 'celebrate' : 'idle', 'pengu py-rider');
+  const rider = penguArt(`py-rider${r.hit || (todayLog && todayLog.comeback) ? ' is-cheer' : ''}`);
   train.append(rider, icon('py-car', 'py-car'));
   const at = r.trainAt / r.stations.length;
   const from = lastTrainAt === null ? at : lastTrainAt;
@@ -68,7 +70,7 @@ function logArea(r) {
     const log = S.state.log[S.today()];
     if (log.comeback) {
       wrap.append(h('div', { class: 'py-celebrate', role: 'status' },
-        penguSvg('celebrate', 'pengu'),
+        penguArt('py-celebrate-art is-cheer'),
         h('div', {},
           h('p', { class: 'py-celebrate-title' }, 'Welcome back! Comeback stamp earned.'),
           h('p', { class: 'small' }, `That’s ${S.FISH.comeback} bonus Fish. Pengu’s glad to ride with you again.`))));

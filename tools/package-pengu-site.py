@@ -22,7 +22,7 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.copytree(SITE / 'fonts', dest / 'fonts')
     shutil.copytree(SITE / 'js', dest / 'js')
     for img in SITE.glob('img/*.webp'):
-        if img.name.startswith(('stage-pengu-', 'station-')):
+        if img.name.startswith(('stage-pengu-', 'station-', 'pengu-lamp-')):
             shutil.copy(img, dest / 'img' / img.name)
     shutil.copy(SITE / '404.html', dest / '404.html')
     shutil.make_archive(str(OUT.with_suffix('')), 'zip', tmp, 'pengu-site')
