@@ -1,0 +1,15 @@
+{
+  "_note": "TEST ONLY. Restore this on a test phone (History, Your data, Restore from a backup) to try unlocks without waiting a week. Never ship it, never give it to players.",
+  "v": 1,
+  "createdAt": "2026-11-01T12:00:00.000Z",
+  "plans": {},
+  "log": {},
+  "fish": { "balance": 900, "lifetime": 900 },
+  "weekBonusPaid": [],
+  "extras": [],
+  "coversAnnounced": [],
+  "owned": {},
+  "wear": { "hat": null, "scarf": false, "backpack": false, "outfit": false, "decal": null, "paint": "navy" },
+  "events": [],
+  "tipSeen": false
+}

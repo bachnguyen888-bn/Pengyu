@@ -46,3 +46,6 @@ export function download(filename, text, type) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// The quiet footer under the Pengu and History tabs: the privacy page, and where data lives.
+export const appFooter = () => h('footer', { class: 'py-foot' }, h('a', { href: 'privacy.html' }, 'Privacy'), ' · Saved only on this device');

@@ -5,7 +5,7 @@
 
 import * as S from './state.js';
 import { saveBackup } from './backup.js';
-import { h, icon, monthDay, plural } from './ui.js';
+import { h, icon, monthDay, plural, appFooter } from './ui.js';
 import { toast, reducedMotion } from '../fx.js';
 
 let resetStep = 0;        // Reset everything: 0 closed, 1 "start over?", 2 "save a backup first?"
@@ -99,6 +99,7 @@ function dataCard(rerender, onReset, onRestore) {
   const card = h('section', { class: 'py-data', 'aria-labelledby': 'py-data-title' },
     h('h2', { class: 'py-section-title', id: 'py-data-title' }, 'Your data'),
     h('p', { class: 'small muted' }, 'Everything is saved only in this browser. A backup file keeps Pengu safe.'),
+    h('p', { class: 'py-data-privacy' }, h('a', { href: 'privacy.html' }, 'How Pengyu handles your data')),
     h('div', { class: 'py-data-actions' },
       h('button', {
         class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-backup',
@@ -161,7 +162,8 @@ export function renderHistory(root, rerender, { onReset = () => {}, onRestore = 
       weeks.length
         ? h('ol', { class: 'py-weeks' }, weeks.map((m) => weekCard(m, info.covered.includes(m))))
         : h('p', { class: 'muted' }, 'Your weeks show up here once you plan your first one.')),
-    dataCard(rerender, onReset, onRestore));
+    dataCard(rerender, onReset, onRestore),
+    appFooter());
   root.append(view);
   if (refocus) {
     const el = root.querySelector(`#${refocus}`);

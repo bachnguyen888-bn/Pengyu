@@ -2,3 +2,6 @@
 # can reread them, but Netlify answers "not found" for both folders.
 /docs/*   /404.html   404!
 /tests/*  /404.html   404!
+
+# The privacy page has a stable short address (Google Play asks for a privacy policy URL).
+/privacy  /privacy.html  200

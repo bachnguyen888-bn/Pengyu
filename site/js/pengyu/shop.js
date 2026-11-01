@@ -6,7 +6,7 @@
 import * as S from './state.js';
 import { penguFigure, trainFigure, sceneFigure, glyph, PAINT_COLORS } from './art.js';
 import { bindPengu, showUnlock, reducedMotion } from './motion.js';
-import { h, icon } from './ui.js';
+import { h, icon, appFooter } from './ui.js';
 import { countTo, toast } from '../fx.js';
 
 let confirming = '';   // the Unlock waiting for its second tap, as "where-id" ("next-cap", "row-headlamp")
@@ -200,7 +200,8 @@ export function renderShop(root, rerender) {
         h('p', { class: 'py-shop-sub' }, 'Any order')),
       h('ul', { class: 'py-rows' }, S.TRAIN.map((t) => trainRow(t, rerender, look)))),
     extrasShelf(),
-    h('p', { class: 'py-shop-note' }, 'Prices never change, and nothing is random. Fish only come from planned workouts.')));
+    h('p', { class: 'py-shop-note' }, 'Prices never change, and nothing is random. Fish only come from planned workouts.'),
+    appFooter()));
 
   const pengu = bindPengu(scene, { follow: true, hop: true, waddle: true });
   bound.push(pengu);

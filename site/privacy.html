@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>Privacy · Pengyu</title>
+<meta name="description" content="How Pengyu handles your data: it stays on your device. No account, no tracking, no ads.">
+<link rel="canonical" href="https://bachnguyenclearhealth.com/privacy">
+<meta name="theme-color" content="#FAF6F0">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/rubik-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="pengu.css">
+</head>
+<body>
+<!-- Pengyu's privacy page. Every line matches what the code does today: one localStorage record
+     (pengyu.v1), a session flag for the splash, and the service worker's copy of the app's own files.
+     No server, account, analytics, cookies or outside requests. Keep it true when the app changes. -->
+<main class="doc-page" id="main">
+  <header class="doc-head">
+    <div class="doc-top">
+      <a class="doc-back glass" href="/"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.9 5.4L8.3 12.1l6.7 6.6"/></svg>Pengyu</a>
+      <svg viewBox="8 -14 105 112" class="py-art py-pengu-art doc-art" aria-hidden="true" focusable="false"> <defs> <radialGradient id="pg1-body" cx="38%" cy="26%" r="80%"><stop offset="0" stop-color="#FDE6F3"></stop><stop offset=".45" stop-color="#F7BFDF"></stop><stop offset="1" stop-color="#E99BCB"></stop></radialGradient> <radialGradient id="pg1-belly" cx="50%" cy="58%" r="56%"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset=".5" stop-color="#FFFFFF"></stop><stop offset=".8" stop-color="#FFF0F8" stop-opacity=".85"></stop><stop offset="1" stop-color="#FFF0F8" stop-opacity="0"></stop></radialGradient> <radialGradient id="pg1-glow" cx="50%" cy="62%" r="52%"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".8"></stop><stop offset=".6" stop-color="#FFF0F8" stop-opacity=".35"></stop><stop offset="1" stop-color="#FFF0F8" stop-opacity="0"></stop></radialGradient> <linearGradient id="pg1-flip" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FDE6F3"></stop><stop offset="1" stop-color="#F0ACD4"></stop></linearGradient> <clipPath id="pg1-egg"><path d="M59.5 12C82.5 12 101.5 46 103.2 88C104.8 120.5 86.5 140 61 140C35 140 16.4 122 17.8 89C19.3 47 36.5 12 59.5 12Z"></path></clipPath></defs> <g class="py-pengu"> <g class="py-body"> <path d="M59.5 12C82.5 12 101.5 46 103.2 88C104.8 120.5 86.5 140 61 140C35 140 16.4 122 17.8 89C19.3 47 36.5 12 59.5 12Z" fill="url(#pg1-body)"></path> <path d="M37.5 33C42 23.5 51.5 18.5 60 18.8C53 22 46 29 42.5 38.5C41 42.3 35.6 39.5 37.5 33Z" fill="#FFFFFF" opacity=".72"></path> <circle cx="66.5" cy="22" r="2.2" fill="#FFFFFF" opacity=".55"></circle> </g> <g class="py-belly-glow"><path d="M60 52C88 51 104 80 103 110C102 133 84 146 59 146C33 146 16 132 17 108C18 79 33 53 60 52Z" fill="url(#pg1-glow)"></path></g> <g class="py-belly"><path d="M60.5 66C79.5 65 91.5 84 91 105C90.5 125 77 136.5 60 136.5C42.5 136.5 29.5 125 30 104.5C30.5 83.5 42 67 60.5 66Z" fill="url(#pg1-belly)"></path></g> <path d="M59.5 12C82.5 12 101.5 46 103.2 88C104.8 120.5 86.5 140 61 140C35 140 16.4 122 17.8 89C19.3 47 36.5 12 59.5 12Z" fill="none" stroke="#D9779F" stroke-opacity=".55" stroke-width="1.3"></path> <g class="py-flipper-l"><path d="M21.5 86C14.5 89.5 10.8 99 12.6 107.5C13.6 111.6 18.3 111.5 20.6 107.6C23.2 103.2 24.6 96 24 89Z" fill="url(#pg1-flip)" stroke="#D9779F" stroke-opacity=".5" stroke-width="1"></path></g> <g class="py-flipper-r"><path d="M99.5 86C106.5 89.5 110.2 99 108.4 107.5C107.4 111.6 102.7 111.5 100.4 107.6C97.8 103.2 96.4 96 97 89Z" fill="url(#pg1-flip)" stroke="#D9779F" stroke-opacity=".5" stroke-width="1"></path></g> <circle cx="37" cy="74" r="4.8" fill="#F27FA8" opacity=".45"></circle><circle cx="84.5" cy="74" r="4.8" fill="#F27FA8" opacity=".45"></circle> <g class="py-eye py-eye-l"><circle cx="46.5" cy="64" r="4.6" fill="#6E3424"></circle><circle cx="45.2" cy="62.4" r="1.35" fill="#FFFFFF"></circle></g> <g class="py-eye py-eye-r"><circle cx="75" cy="64" r="4.6" fill="#6E3424"></circle><circle cx="73.7" cy="62.4" r="1.35" fill="#FFFFFF"></circle></g> <g class="py-beak"><path d="M56.2 70.2Q60.8 68.8 65.4 70.2Q63.3 76.6 60.8 77.8Q58.3 76.6 56.2 70.2Z" fill="#A8622F"></path><path d="M58.2 70.9Q60.8 70.2 63.4 70.9" fill="none" stroke="#C9844F" stroke-width=".9" stroke-linecap="round"></path></g> </g> </svg>
+    </div>
+    <h1>Privacy</h1>
+    <p class="lead">Pengyu keeps your plan, workouts and Fish on your device. No account. No tracking. No ads.</p>
+    <p class="doc-date">Last updated November 1, 2026</p>
+  </header>
+
+  <section class="doc-sec" aria-labelledby="short">
+    <h2 id="short">The short version</h2>
+    <ul class="doc-list">
+      <li>Everything you do in Pengyu is saved in this browser, on this device.</li>
+      <li>Pengyu has no account, no server database and no analytics.</li>
+      <li>We never see your workouts. We don’t sell, share or rent any data.</li>
+      <li>You can export everything, or delete everything, at any time.</li>
+    </ul>
+  </section>
+
+  <section class="doc-sec" aria-labelledby="saved">
+    <h2 id="saved">What Pengyu saves on your device</h2>
+    <p>Pengyu keeps one record in your browser’s local storage, named <code>pengyu.v1</code>. It holds:</p>
+    <ul class="doc-list">
+      <li>Your weekly plans: how many workouts, which days, a time, and your place.</li>
+      <li>Your workouts: the day and time you tapped Begin, planned or extra.</li>
+      <li>Your Fish: what you have now and everything you’ve earned.</li>
+      <li>Your unlocks: gear, train upgrades and extras, and what Pengu wears.</li>
+      <li>Comeback stamps, full-week bonuses and free covers.</li>
+      <li>A short diary of app moments, like a workout logged, each with a time.</li>
+      <li>Whether you’ve seen the Home Screen tip.</li>
+    </ul>
+    <p>It also keeps a note that the opening splash already showed this session.</p>
+  </section>
+
+  <section class="doc-sec" aria-labelledby="offline">
+    <h2 id="offline">Files for offline use</h2>
+    <p>To work offline, Pengyu stores its own app files in your browser. That means pages, styles, code, fonts and icons. They’re the same for everyone and hold nothing about you.</p>
+  </section>
+
+  <section class="doc-sec" aria-labelledby="not">
+    <h2 id="not">What Pengyu doesn’t collect</h2>
+    <ul class="doc-list">
+      <li>No name, email, phone number or password. There’s no account.</li>
+      <li>No location. Pengyu never asks for it.</li>
+      <li>No camera, microphone, contacts or photos.</li>
+      <li>No body data: no weight, steps, heart rate, distance or pace.</li>
+      <li>No analytics, no tracking, no ads and no advertising ID.</li>
+      <li>No cookies. Pengyu doesn’t set any.</li>
+      <li>No code or fonts from other companies. Everything loads from Pengyu’s own site.</li>
+    </ul>
+  </section>
+
+  <section class="doc-sec" aria-labelledby="who">
+    <h2 id="who">Who can see your data</h2>
+    <p>Only you, on this device. It leaves only in a backup file you choose to save.</p>
+    <p>We don’t sell, share or rent data. We never receive it in the first place.</p>
+    <p>Netlify hosts Pengyu’s site. Loading any website shares basic request details with its host. For Netlify, that means details like your IP address and browser type. <a href="https://www.netlify.com/privacy/">Netlify’s privacy statement</a> explains how it handles them.</p>
+    <p>If you get Pengyu from an app store, it runs this same web app. The store and your browser have their own privacy policies.</p>
+  </section>
+
+  <section class="doc-sec" aria-labelledby="controls">
+    <h2 id="controls">Export or delete your data</h2>
+    <ul class="doc-list">
+      <li><strong>Export my data (JSON):</strong> open History, then Your data, then Save a backup. You get a file named <code>pengyu-backup-YYYY-MM-DD.json</code> with everything above.</li>
+      <li><strong>Restore:</strong> Restore from a backup reads only the file you pick, on your device.</li>
+      <li><strong>Delete everything:</strong> open History, then Your data, then Reset everything. Confirm twice.</li>
+      <li>Clearing this site’s data in your browser settings also deletes it all.</li>
+      <li>Backup and calendar files stay where you saved them. Delete them like any file.</li>
+      <li>Add reminders makes a calendar file on your device. Your calendar app has its own policy.</li>
+      <li>Saving a backup asks your browser to keep Pengyu’s storage. Some browsers ask you first.</li>
+    </ul>
+  </section>
+
+  <footer class="doc-foot">
+    <a class="btn glass-coral" href="/">Back to Pengyu</a>
+  </footer>
+</main>
+</body>
+</html>

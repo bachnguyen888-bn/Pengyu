@@ -1,13 +1,21 @@
 {
+  "id": "/",
   "name": "Pengyu",
   "short_name": "Pengyu",
+  "description": "Plan your workouts for the week, log each one with a tap, and watch Pengu’s train roll.",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#FAF6F0",
   "theme_color": "#FAF6F0",
+  "categories": ["health", "fitness", "lifestyle"],
   "icons": [
     { "src": "icons/pengu-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/pengu-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/pengu-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/pengu-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/pengu-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/pengu-monochrome-512.png", "sizes": "512x512", "type": "image/png", "purpose": "monochrome" }
   ]
 }
