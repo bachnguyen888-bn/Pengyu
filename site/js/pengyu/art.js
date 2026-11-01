@@ -164,10 +164,14 @@ export function penguFigure(look, { cls = '', pose, view, base = false } = {}) {
   return svg;
 }
 
-// The big simple face that rises like a sun on the reward sheet: happy closed eyes, beak, blush.
-export function faceFigure(cls = '') {
+// The big simple face that rises like a sun on the reward sheet: happy closed eyes, beak, blush. It wears
+// the same hat as Pengu (the face is only the top of the head, so the scarf and pack stay out of view).
+// The space above the dome is kept for hats, with or without one, so the face never shifts.
+const FACE_HAT = 'translate(63 -28) scale(2)';
+export function faceFigure(cls = '', look = {}) {
   const id = `pf${++uid}`;
-  const svg = svgEl('0 0 360 170', `py-art py-face ${cls}`.trim());
+  const svg = svgEl('0 -56 360 226', `py-art py-face ${cls}`.trim());
+  const hat = look.hat && HATS[look.hat] ? `<g class="py-hat"><g transform="${FACE_HAT}">${HATS[look.hat]}</g></g>` : '';
   svg.innerHTML = `
     <defs>
       <radialGradient id="${id}-body" cx="36%" cy="22%" r="85%"><stop offset="0" stop-color="#FDE6F3"/><stop offset=".5" stop-color="#F7BFDF"/><stop offset="1" stop-color="#E99BCB"/></radialGradient>
@@ -182,7 +186,7 @@ export function faceFigure(cls = '') {
       <path d="M118 104Q133 88 148 103" fill="none" stroke="#6E3424" stroke-width="7" stroke-linecap="round"/>
       <path d="M214 103Q229 88 244 104" fill="none" stroke="#6E3424" stroke-width="7" stroke-linecap="round"/>
       <path d="M168 114Q181 110 194 114Q187.5 130 181 133Q174.5 130 168 114Z" fill="#A8622F"/>
-    </g>`;
+    </g>${hat}`;
   return svg;
 }
 
@@ -232,9 +236,10 @@ function trainMarkup(look, { rider = true, night = false } = {}) {
   const p = PAINT_COLORS[look.paint] || NAVY;
   const o = `stroke="${INK}" stroke-opacity=".42" stroke-width="1.2"`;
   const lamp = look.headlamp
-    ? `<path class="py-lamp-cone" d="M262 42L300 26V58Z" fill="#FFE08A" opacity="${night ? 0.42 : 0.26}"/>
+    ? `<path d="${softRect(236, 34, 20, 16, 4, { seed: 21 })}" fill="${p.hi}" ${o}/>
+       <g class="py-lamp"><path class="py-lamp-cone" d="M262 42L300 26V58Z" fill="#FFE08A" opacity="${night ? 0.42 : 0.26}"/>
        <circle cx="256" cy="42" r="17" fill="#FFE08A" opacity="${night ? 0.32 : 0.2}"/><circle cx="256" cy="42" r="10" fill="#FFE08A" opacity=".45"/>
-       <path d="${softRect(236, 34, 20, 16, 4, { seed: 21 })}" fill="${p.hi}" ${o}/><circle cx="256" cy="42" r="6" fill="#FFE08A"/>`
+       <circle cx="256" cy="42" r="6" fill="#FFE08A"/></g>`
     : `<path d="${softRect(236, 34, 20, 16, 4, { seed: 21 })}" fill="${p.hi}" ${o}/><circle cx="256" cy="42" r="6" fill="#8A97B0" stroke="#5C6B8A" stroke-width="1.6"/>`;
   return `
     <defs>
@@ -282,13 +287,14 @@ export function trainFigure(look, { cls = '', rider = true, night = false } = {}
   return svg;
 }
 
-// Until the Pengu tab is rebuilt (M2): Pengu in the lamp base, in front of the train on a short rail.
-export function sceneFigure(look, cls = '') {
+// The Pengu tab's showcase: Pengu glowing in the lamp base, stepped out of the cab, with the train and
+// its upgrades behind on a short rail. Only Pengu moves (motion.js); the train stays put.
+export function sceneFigure(look, cls = '', { night = false } = {}) {
   const x0 = look.car ? -118 : -8;
   const svg = svgEl(`${x0} -14 ${304 - x0} 168`, `py-art ${cls}`.trim());
   svg.innerHTML = `
     <path d="M${x0} 148Q${(x0 + 304) / 2} 146.6 304 148.4" fill="none" stroke="#9A8F88" stroke-width="2" stroke-linecap="round" opacity=".6"/>
-    ${trainMarkup(look, { rider: false })}
+    ${trainMarkup(look, { rider: false, night })}
     <g transform="translate(0.5 5.6) scale(0.95)">${penguMarkup(look, { pose: 'stand', base: true })}</g>`;
   return svg;
 }
@@ -309,8 +315,9 @@ const GLYPHS = {
   'decal-wave': '<rect x="4" y="12" width="32" height="18" rx="6" fill="#2F3A52"/><path d="M9 21q2.75-3.5 5.5 0t5.5 0 5.5 0 5.5 0" fill="none" stroke="#F7EBD8" stroke-width="2" stroke-linecap="round"/>',
   'decal-bolt': '<rect x="4" y="12" width="32" height="18" rx="6" fill="#2F3A52"/><path d="M22 14L16 22.5H20L18 28L25 19.5H21L23 14Z" fill="#FF6B4A"/>',
 };
-export function glyph(id) {
-  const svg = svgEl('0 0 40 40', 'py-glyph');
+// outline: a soft outline only, for an extra not earned yet (pengu.css draws it as a pencil line).
+export function glyph(id, { outline = false } = {}) {
+  const svg = svgEl('0 0 40 40', `py-glyph${outline ? ' is-outline' : ''}`);
   svg.innerHTML = GLYPHS[id] || '';
   return svg;
 }

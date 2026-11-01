@@ -19,7 +19,7 @@ export const EXTRAS = [
   { id: 'hat-party', name: 'Party hat', kind: 'hat' },
 ];
 
-// Train paint, once Paint colors is unlocked. Navy is the default; wheels stay red and trim stays brass.
+// Train paint, once Colors is unlocked. Navy is the default; wheels stay red and trim stays brass.
 export const PAINTS = [
   { id: 'navy', name: 'Night navy' },
   { id: 'coral', name: 'Coral' },
@@ -354,7 +354,7 @@ export const GEAR = [
 ];
 export const TRAIN = [
   { id: 'headlamp', name: 'Headlamp', price: 50, line: 'Lights the way on early starts.' },
-  { id: 'paint', name: 'Paint colors', price: 80, line: 'Repaint the engine coral, sunny, pink or charcoal, or keep it navy.' },
+  { id: 'paint', name: 'Colors', price: 80, line: 'Repaint the engine coral, sunny, pink or charcoal, or keep it navy.' },
   { id: 'car', name: 'Extra car', price: 130, line: 'A second car to carry the cargo.' },
 ];
 const UNLOCKS = [...GEAR.map((g) => ({ ...g, kind: 'gear' })), ...TRAIN.map((t) => ({ ...t, kind: 'train' }))];

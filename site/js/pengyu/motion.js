@@ -124,7 +124,7 @@ export function bindPengu(svg, { follow = true, hop = true, waddle = false, wave
   };
   const look = (e) => {
     if (!active() || reducedMotion()) return;
-    const r = svg.getBoundingClientRect();
+    const r = root.getBoundingClientRect();   // Pengu itself, wherever it sits in the picture
     const dx = e.clientX - (r.left + r.width / 2);
     const dy = e.clientY - (r.top + r.height * 0.4);
     const len = Math.hypot(dx, dy) || 1;
@@ -200,6 +200,20 @@ export function fillStation(station) {
   tick.style.setProperty('stroke-dasharray', String(len));
   animate(disc, { opacity: [0, 1], scale: [0.6, 1], duration: 220, ease: 'outBack(1.6)' });
   animate(tick, { opacity: [1, 1], strokeDashoffset: [len, 0], duration: 300, delay: 90, ease: 'outQuad' });
+}
+
+// The unlock moment: the new piece drops onto Pengu with a little bounce; the headlamp lights up and the
+// extra car rolls in behind. (Pengu's hop and sparkles come from bindPengu's celebrate.) With reduced
+// motion the piece simply fades in.
+const UNLOCK_PARTS = { scarf: '.py-scarf', cap: '.py-hat', backpack: '.py-backpack, .py-straps', conductor: '.py-outfit, .py-hat', headlamp: '.py-lamp', car: '.py-car' };
+export function showUnlock(svg, id) {
+  const sel = UNLOCK_PARTS[id];
+  const parts = svg && sel ? [...svg.querySelectorAll(sel)] : [];
+  if (!parts.length) return;
+  if (reducedMotion()) { animate(parts, { opacity: [0, 1], duration: 150 }); return; }
+  if (id === 'car') animate(parts, { translateX: [-60, 0], opacity: [0, 1], duration: 700, ease: 'outBack(1.2)' });
+  else if (id === 'headlamp') animate(parts, { opacity: [0, 1], scale: [0.6, 1], duration: 600, ease: 'outQuad' });
+  else animate(parts, { translateY: [-42, 0], opacity: [0, 1], duration: 620, ease: 'outBounce' });
 }
 
 // A gentle press: squash in 120ms, spring back out.

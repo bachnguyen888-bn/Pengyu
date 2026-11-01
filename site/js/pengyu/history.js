@@ -1,18 +1,20 @@
-// History: every week since the first plan, newest first, with how many planned workouts were done,
-// the Fish each week paid, and its Comeback stamps and extras. "Your data" holds Save a backup (also
-// the data export), Restore from a backup and Reset.
-// No ranking and no comparison: only this player's own weeks.
+// History: every week since the first plan, newest first ("Oct 26 – Nov 1"). Each week says how many
+// planned workouts were done, the Fish it paid, its Comeback stamps, the free cover if one was used, and
+// the extras collected: words and small tags only, no charts, no ranking, only this player's own weeks.
+// "Your data" holds Save a backup (also the data export), Restore from a backup and Reset everything.
 
 import * as S from './state.js';
 import { saveBackup } from './backup.js';
 import { h, icon, monthDay, plural } from './ui.js';
 import { toast, reducedMotion } from '../fx.js';
 
-let confirming = false;   // Reset waits for a second, explicit tap
+let resetStep = 0;        // Reset everything: 0 closed, 1 "start over?", 2 "save a backup first?"
+let resetSaved = false;   // a backup was saved from the second step
 let restore = null;       // a checked backup waiting for the player's yes ({ text, summary }), or { error }
 let refocus = '';
 
-// Mondays from the first planned (or logged) week up to this one, newest first.
+// Mondays from the first planned (or logged) week up to this one, newest first. A week planned ahead
+// (on Sunday) is not history yet.
 function mondays() {
   const seen = new Set(Object.keys(S.state.plans));
   for (const d of Object.keys(S.state.log)) seen.add(S.weekStart(d));
@@ -36,29 +38,44 @@ function weekFish(monday) {
   return fish;
 }
 
+const range = (monday) => `${monthDay(S.parseKey(monday))} – ${monthDay(S.parseKey(S.addDays(monday, 6)))}`;
+const tag = (cls, name, text) => h('li', { class: `py-tag${cls ? ` ${cls}` : ''}` }, name ? icon(name) : null, text);
+
 function weekCard(monday, covered) {
   const current = monday === S.thisWeek();
   const days = S.weekDays(monday);
   const r = S.planFor(monday) ? S.route(monday) : null;
   const stamps = days.filter((d) => S.state.log[d] && S.state.log[d].comeback).length;
   const extras = S.state.extras.filter((x) => days.includes(x.earnedOn)).map((x) => S.extraById(x.id)).filter(Boolean);
-  const fish = weekFish(monday);
+  let line = 'No plan';
+  if (r) line = `${r.done} of ${r.target}${current && !r.hit ? ' so far' : ''}`;
   const tags = [
-    r && r.hit ? h('li', { class: 'py-tag is-hit' }, icon('i-check'), 'Week hit') : null,
-    covered ? h('li', { class: 'py-tag' }, icon('i-shield'), 'Free streak cover used') : null,
-    stamps ? h('li', { class: 'py-tag is-stamp' }, icon('i-refresh'), plural(stamps, 'Comeback stamp')) : null,
-    ...extras.map((e) => h('li', { class: 'py-tag' }, e.name)),
+    r && r.hit ? tag('is-hit', 'i-check', 'Week hit') : null,
+    stamps ? tag('is-stamp', 'i-stamp', plural(stamps, 'Comeback stamp')) : null,
+    covered ? tag('', 'i-shield', 'Free cover used') : null,
+    ...extras.map((e) => tag('is-extra', '', e.name)),
   ].filter(Boolean);
-  let line = 'No plan that week';
-  if (r) line = `${r.done} of ${r.target} planned workouts${current && !r.hit ? ' so far' : ''}`;
-  else if (current) line = 'No plan yet this week';
   return h('li', { class: 'py-week' },
     h('div', { class: 'py-week-top' },
-      h('h3', { class: 'py-week-title' }, current ? 'This week' : `Week of ${monthDay(S.parseKey(monday))}`),
-      h('p', { class: 'py-week-fish' }, icon('i-fish'), `+${fish}`, h('span', { class: 'sr-only' }, ' Fish'))),
-    r ? h('ol', { class: 'py-week-dots', 'aria-hidden': 'true' }, r.stations.map((s) => h('li', { class: `py-dot is-${s.status}` }))) : null,
+      h('h3', { class: 'py-week-title' }, range(monday), current ? h('span', { class: 'py-week-now' }, 'This week') : null),
+      h('p', { class: 'py-week-fish' }, `+${weekFish(monday)} Fish`)),
     h('p', { class: 'py-week-line' }, line),
-    tags.length ? h('ul', { class: 'py-week-tags' }, tags) : null);
+    tags.length ? h('ul', { class: 'py-week-tags', 'aria-label': 'That week' }, tags) : null);
+}
+
+// What a reset would delete, in a few words: "4 weeks of history, 120 Fish, 3 unlocks and 2 extras".
+function losses() {
+  const weeks = Object.keys(S.state.plans).length;
+  const unlocks = Object.keys(S.state.owned).length;
+  const parts = [
+    weeks ? `${plural(weeks, 'week')} of history` : null,
+    S.state.fish.balance ? `${S.state.fish.balance} Fish` : null,
+    unlocks ? plural(unlocks, 'unlock') : null,
+    S.state.extras.length ? plural(S.state.extras.length, 'extra') : null,
+  ].filter(Boolean);
+  if (!parts.length) return 'Nothing is saved yet, so nothing will be lost.';
+  const said = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
+  return `This deletes ${said}.`;
 }
 
 // Restore: pick a file, see what it holds ("4 weeks, 230 Fish"), say yes, and only then replace.
@@ -70,13 +87,15 @@ async function readPicked(e, rerender) {
   try { text = await f.text(); } catch { text = ''; }
   const checked = S.checkBackup(text);
   restore = checked.ok ? { text, summary: checked.summary } : { error: checked.error };
-  confirming = false;
+  resetStep = 0;
+  resetSaved = false;
   refocus = checked.ok ? 'py-restore-yes' : 'py-restore';
   rerender();
 }
 
 function dataCard(rerender, onReset, onRestore) {
   const file = h('input', { class: 'sr-only', type: 'file', accept: 'application/json,.json', tabindex: '-1', 'aria-hidden': 'true', onchange: (e) => readPicked(e, rerender) });
+  const closeReset = () => { resetStep = 0; resetSaved = false; refocus = 'py-reset'; rerender(); };
   const card = h('section', { class: 'py-data', 'aria-labelledby': 'py-data-title' },
     h('h2', { class: 'py-section-title', id: 'py-data-title' }, 'Your data'),
     h('p', { class: 'small muted' }, 'Everything is saved only in this browser. A backup file keeps Pengu safe.'),
@@ -90,9 +109,9 @@ function dataCard(rerender, onReset, onRestore) {
         onclick: () => file.click(),
       }, 'Restore from a backup'),
       h('button', {
-        class: 'btn btn-ghost btn-sm', type: 'button', id: 'py-reset', 'aria-expanded': String(confirming),
-        onclick: () => { confirming = !confirming; restore = null; refocus = confirming ? 'py-reset-yes' : 'py-reset'; rerender(); },
-      }, 'Reset')),
+        class: 'btn btn-ghost btn-sm', type: 'button', id: 'py-reset', 'aria-expanded': String(resetStep > 0),
+        onclick: () => { if (resetStep) { closeReset(); return; } resetStep = 1; restore = null; refocus = 'py-reset-next'; rerender(); },
+      }, 'Reset everything')),
     file);
   if (restore && restore.error) {
     card.append(h('p', { class: 'py-data-error', role: 'alert' }, icon('i-alert'), h('span', {}, restore.error)));
@@ -113,12 +132,21 @@ function dataCard(rerender, onReset, onRestore) {
         }, 'Restore'),
         h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { restore = null; refocus = 'py-restore'; rerender(); } }, 'Cancel'))));
   }
-  if (confirming) {
+  // Reset, step one: the intent. Step two: save a backup first, and exactly what will be lost.
+  if (resetStep === 1) {
     card.append(h('div', { class: 'py-reset-confirm', role: 'group', 'aria-labelledby': 'py-reset-q' },
-      h('p', { id: 'py-reset-q' }, 'Start over? This clears your plan, workouts, Fish, gear and extras from this browser. It can’t be undone.'),
+      h('p', { id: 'py-reset-q' }, h('strong', {}, 'Start Pengyu over?'), ' Your plan, weeks, Fish and gear leave this browser.'),
       h('div', { class: 'py-data-actions' },
-        h('button', { class: 'btn btn-danger btn-sm', type: 'button', id: 'py-reset-yes', onclick: () => { confirming = false; S.reset(); onReset(); } }, 'Reset everything'),
-        h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { confirming = false; refocus = 'py-reset'; rerender(); } }, 'Keep my data'))));
+        h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-reset-next', onclick: () => { resetStep = 2; refocus = 'py-reset-backup'; rerender(); } }, 'Continue'),
+        h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: closeReset }, 'Keep my data'))));
+  } else if (resetStep === 2) {
+    card.append(h('div', { class: 'py-reset-confirm is-last', role: 'group', 'aria-labelledby': 'py-reset-q2' },
+      h('p', { id: 'py-reset-q2' }, h('strong', {}, 'Save a backup first?'), ` ${losses()} It can’t be undone.`),
+      h('div', { class: 'py-data-actions' },
+        h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-reset-backup', onclick: () => { saveBackup(); resetSaved = true; refocus = 'py-reset-yes'; rerender(); } }, resetSaved ? 'Save another backup' : 'Save a backup'),
+        h('button', { class: 'btn btn-danger btn-sm', type: 'button', id: 'py-reset-yes', onclick: () => { resetStep = 0; resetSaved = false; S.reset(); onReset(); } }, 'Reset everything'),
+        h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: closeReset }, 'Keep my data')),
+      resetSaved ? h('p', { class: 'py-reset-saved', role: 'status' }, icon('i-check'), 'Backup saved.') : null));
   }
   return card;
 }
@@ -128,14 +156,11 @@ export function renderHistory(root, rerender, { onReset = () => {}, onRestore = 
   const weeks = mondays();
   const view = h('div', { class: 'py-view' },
     h('h1', { class: 'py-view-title' }, 'History'),
-    h('ul', { class: 'py-hist-summary', 'aria-label': 'All time' },
-      h('li', {}, `Week streak ${info.streak}`),
-      h('li', {}, `${S.state.fish.lifetime} Fish earned`),
-      h('li', {}, plural(S.comebackStamps(), 'Comeback stamp')),
-      h('li', {}, plural(S.state.extras.length, 'extra'))),
-    weeks.length
-      ? h('ol', { class: 'py-weeks', 'aria-label': 'Your weeks, newest first' }, weeks.map((m) => weekCard(m, info.covered.includes(m))))
-      : h('p', { class: 'muted' }, 'Your weeks show up here once you plan your first one.'),
+    h('section', { class: 'py-weeks-sec', 'aria-labelledby': 'py-weeks-title' },
+      h('h2', { class: 'py-section-title', id: 'py-weeks-title' }, 'Your weeks'),
+      weeks.length
+        ? h('ol', { class: 'py-weeks' }, weeks.map((m) => weekCard(m, info.covered.includes(m))))
+        : h('p', { class: 'muted' }, 'Your weeks show up here once you plan your first one.')),
     dataCard(rerender, onReset, onRestore));
   root.append(view);
   if (refocus) {

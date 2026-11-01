@@ -222,17 +222,23 @@ const stampArt = () => lineArt('py-reward-stamp', '0 0 80 80', `
   <path d="${ring(40, 40, 27, { seed: 42, amp: 0.8 })}" fill="none" stroke="#C2391F" stroke-width="1.6"/>
   <text x="40" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#C2391F" letter-spacing=".5">COME</text>
   <text x="40" y="51" text-anchor="middle" font-size="12" font-weight="800" fill="#C2391F" letter-spacing=".5">BACK</text>`);
-// The bands and Pengu's face never change, so they are drawn once and copied for each sheet.
+// The bands never change and the face changes only with the hat Pengu wears, so each is drawn once and
+// copied for every sheet.
 let bandsNode = null;
-let faceNode = null;
+const faceNodes = new Map();   // hat id ('' for none) -> drawing
+const faceKey = () => S.look().hat || '';
 const bandsArt = () => (bandsNode || (bandsNode = lineArt('py-reward-bands', '0 0 400 190', `
   <path d="M0 64C96 26 300 26 400 64V190H0Z" fill="#FFE07A"/>
   <path d="M0 128C116 96 286 98 400 128V190H0Z" fill="#FF9A52"/>`, true))).cloneNode(true);
-const faceArt = () => (faceNode || (faceNode = faceFigure())).cloneNode(true);
+function faceArt() {
+  const k = faceKey();
+  if (!faceNodes.has(k)) faceNodes.set(k, faceFigure('', S.look()));
+  return faceNodes.get(k).cloneNode(true);
+}
 // Draw both once, ahead of the first Begin, so that drawing never lands in the middle of the train's roll.
 function primeRewardArt() {
   if (!bandsNode) bandsArt();
-  if (!faceNode) faceArt();
+  if (!faceNodes.has(faceKey())) faceArt();
 }
 const whenIdle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 1200));
 
@@ -392,5 +398,5 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
   bound.push(bindPengu(train.querySelector('svg'), { follow: true, hop: true, wave: true }));
   bound.push(bindPengu(view.querySelector('.py-avatar-btn svg'), { follow: true, hop: false }));
   if (focus) count.focus({ preventScroll: true });
-  if (!faceNode) whenIdle(primeRewardArt);
+  if (!faceNodes.has(faceKey())) whenIdle(primeRewardArt);
 }
