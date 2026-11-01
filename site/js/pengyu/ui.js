@@ -34,3 +34,15 @@ export function clock(hhmm) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 export const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+// Hands a file to the browser to save (a backup, a calendar file). Nothing leaves the device.
+export function download(filename, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

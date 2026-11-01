@@ -6,7 +6,7 @@ import * as S from './state.js';
 import { renderToday } from './route.js';
 import { renderShop } from './shop.js';
 import { renderHistory } from './history.js';
-import { renderPlanFlow, takeFocusRequest } from './plan.js';
+import { renderPlanFlow, takeFocusRequest, resetPlanDraft } from './plan.js';
 import { penguFigure } from './art.js';
 import { reducedMotion } from './motion.js';
 import { h, icon } from './ui.js';
@@ -75,13 +75,23 @@ export function initPengyu() {
   function onReset() {
     tab = 'today';
     planning = false;
+    resetPlanDraft();
     render();
     window.scrollTo(0, 0);
     toast('Pengyu is reset', 'Plan a new week whenever you’re ready.', bust());
   }
+  // A restored backup shows its Today straight away.
+  function onRestore(summary) {
+    tab = 'today';
+    planning = false;
+    resetPlanDraft();
+    render();
+    window.scrollTo(0, 0);
+    toast('Backup restored.', `${summary.weeks === 1 ? '1 week' : `${summary.weeks} weeks`}, ${summary.fish} Fish.`, bust());
+  }
 
   function render() {
-    if (planning && S.planFor()) planning = false;          // the plan was made: back to Today
+    if (planning && S.planFor(S.planningWeek())) planning = false;   // the plan was made: back to Today
     const showPlan = planning && tab === 'today';
     if (main) main.classList.toggle('is-planning', showPlan);
     root.textContent = '';
@@ -92,14 +102,9 @@ export function initPengyu() {
     }
     const view = h('div', { class: `py-view py-view-${showPlan ? 'plan' : tab}` });
     root.append(view);
-    if (showPlan) {
-      const top = h('div', { class: 'py-plan-top' },
-        h('button', { class: 'py-back glass', type: 'button', 'aria-label': 'Back to Today', onclick: () => go('today') }, icon('i-back')));
-      const body = h('div', { class: 'py-plan-view' }, top);
-      view.append(body);
-      renderPlanFlow(body, render);
-    } else if (tab === 'pengu') renderShop(view, render);
-    else if (tab === 'history') renderHistory(view, render, { onReset });
+    if (showPlan) renderPlanFlow(view, render, { onExit: () => go('today') });
+    else if (tab === 'pengu') renderShop(view, render);
+    else if (tab === 'history') renderHistory(view, render, { onReset, onRestore });
     else renderToday(view, render, { onShop: () => go('pengu'), onPlan: openPlan, focus: takeFocusRequest() });
     for (const t of TABS) {
       if (t.id === tab) navButtons[t.id]?.setAttribute('aria-current', 'page');
@@ -116,7 +121,9 @@ export function initPengyu() {
 
   S.subscribe(render);
   render();
-  covers();
+  S.noteAppOpened();
+  // After the splash, if it is showing, so the note is seen.
+  setTimeout(covers, document.documentElement.classList.contains('is-splash') ? 1100 : 0);
 
   // A new day or week can change everything on screen; the greeting follows the hour.
   const refresh = () => {
@@ -128,5 +135,5 @@ export function initPengyu() {
     }
   };
   setInterval(refresh, 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { S.noteAppOpened(); refresh(); } });
 }

@@ -1,12 +1,15 @@
 // History: every week since the first plan, newest first, with how many planned workouts were done,
-// the Fish each week paid, and its Comeback stamps and extras. "Your data" holds the export and Reset.
+// the Fish each week paid, and its Comeback stamps and extras. "Your data" holds Save a backup (also
+// the data export), Restore from a backup and Reset.
 // No ranking and no comparison: only this player's own weeks.
 
 import * as S from './state.js';
-import { download } from './ics.js';
+import { saveBackup } from './backup.js';
 import { h, icon, monthDay, plural } from './ui.js';
+import { toast, reducedMotion } from '../fx.js';
 
 let confirming = false;   // Reset waits for a second, explicit tap
+let restore = null;       // a checked backup waiting for the player's yes ({ text, summary }), or { error }
 let refocus = '';
 
 // Mondays from the first planned (or logged) week up to this one, newest first.
@@ -58,19 +61,58 @@ function weekCard(monday, covered) {
     tags.length ? h('ul', { class: 'py-week-tags' }, tags) : null);
 }
 
-function dataCard(rerender, onReset) {
+// Restore: pick a file, see what it holds ("4 weeks, 230 Fish"), say yes, and only then replace.
+async function readPicked(e, rerender) {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  let text = '';
+  try { text = await f.text(); } catch { text = ''; }
+  const checked = S.checkBackup(text);
+  restore = checked.ok ? { text, summary: checked.summary } : { error: checked.error };
+  confirming = false;
+  refocus = checked.ok ? 'py-restore-yes' : 'py-restore';
+  rerender();
+}
+
+function dataCard(rerender, onReset, onRestore) {
+  const file = h('input', { class: 'sr-only', type: 'file', accept: 'application/json,.json', tabindex: '-1', 'aria-hidden': 'true', onchange: (e) => readPicked(e, rerender) });
   const card = h('section', { class: 'py-data', 'aria-labelledby': 'py-data-title' },
     h('h2', { class: 'py-section-title', id: 'py-data-title' }, 'Your data'),
-    h('p', { class: 'small muted' }, 'Your plan, workouts, Fish and gear are saved only in this browser. Nothing is sent anywhere.'),
+    h('p', { class: 'small muted' }, 'Everything is saved only in this browser. A backup file keeps Pengu safe.'),
     h('div', { class: 'py-data-actions' },
       h('button', {
-        class: 'btn btn-secondary btn-sm', type: 'button',
-        onclick: () => download(`pengyu-data-${S.today()}.json`, S.exportData(), 'application/json'),
-      }, 'Export my data (JSON)'),
+        class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-backup',
+        onclick: () => { saveBackup(); toast('Backup saved.', 'Keep the file somewhere safe.'); },
+      }, 'Save a backup'),
+      h('button', {
+        class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-restore',
+        onclick: () => file.click(),
+      }, 'Restore from a backup'),
       h('button', {
         class: 'btn btn-ghost btn-sm', type: 'button', id: 'py-reset', 'aria-expanded': String(confirming),
-        onclick: () => { confirming = !confirming; refocus = confirming ? 'py-reset-yes' : 'py-reset'; rerender(); },
-      }, 'Reset')));
+        onclick: () => { confirming = !confirming; restore = null; refocus = confirming ? 'py-reset-yes' : 'py-reset'; rerender(); },
+      }, 'Reset')),
+    file);
+  if (restore && restore.error) {
+    card.append(h('p', { class: 'py-data-error', role: 'alert' }, icon('i-alert'), h('span', {}, restore.error)));
+  } else if (restore) {
+    const { weeks, fish } = restore.summary;
+    card.append(h('div', { class: 'py-restore-confirm', role: 'group', 'aria-labelledby': 'py-restore-q' },
+      h('p', { id: 'py-restore-q' }, h('strong', {}, `This backup has ${plural(weeks, 'week')}, ${fish} Fish.`), ' Restoring replaces what’s saved here now.'),
+      h('div', { class: 'py-data-actions' },
+        h('button', {
+          class: 'btn btn-primary btn-sm', type: 'button', id: 'py-restore-yes',
+          onclick: () => {
+            const text = restore.text;
+            restore = null;
+            const res = S.importData(text);
+            if (res.ok) onRestore(res.summary);
+            else { restore = { error: res.error }; refocus = 'py-restore'; rerender(); }
+          },
+        }, 'Restore'),
+        h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { restore = null; refocus = 'py-restore'; rerender(); } }, 'Cancel'))));
+  }
   if (confirming) {
     card.append(h('div', { class: 'py-reset-confirm', role: 'group', 'aria-labelledby': 'py-reset-q' },
       h('p', { id: 'py-reset-q' }, 'Start over? This clears your plan, workouts, Fish, gear and extras from this browser. It can’t be undone.'),
@@ -81,7 +123,7 @@ function dataCard(rerender, onReset) {
   return card;
 }
 
-export function renderHistory(root, rerender, { onReset = () => {} } = {}) {
+export function renderHistory(root, rerender, { onReset = () => {}, onRestore = () => {} } = {}) {
   const info = S.streakInfo();
   const weeks = mondays();
   const view = h('div', { class: 'py-view' },
@@ -94,11 +136,21 @@ export function renderHistory(root, rerender, { onReset = () => {} } = {}) {
     weeks.length
       ? h('ol', { class: 'py-weeks', 'aria-label': 'Your weeks, newest first' }, weeks.map((m) => weekCard(m, info.covered.includes(m))))
       : h('p', { class: 'muted' }, 'Your weeks show up here once you plan your first one.'),
-    dataCard(rerender, onReset));
+    dataCard(rerender, onReset, onRestore));
   root.append(view);
   if (refocus) {
     const el = root.querySelector(`#${refocus}`);
     refocus = '';
     if (el) el.focus({ preventScroll: true });
+    // A panel that just opened (restore, reset or a wrong file) comes fully into view, above the
+    // floating tab bar, without pushing its own first line off the top.
+    const panel = root.querySelector('.py-restore-confirm, .py-reset-confirm, .py-data-error');
+    if (panel) {
+      const r = panel.getBoundingClientRect();
+      const bar = document.getElementById('py-nav');
+      const limit = (bar ? bar.getBoundingClientRect().top : window.innerHeight) - 16;
+      const by = Math.min(r.bottom - limit, r.top - 16);
+      if (by > 0) window.scrollBy({ top: by, behavior: reducedMotion() ? 'auto' : 'smooth' });
+    }
   }
 }

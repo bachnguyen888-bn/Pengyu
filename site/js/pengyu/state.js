@@ -73,7 +73,8 @@ function fresh() {
     coversAnnounced: [],  // mondays whose free streak cover has been shown to the player
     owned: {},            // unlock id -> { at, price }; kept for good
     wear: { hat: null, scarf: false, backpack: false, outfit: false, decal: null, paint: 'navy' },
-    events: [],           // { type, at, ...details }, for "Export my data"
+    events: [],           // { type, at, ...details }; part of every backup
+    tipSeen: false,       // the one-time "add Pengyu to your Home Screen" card has been shown
   };
 }
 
@@ -81,18 +82,29 @@ let canSave = true;
 function probe() {
   try { localStorage.setItem('pengyu.probe', '1'); localStorage.removeItem('pengyu.probe'); return true; } catch { return false; }
 }
+const isObj = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
+// Saved data (or a backup) laid over a fresh state: known keys only, every list a list, retired paints
+// (mint and purple) back to navy.
+function normalize(saved) {
+  const base = fresh();
+  const out = {};
+  for (const k of Object.keys(base)) out[k] = k in saved ? saved[k] : base[k];
+  out.fish = { ...base.fish, ...(isObj(saved.fish) ? saved.fish : {}) };
+  out.wear = { ...base.wear, ...(isObj(saved.wear) ? saved.wear : {}) };
+  for (const k of ['plans', 'log', 'owned']) if (!isObj(out[k])) out[k] = {};
+  for (const k of ['weekBonusPaid', 'extras', 'coversAnnounced', 'events']) if (!Array.isArray(out[k])) out[k] = [];
+  for (const plan of Object.values(out.plans)) if (isObj(plan) && !Array.isArray(plan.moves)) plan.moves = [];
+  if (!PAINTS.some((x) => x.id === out.wear.paint)) out.wear.paint = 'navy';
+  out.tipSeen = out.tipSeen === true;
+  return out;
+}
 function load() {
   canSave = probe();
   if (!canSave) return fresh();
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (!saved || saved.v !== 1) return fresh();
-    const base = fresh();
-    const out = { ...base, ...saved, fish: { ...base.fish, ...saved.fish }, wear: { ...base.wear, ...saved.wear } };
-    for (const k of ['weekBonusPaid', 'extras', 'coversAnnounced', 'events']) if (!Array.isArray(out[k])) out[k] = [];
-    if (!out.owned || typeof out.owned !== 'object' || Array.isArray(out.owned)) out.owned = {};
-    if (!PAINTS.some((x) => x.id === out.wear.paint)) out.wear.paint = 'navy';   // mint and purple were retired
-    return out;
+    if (!isObj(saved) || saved.v !== 1) return fresh();
+    return normalize(saved);
   } catch { return fresh(); }
 }
 function save() {
@@ -201,36 +213,62 @@ export function logPreview() {
   return { kind: 'extra', fish: 0, comeback: '', extra: nextExtra() };
 }
 
-// ---------- Changes ----------
-export function createPlan({ target, days, time, window, place }) {
-  const t = today();
+// ---------- Planning ----------
+// The days of a week that can still be planned, or moved to: today and later.
+export const openDays = (monday = thisWeek()) => weekDays(monday).filter((d) => d >= today());
+// A new plan is for this week, or for next week once fewer days are left than the smallest plan
+// (two workouts), which is Sunday. That is how a Sunday player starts the next route.
+export function planningWeek() {
   const monday = thisWeek();
-  const week = weekDays(monday);
-  const picked = [...new Set(days)].sort();
-  if (planFor(monday)) return null;
-  if (!TARGETS.includes(target) || picked.length !== target) return null;
-  if (picked.some((d) => !week.includes(d) || d < t)) return null;
-  state.plans[monday] = { target, days: picked, time, window, place, createdAt: now().toISOString(), moves: [] };
-  logEvent('plan_created', { week: monday, target, days: picked, time, window, place });
-  return commit({ type: 'plan' });
+  return openDays(monday).length < TARGETS[0] ? addDays(monday, 7) : monday;
+}
+// The week Today shows: this week, or next week once it was planned ahead on Sunday.
+export function shownWeek() {
+  const monday = thisWeek();
+  const next = addDays(monday, 7);
+  return !planFor(monday) && planFor(next) ? next : monday;
+}
+// The most recent plan before a week, so the next plan can start from it.
+export function lastPlanBefore(monday) {
+  const prev = Object.keys(state.plans).filter((m) => m < monday).sort().pop();
+  return prev ? state.plans[prev] : null;
 }
 
-// Move an unfinished station that is today or later to another free day this week. No penalty.
+// ---------- Changes ----------
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const isText = (s, max) => typeof s === 'string' && s.trim().length > 0 && s.length <= max;
+// `calendar: true` when the player already saved this plan's calendar file from the summary.
+export function createPlan({ week = planningWeek(), target, days, time, window, place, calendar = false } = {}) {
+  if (week !== planningWeek() || planFor(week)) return null;
+  const open = openDays(week);
+  const picked = [...new Set(Array.isArray(days) ? days : [])].sort();
+  if (!TARGETS.includes(target) || picked.length !== target || picked.some((d) => !open.includes(d))) return null;
+  if (!TIME.test(String(time)) || !isText(window, 40) || !isText(place, 60)) return null;
+  state.plans[week] = { target, days: picked, time, window: window.trim(), place: place.trim(), createdAt: now().toISOString(), moves: [] };
+  if (calendar) state.plans[week].icsSeq = 0;
+  logEvent('plan_created', { week, target, days: picked, time, window: window.trim(), place: place.trim() });
+  return commit({ type: 'plan', week });
+}
+
+// Move an unfinished station that is today or later to another free day of its week. No penalty, and
+// never once its day has passed.
 export function canMove(day) {
-  const plan = planFor();
+  const plan = planFor(weekStart(day));
   return Boolean(plan && plan.days.includes(day) && !isDone(day) && day >= today());
 }
 export function moveTargets(day) {
-  const plan = planFor();
   if (!canMove(day)) return [];
-  const t = today();
-  return weekDays(thisWeek()).filter((d) => d >= t && !plan.days.includes(d) && !state.log[d]);
+  const monday = weekStart(day);
+  const plan = planFor(monday);
+  return openDays(monday).filter((d) => !plan.days.includes(d) && !state.log[d]);
 }
 export function moveStation(from, to) {
   if (!moveTargets(from).includes(to)) return null;
-  const plan = planFor();
+  const monday = weekStart(from);
+  const plan = planFor(monday);
   plan.days[plan.days.indexOf(from)] = to;   // same slot, so a re-exported calendar updates that event
   plan.moves.push({ from, to, at: now().toISOString() });
+  logEvent('plan_moved', { week: monday, from, to });
   return commit({ type: 'move', from, to });
 }
 
@@ -284,9 +322,9 @@ export function logWorkout() {
   });
 }
 
-// The calendar file now matches the plan (the Today screen stops asking until a day moves).
-export function markCalendarSaved() {
-  const plan = planFor();
+// The calendar file now matches the plan (the week sheet stops asking until a day moves).
+export function markCalendarSaved(monday = shownWeek()) {
+  const plan = planFor(monday);
   if (!plan) return null;
   plan.icsSeq = plan.moves.length;
   return commit({ type: 'calendar' });
@@ -399,10 +437,73 @@ export function look() {
   };
 }
 
-// ---------- Export and reset ----------
+// ---------- Backups: export, check and import ----------
+// A backup is the saved state itself, as JSON with v: 1. It is also the data export. Importing checks
+// the whole file first and changes nothing unless every part of it is good.
 export function exportData() {
   return JSON.stringify({ exportedAt: now().toISOString(), storageKey: KEY, ...state }, null, 2);
 }
+
+export const BACKUP_ERRORS = {
+  notBackup: 'This file isn’t a Pengyu backup.',
+  version: 'This backup is from a different version of Pengyu.',
+  damaged: 'This backup looks damaged, so nothing was changed.',
+};
+const isDay = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && dayKey(parseKey(s)) === s;
+const isMonday = (s) => isDay(s) && weekStart(s) === s;
+const isCount = (n) => Number.isInteger(n) && n >= 0;
+const listOf = (a, ok) => a === undefined || (Array.isArray(a) && a.every(ok));
+function shapeOk(d) {
+  if (!isObj(d.plans) || !isObj(d.log) || !isObj(d.fish)) return false;
+  if (!isCount(d.fish.balance) || !isCount(d.fish.lifetime) || d.fish.balance > d.fish.lifetime) return false;
+  for (const [monday, p] of Object.entries(d.plans)) {
+    if (!isMonday(monday) || !isObj(p) || !TARGETS.includes(p.target) || !Array.isArray(p.days)) return false;
+    const week = weekDays(monday);
+    if (p.days.length !== p.target || new Set(p.days).size !== p.days.length || !p.days.every((x) => week.includes(x))) return false;
+    if (!TIME.test(String(p.time)) || !isText(p.window, 40) || !isText(p.place, 60) || !listOf(p.moves, isObj)) return false;
+  }
+  for (const [day, l] of Object.entries(d.log)) {
+    if (!isDay(day) || !isObj(l) || !['planned', 'extra'].includes(l.kind)) return false;
+    if ((l.comeback !== undefined && !isDay(l.comeback)) || (l.extra !== undefined && !extraById(l.extra))) return false;
+  }
+  if (!listOf(d.weekBonusPaid, isMonday) || !listOf(d.coversAnnounced, isMonday) || !listOf(d.events, isObj)) return false;
+  if (!listOf(d.extras, (x) => isObj(x) && extraById(x.id) && isDay(x.earnedOn))) return false;
+  if (d.owned !== undefined && (!isObj(d.owned) || !Object.keys(d.owned).every((id) => unlockById(id)))) return false;
+  return d.wear === undefined || isObj(d.wear);
+}
+
+// Reads a backup without changing anything: { ok, summary: { weeks, fish } } or { ok: false, error }.
+export function checkBackup(input) {
+  let d;
+  try { d = JSON.parse(typeof input === 'string' ? input : JSON.stringify(input)); } catch { return { ok: false, error: BACKUP_ERRORS.notBackup }; }
+  if (!isObj(d) || !('v' in d)) return { ok: false, error: BACKUP_ERRORS.notBackup };
+  if (d.v !== 1) return { ok: false, error: BACKUP_ERRORS.version };
+  if (!shapeOk(d)) return { ok: false, error: BACKUP_ERRORS.damaged };
+  return { ok: true, data: normalize(d), summary: { weeks: Object.keys(d.plans).length, fish: d.fish.balance } };
+}
+
+// Replaces everything saved here with a good backup.
+export function importData(input) {
+  const checked = checkBackup(input);
+  if (!checked.ok) return checked;
+  state = checked.data;
+  logEvent('backup_restored', { ...checked.summary });
+  commit({ type: 'restore' });
+  return { ok: true, summary: checked.summary };
+}
+
+// These only add a line to the saved events, so the screen does not need to redraw.
+function note(type, details) { logEvent(type, details); save(); }
+export function markBackupSaved() { note('backup_saved', {}); }
+// At most once a day.
+export function noteAppOpened() {
+  const t = today();
+  const last = [...state.events].reverse().find((e) => e.type === 'app_opened');
+  if (last && last.day === t) return false;
+  note('app_opened', { day: t });
+  return true;
+}
+export function markTipSeen() { state.tipSeen = true; save(); }
 
 // Start over: forget everything Pengyu saved in this browser, and the old preview's leftovers too.
 const OLD_KEYS = ['pengu.preview.v1', 'pengu.theme'];

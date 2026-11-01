@@ -2,7 +2,7 @@
 # The CSP matches the pages' <meta> tags and adds frame-ancestors, which a meta tag cannot set.
 # The pages keep no inline CSS or script: styles are in pengu.css and scripts in js/, so 'self' is all they need.
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer

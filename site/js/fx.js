@@ -12,8 +12,9 @@ function el(tag, attrs = {}, text) {
 }
 
 // A short note that slides in and leaves by itself; `art` is Pengu's drawing from js/pengyu/art.js.
+// While a sheet is open it shows inside the sheet, which sits above everything else on the page.
 export function toast(title, sub = '', art = null) {
-  const box = document.getElementById('toasts');
+  const box = document.querySelector('dialog[open] .toasts') || document.getElementById('toasts');
   if (!box) return;
   const t = el('div', { class: 'toast' });
   const copy = el('div');

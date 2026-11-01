@@ -325,6 +325,18 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-reward-bands { position: absolute; inset: 0; width: 100%; height: 100%; }
 .py-reward-face { position: absolute; left: 0; right: 0; bottom: -6px; width: min(320px, 82%); margin: 0 auto; }
 .py-reward-face svg { width: 100%; }
+/* The one-time Home Screen tip (iPhone Safari): a sunny card. */
+.py-tip .py-sheet-panel { background: var(--sun); }
+.py-tip-head { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: var(--s3); align-items: center; }
+.py-tip-title { font-size: 1.375rem; line-height: 1.75rem; font-weight: 700; }
+.py-tip-art { width: 64px; }
+.py-tip-steps { display: grid; gap: 10px; }
+.py-tip-steps li { display: flex; align-items: center; gap: 12px; font-size: 1.0625rem; }
+.py-tip-n { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 50%; background: rgba(255, 255, 255, 0.6); font-weight: 700; }
+.py-tip-share { display: inline-block; width: 20px; height: 20px; margin: 0 3px; vertical-align: -4px; }
+.py-tip-note { font-size: 0.9375rem; }
+.py-tip-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.py-tip-status { min-height: 1.3em; font-size: 0.875rem; font-weight: 600; }
 /* The week sheet: this week's sessions as sunny cards. */
 .py-weeksheet .py-sheet-panel { background: var(--paper) var(--grain); }
 .py-weeksheet-title { font-size: 1.5rem; font-weight: 700; }
@@ -352,30 +364,40 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-sheet-note { display: flex; align-items: flex-start; gap: 10px; font-size: 0.875rem; color: var(--ink-2); }
 .py-sheet-note .icon { width: 18px; height: 18px; margin-top: 1px; color: var(--ink); }
 
-/* ---------- 9. Plan: a full-screen paper view (rebuilt in M1) ---------- */
-.py-plan-view { display: grid; gap: var(--s4); }
-.py-plan-top { display: flex; align-items: center; gap: var(--s2); min-height: 44px; }
+/* ---------- 9. Plan: a full-screen paper view, four quick steps, then a sunny summary ---------- */
+.py-plan { display: grid; gap: var(--s5); align-content: start; }
+.py-plan-top { display: flex; align-items: center; gap: var(--s4); min-height: 44px; }
 .py-back { width: var(--tap); height: var(--tap); border-radius: 50%; display: grid; place-items: center; padding: 0; }
-.py-flow { display: grid; gap: 14px; padding: 20px 18px; border-radius: var(--r-card); background: var(--card); box-shadow: var(--shadow); }
-.py-flow-top { display: grid; gap: var(--s2); }
-.py-progress { display: flex; gap: 8px; }
-.py-progress span { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.py-progress span.is-on { background: var(--coral); }
-.py-step-title { font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
+.py-dots { display: flex; gap: 8px; }
+.py-dots li { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background-color 200ms var(--ease-out); }
+.py-dots li.is-on { background: var(--coral-strong); }
+.py-plan-head { display: grid; gap: 6px; }
+.py-step-title { font-size: 1.75rem; line-height: 2.125rem; font-weight: 700; letter-spacing: -0.02em; }
 .py-step-title:focus:not(:focus-visible) { outline: none; }
-.py-targets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
-.py-target { padding: 10px 0; }
-.py-target strong { font-size: 1.875rem; line-height: 1.1; }
-.py-days { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.py-days .chip { padding: 6px 2px; }
-.py-counter { margin-top: var(--s2); color: var(--ink-2); }
-.py-custom { max-width: 260px; margin-top: var(--s3); }
-.py-review { display: grid; gap: var(--s2); }
-.py-review li { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 20px; background: var(--sun); font-weight: 600; }
-.py-review .icon { margin-top: 2px; stroke-width: 2.2; }
-.py-flow-nav { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
-.py-flow-nav .btn-primary { min-width: 148px; }
-@media (min-width: 400px) { .py-days { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; } }
+.py-hint { color: var(--ink-2); }
+.py-step-body { display: grid; gap: var(--s3); }
+.py-chip[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--coral-strong), 0 8px 20px -12px rgba(229, 83, 47, 0.6); }
+/* Columns grow with the text size, so large text gets fewer, wider chips instead of clipped ones. */
+.py-targets { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr)); gap: 10px; }
+.py-targets .chip { min-height: 112px; border-radius: 24px; }
+.py-target strong { font-size: 2.5rem; line-height: 1; font-weight: 700; }
+.py-target small { font-size: 0.875rem; }
+.py-days { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.py-days .chip { min-height: 60px; padding: 6px 2px; }
+.py-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 10px; }
+.py-grid2 .chip { min-height: 64px; border-radius: 20px; }
+.py-counter { font-size: 0.875rem; color: var(--ink-2); }
+.py-custom { max-width: 280px; }
+.py-plan-actions { display: grid; gap: var(--s3); }
+.py-next { width: 100%; min-height: 56px; font-size: 1.0625rem; font-weight: 700; }
+.py-plan-ics { width: 100%; padding: 0 14px; font-size: 0.9375rem; }
+.py-summary { display: grid; gap: var(--s3); padding: 22px 20px; border-radius: var(--r-card); background: var(--sun); box-shadow: 0 14px 30px -18px rgba(196, 138, 16, 0.9); }
+.py-summary-plan { font-size: 1.25rem; line-height: 1.6875rem; font-weight: 700; }
+.py-summary-days { display: grid; gap: 6px; }
+.py-summary-days li { display: flex; align-items: center; gap: 10px; }
+.py-summary-days .icon { width: 18px; height: 18px; stroke-width: 2.4; }
+.py-summary-fish { font-size: 0.9375rem; }
+@media (min-width: 400px) { .py-days { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; } }
 
 /* ---------- 10. Pengu tab (rebuilt in M2): gear and train upgrades, words only, no bars ---------- */
 .py-shop { display: grid; gap: var(--s5); }
@@ -442,6 +464,9 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-data { display: grid; gap: 10px; padding: var(--s4); border-radius: var(--r-card); background: var(--card); box-shadow: var(--shadow); }
 .py-data-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .py-reset-confirm { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--coral-tint); }
+.py-restore-confirm { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--sun-2); }
+.py-data-error { display: flex; align-items: flex-start; gap: 8px; padding: 12px 14px; border-radius: 16px; background: var(--coral-tint); font-size: 0.9375rem; }
+.py-data-error .icon { margin-top: 2px; color: var(--coral-ink); }
 
 /* ---------- 12. 404 page ---------- */
 .not-found { min-height: 100vh; display: grid; place-items: center; padding: var(--s7) var(--gutter); text-align: center; }

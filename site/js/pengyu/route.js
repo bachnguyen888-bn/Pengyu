@@ -2,6 +2,7 @@
 // week's route, "Workouts this week: X of N" and one big Begin. Begin logs in one tap: the train rolls to
 // its station, the ring fills, the count and Fish update, Pengu celebrates and the sunny reward sheet
 // rises. Tapping the route opens the week sheet (sessions, moves, the calendar file and the cover).
+// Planned ahead on Sunday, the stage shows next week's route: "Your route starts Monday."
 // No penalties and no shame: a day without a workout just reads "not logged".
 
 import * as S from './state.js';
@@ -11,6 +12,7 @@ import { penguFigure, trainFigure, faceFigure } from './art.js';
 import { bindPengu, rollTrain, fillStation, sheetIn, sheetOut, rise, reducedMotion } from './motion.js';
 import { wobblyLine, ring, check, softRect } from './ink.js';
 import { countTo, toast as fxToast } from '../fx.js';
+import { tipWanted, saveBackup } from './backup.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 let pending = null;   // a log in flight: what the screen showed before Begin, then what it paid
@@ -56,8 +58,9 @@ function goal(r) {
 }
 
 // What Begin says, and the quiet caption under it.
-function beginState(r) {
+function beginState(r, ahead) {
   if (!r) return { label: 'Plan my week', caption: 'Takes about 30 seconds.', plan: true };
+  if (ahead) return { label: `First stop: ${weekday(S.parseKey(r.stations[0].day))}`, waiting: true, caption: ifThen(r.plan) };
   const p = S.logPreview();
   if (p.kind === 'logged') {
     const next = r.stations.find((s) => s.status === 'upcoming');
@@ -85,12 +88,12 @@ function stationNode(s, i, count, arriving) {
   return li;
 }
 
-function routeBlock(r, look, arriving) {
+function routeBlock(r, look, arriving, ahead) {
   const ties = Array.from({ length: 30 }, (_, i) => `M${18 + i * 33.5 + (i % 3) * 1.4} ${1.4 + (i % 2) * 0.5}V${6.6 - (i % 4) * 0.4}`).join('');
   const wrap = h('div', { class: `py-route-wrap${look.car ? ' has-car2' : ''}` },
     lineArt('py-rail', '0 0 1000 8', `<path d="${wobblyLine(0, 1000, 4, { seed: 5, amp: 0.7, step: 64 })}"/><path d="${ties}"/>`, true),
     lineArt('py-route-line', '0 0 1000 6', `<path d="${wobblyLine(0, 1000, 3, { seed: 9, amp: 0.9, step: 72 })}"/>`, true),
-    h('ol', { class: 'py-route', 'aria-label': r ? 'Stations this week' : 'No stations yet' },
+    h('ol', { class: 'py-route', 'aria-label': !r ? 'No stations yet' : ahead ? 'Stations next week' : 'Stations this week' },
       h('li', { class: 'py-depot', 'aria-hidden': 'true' }, lineArt('py-depot-art', '0 0 14 14', `<path d="${softRect(1, 1, 12, 12, 3, { seed: 4, amp: 0.5 })}"/>`)),
       r ? r.stations.map((s, i) => stationNode(s, i, r.stations.length, arriving === s.day)) : null));
   wrap.querySelector('.py-depot').style.setProperty('--at', '0');
@@ -129,9 +132,10 @@ function arrive(view) {
   const fishN = view.querySelector('.py-fish-n');
   countTo(fishN, S.state.fish.balance);
   view.querySelector('.py-fishpill').setAttribute('aria-label', `${S.state.fish.balance} Fish`);
-  // Pengu celebrates on the next frame, and the sheet's art is drawn in the quiet moment after.
+  // Pengu celebrates on the next frame. The sheet's art is usually drawn already (at idle time); if
+  // Begin came first, it is drawn in the quiet moment after arrival.
   requestAnimationFrame(() => { if (bound[0]) bound[0].celebrate(); });
-  setTimeout(() => { bandsArt(); faceArt(); }, 320);
+  setTimeout(primeRewardArt, 320);
   const res = p.res;
   const total = res.fish + res.bonus + res.comeback;
   announce(res.kind === 'extra'
@@ -146,14 +150,21 @@ function closeSheet(now = false) {
   const s = sheet;
   if (!s) return;
   sheet = null;
-  const done = () => { s.dlg.close(); s.dlg.remove(); const back = s.returnFocus && s.returnFocus(); if (back) back.focus({ preventScroll: true }); };
+  const done = () => {
+    s.dlg.close();
+    s.dlg.remove();
+    const back = s.returnFocus && s.returnFocus();
+    if (back) back.focus({ preventScroll: true });
+    if (s.onClosed && !now) s.onClosed();
+  };
   if (now) done(); else sheetOut(s.panel, done);
 }
-function openSheet(cls, label, build, returnFocus) {
+function openSheet(cls, label, build, returnFocus, onClosed) {
   closeSheet(true);
   const panel = h('div', { class: 'py-sheet-panel' }, h('div', { class: 'py-sheet-grip', 'aria-hidden': 'true' }));
-  const dlg = h('dialog', { class: `py-sheet ${cls}`, 'aria-labelledby': label }, panel);
-  sheet = { dlg, panel, returnFocus };
+  // Toasts shown while a sheet is open appear here, above the sheet's backdrop.
+  const dlg = h('dialog', { class: `py-sheet ${cls}`, 'aria-labelledby': label }, panel, h('div', { class: 'toasts', 'aria-live': 'polite' }));
+  sheet = { dlg, panel, returnFocus, onClosed };
   const close = () => closeSheet();
   build(panel, close);
   document.body.append(dlg);
@@ -218,6 +229,12 @@ const bandsArt = () => (bandsNode || (bandsNode = lineArt('py-reward-bands', '0 
   <path d="M0 64C96 26 300 26 400 64V190H0Z" fill="#FFE07A"/>
   <path d="M0 128C116 96 286 98 400 128V190H0Z" fill="#FF9A52"/>`, true))).cloneNode(true);
 const faceArt = () => (faceNode || (faceNode = faceFigure())).cloneNode(true);
+// Draw both once, ahead of the first Begin, so that drawing never lands in the middle of the train's roll.
+function primeRewardArt() {
+  if (!bandsNode) bandsArt();
+  if (!faceNode) faceArt();
+}
+const whenIdle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 1200));
 
 function openReward(res) {
   const copy = rewardCopy(res);
@@ -231,6 +248,28 @@ function openReward(res) {
       h('div', { class: 'py-reward-art', 'aria-hidden': 'true' }, bandsArt(), h('div', { class: 'py-reward-face' }, faceArt())),
     ].filter(Boolean));
     rise(panel.querySelector('.py-reward-face'));
+  }, () => document.querySelector('.py-count'), () => { if (tipWanted()) setTimeout(openTip, reducedMotion() ? 0 : 250); });
+}
+
+// Once, after a logged workout, on iPhone Safari only: Safari can clear a site's saved data, and the
+// Home Screen app keeps its own, so Pengu is safest there, with a backup to carry progress across.
+function openTip() {
+  if (!tipWanted() || !document.querySelector('.py-today')) return;   // only on Today; otherwise after the next log
+  S.markTipSeen();
+  openSheet('py-tip', 'py-tip-title', (panel, close) => {
+    const status = h('p', { class: 'py-tip-status', role: 'status' });
+    panel.append(
+      h('div', { class: 'py-tip-head' },
+        h('h2', { class: 'py-tip-title', id: 'py-tip-title' }, 'Keep Pengu safe: add Pengyu to your Home Screen.'),
+        penguFigure(S.look(), { cls: 'py-tip-art', pose: 'bust' })),
+      h('ol', { class: 'py-tip-steps' },
+        h('li', {}, h('span', { class: 'py-tip-n', 'aria-hidden': 'true' }, '1'), h('span', {}, 'Tap ', icon('i-share', 'icon py-tip-share'), h('strong', {}, 'Share'), ' in Safari.')),
+        h('li', {}, h('span', { class: 'py-tip-n', 'aria-hidden': 'true' }, '2'), h('span', {}, 'Choose ', h('strong', {}, 'Add to Home Screen'), '.'))),
+      h('p', { class: 'py-tip-note' }, 'Already have progress here? Save a backup, then restore it in the Home Screen app.'),
+      h('div', { class: 'py-tip-actions' },
+        h('button', { class: 'btn glass-coral', type: 'button', onclick: () => { saveBackup(); status.textContent = 'Backup saved. Keep the file somewhere safe.'; } }, 'Save a backup'),
+        h('button', { class: 'btn btn-ghost', type: 'button', autofocus: true, onclick: close }, 'Got it')),
+      status);
   }, () => document.querySelector('.py-count'));
 }
 
@@ -259,7 +298,7 @@ function movePicker(refill) {
     targets.length ? null : h('p', { class: 'small muted' }, 'No free days are left this week.'),
     h('div', { class: 'py-choices' },
       targets.map((d) => h('button', {
-        class: 'chip', type: 'button',
+        class: 'chip glass', type: 'button',
         onclick: () => {
           const from = moving;
           moving = '';
@@ -270,10 +309,10 @@ function movePicker(refill) {
       h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { moving = ''; refill(); } }, 'Keep it')));
 }
 
-function calendarNote(plan, refill) {
+function calendarNote(plan, monday, refill) {
   const fresh = plan.icsSeq === undefined;
   const stale = !fresh && plan.icsSeq !== plan.moves.length;
-  const get = () => { downloadIcs(); S.markCalendarSaved(); refill(); };
+  const get = () => { downloadIcs(monday); S.markCalendarSaved(monday); refill(); };
   return h('p', { class: 'py-sheet-note' }, icon('i-calendar'),
     h('button', { class: 'link', type: 'button', onclick: get },
       fresh ? 'Add reminders to my calendar (.ics)' : stale ? 'You moved a workout. Get the updated file (.ics).' : 'Download again'));
@@ -282,17 +321,18 @@ function calendarNote(plan, refill) {
 function openWeek() {
   openSheet('py-weeksheet', 'py-weeksheet-title', function fill(panel, close) {
     for (const n of [...panel.children]) if (!n.classList.contains('py-sheet-grip')) n.remove();
-    const r = S.route();
+    const monday = S.shownWeek();
+    const r = S.route(monday);
     if (!r) { close(); return; }
     const info = S.streakInfo();
     const refill = () => fill(panel, close);
     panel.append(...[
       h('div', { class: 'py-sheet-head' },
-        h('h2', { class: 'py-weeksheet-title', id: 'py-weeksheet-title' }, 'This week'),
+        h('h2', { class: 'py-weeksheet-title', id: 'py-weeksheet-title' }, monday === S.thisWeek() ? 'This week' : 'Next week'),
         h('button', { class: 'py-sheet-close glass', type: 'button', 'aria-label': 'Close', onclick: close }, icon('i-close'))),
       h('ul', { class: 'py-session-list' }, r.stations.map((s) => sessionCard(s, r.plan, refill))),
       movePicker(refill),
-      calendarNote(r.plan, refill),
+      calendarNote(r.plan, monday, refill),
       h('p', { class: 'py-sheet-note' }, icon('i-shield'), info.coverReady ? 'Free cover ready this month.' : 'Free cover used this month.'),
     ].filter(Boolean));
   }, () => document.querySelector('.py-route-open'));
@@ -304,16 +344,20 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
   for (const c of bound) if (c) c.stop();
   bound = [];
   if (drawnFor !== S.state.createdAt) { drawnFor = S.state.createdAt; lastAt = null; pending = null; moving = ''; }
-  const r = S.route();
+  const monday = S.shownWeek();
+  const ahead = monday !== S.thisWeek();
+  const r = S.route(monday);
   const look = S.look();
   const before = pending ? pending.before : null;
   const shownFish = before ? before.fish : S.state.fish.balance;
   const fishN = h('span', { class: 'py-fish-n' }, String(shownFish));
   fishN.dataset.value = String(shownFish);
-  const b = beginState(r);
-  const g = r ? (before && before.goal ? before.goal : goal(r)) : null;
-  const count = h('h2', { class: 'py-count', id: 'py-count', tabindex: '-1' },
-    r ? ['Workouts this week: ', h('span', { class: 'py-count-n' }, `${before ? before.count : r.done} of ${r.target}`)] : 'No stations yet this week.');
+  const b = beginState(r, ahead);
+  const g = r && !ahead ? (before && before.goal ? before.goal : goal(r)) : null;
+  let countText = 'No stations yet this week.';
+  if (r && ahead) countText = 'Your route starts Monday.';
+  else if (r) countText = ['Workouts this week: ', h('span', { class: 'py-count-n' }, `${before ? before.count : r.done} of ${r.target}`)];
+  const count = h('h2', { class: 'py-count', id: 'py-count', tabindex: '-1' }, countText);
   const streak = S.weekStreak();
 
   const view = h('div', { class: 'py-today' },
@@ -323,10 +367,10 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
     h('h1', { class: 'py-greet' }, S.greeting()),
     h('section', { class: 'py-stage', 'aria-labelledby': 'py-count' },
       streak >= 1 ? h('p', { class: 'py-streak-chip' }, 'Week streak ', h('strong', {}, String(streak))) : null,
-      routeBlock(r, look, before && pending.arriving ? S.today() : ''),
+      routeBlock(r, look, before && pending.arriving ? S.today() : '', ahead),
       h('div', {}, count, g ? h('p', { class: `py-goal${g.calm ? ' is-calm' : ''}` }, g.text) : null),
-      b.logged
-        ? h('button', { class: 'py-begin-btn is-logged', type: 'button', 'aria-disabled': 'true' }, icon('i-check'), 'Logged today')
+      b.logged || b.waiting
+        ? h('button', { class: 'py-begin-btn is-logged', type: 'button', 'aria-disabled': 'true' }, icon(b.logged ? 'i-check' : 'i-calendar'), b.label)
         : h('button', { class: 'py-begin-btn glass-coral', type: 'button', onclick: b.plan ? onPlan : begin }, b.label),
       h('p', { class: 'py-caption' }, b.caption)));
   root.append(view);
@@ -348,4 +392,5 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
   bound.push(bindPengu(train.querySelector('svg'), { follow: true, hop: true, wave: true }));
   bound.push(bindPengu(view.querySelector('.py-avatar-btn svg'), { follow: true, hop: false }));
   if (focus) count.focus({ preventScroll: true });
+  if (!faceNode) whenIdle(primeRewardArt);
 }

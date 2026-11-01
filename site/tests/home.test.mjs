@@ -1,5 +1,5 @@
 // Home screen milestone: the greeting hours and every Begin state (logPreview), on an injected clock.
-// Run with: node --test site/tests/
+// Run with: node --test "site/tests/*.test.mjs"
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 

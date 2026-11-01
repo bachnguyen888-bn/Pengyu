@@ -1,7 +1,8 @@
 // The real reminder channel: a calendar file with one event and one alarm per planned day.
 // Times are "floating" local times, so a 3:30 PM plan rings at 3:30 PM wherever the phone is.
 
-import { planFor, thisWeek, parseKey, now } from './state.js';
+import { planFor, shownWeek, parseKey, now } from './state.js';
+import { download } from './ui.js';
 
 const EVENT_MINUTES = 60;
 const ALARM_MINUTES = 15;
@@ -33,8 +34,8 @@ export function sentence(plan, day) {
   return `${name}, ${plan.window}, ${plan.place}`;
 }
 
-export function buildIcs(monday = thisWeek()) {
-  const plan = planFor(monday);
+// The week's plan, or one that is not saved yet (the plan flow's summary offers the file first).
+export function buildIcs(monday = shownWeek(), plan = planFor(monday)) {
   if (!plan) return '';
   const stamp = utc(now());
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Pengyu//Week planner//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
@@ -46,7 +47,7 @@ export function buildIcs(monday = thisWeek()) {
     lines.push(
       'BEGIN:VEVENT',
       `UID:pengu-${monday}-${slot}@bachnguyenclearhealth.com`,
-      `SEQUENCE:${plan.moves.length}`,
+      `SEQUENCE:${(plan.moves || []).length}`,
       `DTSTAMP:${stamp}`,
       `DTSTART:${local(start)}`,
       `DTEND:${local(end)}`,
@@ -64,17 +65,6 @@ export function buildIcs(monday = thisWeek()) {
   return lines.map(fold).join('\r\n') + '\r\n';
 }
 
-export function download(filename, text, type) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-export function downloadIcs(monday = thisWeek()) {
-  download(`pengu-week-${monday}.ics`, buildIcs(monday), 'text/calendar;charset=utf-8');
+export function downloadIcs(monday = shownWeek(), plan = planFor(monday)) {
+  download(`pengu-week-${monday}.ics`, buildIcs(monday, plan), 'text/calendar;charset=utf-8');
 }

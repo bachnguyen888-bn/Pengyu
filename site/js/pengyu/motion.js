@@ -106,7 +106,8 @@ export function bindPengu(svg, { follow = true, hop = true, waddle = false, wave
     if (glow) animate(glow, { opacity: [0.85, 1, 0.9, 1], duration: 1150, ease: 'inOutSine' });
     lagScarf(1.3);
     later(() => lagScarf(1), 520);
-    sparkle(svg);
+    // At the top of the first hop, and clear of the frame where the count and Fish change.
+    later(() => sparkle(svg), 200);
   };
 
   // Eyes follow the pointer, up to 1.6 units in Pengu's space, smoothed each frame. After a touch they
