@@ -1,7 +1,7 @@
 // The real reminder channel: a calendar file with one event and one alarm per planned day.
 // Times are "floating" local times, so a 3:30 PM plan rings at 3:30 PM wherever the phone is.
 
-import { planFor, thisWeek, parseKey } from './state.js';
+import { planFor, thisWeek, parseKey, now } from './state.js';
 
 const EVENT_MINUTES = 60;
 const ALARM_MINUTES = 15;
@@ -36,8 +36,8 @@ export function sentence(plan, day) {
 export function buildIcs(monday = thisWeek()) {
   const plan = planFor(monday);
   if (!plan) return '';
-  const stamp = utc(new Date());
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ClearHealth//Pengu week planner//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  const stamp = utc(now());
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Pengyu//Week planner//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
   plan.days.forEach((day, slot) => {
     const [h, m] = plan.time.split(':').map(Number);
     const start = parseKey(day);
@@ -51,7 +51,7 @@ export function buildIcs(monday = thisWeek()) {
       `DTSTART:${local(start)}`,
       `DTEND:${local(end)}`,
       `SUMMARY:${escape(`Workout with Pengu ${plan.place}`)}`,
-      `DESCRIPTION:${escape(`My plan: ${sentence(plan, day)}. Any workout, any length, counts. Log it in Pengu with one tap.`)}`,
+      `DESCRIPTION:${escape(`My plan: ${sentence(plan, day)}. Any workout, any length, counts. Log it in Pengyu with one tap.`)}`,
       'BEGIN:VALARM',
       'ACTION:DISPLAY',
       `DESCRIPTION:${escape(`Workout with Pengu ${plan.place}`)}`,

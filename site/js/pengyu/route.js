@@ -1,205 +1,257 @@
-// Today, top to bottom: the greeting and this week from Monday to Sunday; the black "New day, fresh
-// start!" card with the one action, Begin; Pengu's train on this week's route, with the week streak
-// beside it; "Workouts this week: X of N"; Fish and the next unlock; and this week's workouts as sunny
-// session cards. With no plan yet, the Monday plan flow takes the place of everything below the week.
-// No penalties, no shame: a missed day only means fewer Fish, and the first planned workout after a
-// miss earns a Comeback stamp.
+// Today, exactly: the Fish pill and Pengu's avatar; "good evening."; the stage, with Pengu's train on this
+// week's route, "Workouts this week: X of N" and one big Begin. Begin logs in one tap: the train rolls to
+// its station, the ring fills, the count and Fish update, Pengu celebrates and the sunny reward sheet
+// rises. Tapping the route opens the week sheet (sessions, moves, the calendar file and the cover).
+// No penalties and no shame: a day without a workout just reads "not logged".
 
 import * as S from './state.js';
 import { downloadIcs } from './ics.js';
-import { renderPlanFlow, takeFocusRequest, resetPlanDraft } from './plan.js';
 import { h, icon, weekday, monthDay, clock } from './ui.js';
-import { penguFigure, trainFigure, glyph } from './art.js';
+import { penguFigure, trainFigure, faceFigure } from './art.js';
+import { bindPengu, rollTrain, fillStation, sheetIn, sheetOut, rise, reducedMotion } from './motion.js';
+import { wobblyLine, ring, check, softRect } from './ink.js';
 import { countTo, toast as fxToast } from '../fx.js';
 
-const toast = (title, sub) => fxToast(title, sub, penguFigure(S.look(), { cls: 'py-toast-art', view: 'bust' }));
+const NS = 'http://www.w3.org/2000/svg';
+let pending = null;   // a log in flight: what the screen showed before Begin, then what it paid
+let lastAt = null;    // where the train stood when Today was last drawn (0 = depot, 1 = last station)
+let drawnFor = '';    // the save those were drawn for: after a reset everything starts afresh
+let bound = [];       // the Pengu drawings brought to life on this screen
+let moving = '';      // the session whose "move to" chips are open in the week sheet
+let refs = { onShop() {}, onPlan() {} };
 
-let moving = '';        // the workout whose "move to" picker is open
-let lastTrainAt = null; // where the train was drawn last, so a log can roll it forward
-let lastFish = null;    // the balance drawn last, so the counter only runs when it changes
-let drawnFor = '';      // the save those were drawn for: after a reset everything starts afresh
-let focusMove = false;
-let rerenderRef = () => {};
-
-export function greeting(hour = new Date().getHours()) {
-  if (hour >= 5 && hour < 12) return 'good morning.';
-  if (hour >= 12 && hour < 17) return 'good afternoon.';
-  return 'good evening.';
-}
-
-const SHORT = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const SAY = { done: 'done', today: 'planned for today', upcoming: 'planned', missed: 'not logged' };
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-// "After school · 3:30 PM · at the gym", or "4:00 PM · at the pool" for a time picked by hand.
+// "After class · 3:30 PM · at the gym", or "4:00 PM · at the pool" for a time picked by hand.
 const when = (plan) => `${plan.window.startsWith('at ') ? clock(plan.time) : `${cap(plan.window)} · ${clock(plan.time)}`} · ${plan.place}`;
+const ifThen = (plan) => `${cap(plan.window)} · ${plan.place}`;
+const toast = (title, sub) => fxToast(title, sub, penguFigure(S.look(), { cls: 'py-toast-art', pose: 'bust' }));
+const night = () => { const hr = S.now().getHours(); return hr >= 19 || hr < 6; };
+const nextUnlock = () => S.nextGear() || S.TRAIN.find((t) => !S.owns(t.id)) || null;
 
-// 1. Monday to Sunday: today boxed; a planned day has a dot, filled when done and empty when missed.
-function weekStrip(r) {
-  const monday = S.thisWeek();
-  const status = (d) => r && (r.stations.find((s) => s.day === d) || {}).status;
-  return h('ol', { class: 'py-strip', 'aria-label': `This week, ${monthDay(S.parseKey(monday))} to ${monthDay(S.parseKey(S.addDays(monday, 6)))}` },
-    S.weekDays(monday).map((d, i) => {
-      const date = S.parseKey(d);
-      const st = status(d);
-      const now = d === S.today();
-      return h('li', { class: `py-strip-day${now ? ' is-now' : ''}${st ? ` is-${st}` : ''}`, 'aria-current': now ? 'date' : false },
-        h('span', { class: 'py-strip-name', 'aria-hidden': 'true' }, SHORT[i]),
-        h('span', { class: 'py-strip-date', 'aria-hidden': 'true' }, String(date.getDate())),
-        h('span', { class: 'py-strip-dot', 'aria-hidden': 'true' }),
-        h('span', { class: 'sr-only' }, `${weekday(date)} ${monthDay(date)}${st ? `: ${SAY[st]}` : ''}`));
-    }));
+function lineArt(cls, viewBox, inner, stretch = false) {
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', cls);
+  svg.setAttribute('viewBox', viewBox);
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  if (stretch) svg.setAttribute('preserveAspectRatio', 'none');
+  svg.innerHTML = inner;
+  return svg;
+}
+
+function announce(text) {
+  const el = document.getElementById('py-live');
+  if (!el) return;
+  el.textContent = '';
+  setTimeout(() => { el.textContent = text; }, 60);
 }
 
 function goal(r) {
   const need = r.target - r.done;
-  if (need <= 0) return { text: 'You hit your week', tone: 'hit' };
-  if (r.open >= need) return { text: `${need} more to hit your week`, tone: 'goal' };
-  if (r.open > 0) return { text: `Each planned workout left still pays ${S.FISH.station} Fish`, tone: 'calm' };
-  return { text: 'A new route starts Monday', tone: 'calm' };
+  if (need <= 0) return { text: 'You hit your week.', calm: false };
+  if (r.open >= need) return { text: `${need} more to hit your week`, calm: false };
+  if (r.open > 0) return { text: `Every planned workout left still pays ${S.FISH.station} Fish.`, calm: true };
+  return { text: 'A new route starts Monday.', calm: true };
 }
 
-// 2. Begin logs today's workout: one tap, once a day, any workout of any length.
-function logNow() {
-  const res = S.logWorkout();
-  if (!res) return;
-  const got = res.extra ? ` You collected the ${res.extra.name} (looks only).` : '';
-  if (res.comeback) {
-    const parts = [res.fish && `${res.fish} for the workout`, `${res.comeback} for your Comeback stamp`, res.bonus && `${res.bonus} for the full week`].filter(Boolean);
-    toast(`Welcome back! +${res.fish + res.comeback + res.bonus} Fish`, `${parts.join(', ')}.${got}`);
-  } else if (res.kind === 'extra') toast('Extra workout logged', `Extras pay no Fish.${got || ' You’ve collected every extra, and this still counts for you.'}`);
-  else if (res.bonus) toast(`You hit your week! +${res.fish + res.bonus} Fish`, `${res.fish} for the workout and ${res.bonus} for the full week. Week streak: ${S.weekStreak()}.`);
-  else toast(`Workout logged. +${res.fish} Fish`, `${goal(S.route()).text}.${res.movedFrom ? ` Your ${weekday(S.parseKey(res.movedFrom))} workout moved to today.` : ''}`);
-  document.querySelector('.py-count')?.focus({ preventScroll: true });
-}
-
-function beginCard(r) {
+// What Begin says, and the quiet caption under it.
+function beginState(r) {
+  if (!r) return { label: 'Plan my week', caption: 'Takes about 30 seconds.', plan: true };
   const p = S.logPreview();
-  const card = h('section', { class: 'py-begin', 'aria-labelledby': 'py-begin-title' },
-    h('h2', { class: 'py-begin-title', id: 'py-begin-title' }, 'New day, fresh start!'));
   if (p.kind === 'logged') {
-    const log = S.state.log[S.today()];
-    card.append(
-      h('p', { class: 'py-begin-note' }, log.kind === 'extra' ? 'Extra workout logged. Extras pay no Fish, just looks.' : r.hit ? 'You hit your week. Anything more this week is an extra.' : 'See you at your next workout.'),
-      h('p', { class: 'py-begin-done' }, icon('i-check'), 'Logged today'));
-    return card;
+    const next = r.stations.find((s) => s.status === 'upcoming');
+    return { label: 'Logged today', logged: true, caption: r.hit ? 'You hit your week.' : next ? `See you ${weekday(S.parseKey(next.day))}.` : 'See you Monday.' };
   }
-  const comeback = p.comeback ? ` Coming back after a missed day adds ${S.FISH.comeback} more and a Comeback stamp.` : '';
-  let note = `Your planned workouts are done. Begin logs an extra: no Fish${p.extra ? `, just the ${p.extra.name}` : ''}.`;
-  if (p.kind === 'planned') note = `Today: ${when(r.plan)}. Begin logs it for ${S.FISH.station} Fish.${comeback}`;
-  else if (p.kind === 'moved') note = `Today isn’t on your plan, so Begin moves your ${weekday(S.parseKey(p.from))} workout here, for ${S.FISH.station} Fish.${comeback}`;
-  card.append(
-    h('p', { class: 'py-begin-note', id: 'py-begin-note' }, note),
-    h('button', { class: 'py-begin-btn', type: 'button', 'aria-describedby': 'py-begin-note', onclick: logNow }, 'Begin'));
-  return card;
+  if (p.comeback) return { label: 'Begin', caption: 'Welcome back. This one earns a Comeback stamp.' };
+  if (p.kind === 'planned') return { label: 'Begin', caption: ifThen(r.plan) };
+  if (p.kind === 'moved') return { label: 'Begin', caption: `Counts for ${weekday(S.parseKey(p.from))}’s station.` };
+  return { label: 'Begin', caption: 'Extra ride: looks only, no Fish.' };
 }
 
-function celebrate() {
-  const log = S.state.log[S.today()];
-  if (!log || !log.comeback) return null;
-  return h('div', { class: 'py-celebrate', role: 'status' },
-    penguFigure(S.look(), { cls: 'py-celebrate-art is-cheer' }),
-    h('div', {},
-      h('p', { class: 'py-celebrate-title' }, 'Welcome back! Comeback stamp earned.'),
-      h('p', { class: 'small' }, `That’s ${S.FISH.comeback} bonus Fish. Pengu’s glad to ride with you again.`)));
-}
-
-// 3. The train is the progress: each planned workout is a station, and Pengu's cab waits at the last one done.
-function stationNode(s, i, count) {
+// ---------- The route ----------
+function stationNode(s, i, count, arriving) {
   const date = S.parseKey(s.day);
   const stamped = Boolean(S.state.log[s.day] && S.state.log[s.day].comeback);
-  const li = h('li', { class: `py-station is-${s.status}` },
-    h('span', { class: 'py-stop', 'aria-hidden': 'true' }, s.status === 'done' ? icon('i-check') : null,
-      stamped ? h('span', { class: `py-stamp${s.day === S.today() ? ' is-new' : ''}` }, icon('i-refresh')) : null),
+  const li = h('li', { class: `py-station is-${s.status}${arriving ? ' is-arriving' : ''}` },
+    lineArt('py-ring', '0 0 40 40', `
+      <path class="py-ring-line" d="${ring(20, 20, 15, { seed: 11 + i * 7 })}"/>
+      <circle class="py-ring-fill" cx="20" cy="20" r="15.6"/>
+      <path class="py-ring-check" d="${check(20, 20.6, 17, { seed: 5 + i })}"/>`),
     h('span', { class: 'py-stop-day', 'aria-hidden': 'true' }, s.status === 'today' ? 'Today' : weekday(date, 'short')),
+    stamped ? h('span', { class: `py-stamp${arriving ? ' is-new' : ''}`, 'aria-hidden': 'true' }, icon('i-stamp')) : null,
     h('span', { class: 'sr-only' }, `${weekday(date)}: ${SAY[s.status]}${stamped ? ', with a Comeback stamp' : ''}`));
   li.style.setProperty('--at', String((i + 1) / count));
   return li;
 }
 
-function trainNode(r) {
-  const todayLog = S.state.log[S.today()];
-  const cheer = r.hit || Boolean(todayLog && todayLog.comeback);
-  const train = h('div', { class: 'py-train', 'aria-hidden': 'true' }, trainFigure(S.look(), { cls: 'py-train-art', cheer }));
-  const at = r.trainAt / r.stations.length;
-  const from = lastTrainAt === null ? at : lastTrainAt;
-  train.style.setProperty('--at', String(from));
-  if (from !== at) {
-    requestAnimationFrame(() => requestAnimationFrame(() => train.style.setProperty('--at', String(at))));
+function routeBlock(r, look, arriving) {
+  const ties = Array.from({ length: 30 }, (_, i) => `M${18 + i * 33.5 + (i % 3) * 1.4} ${1.4 + (i % 2) * 0.5}V${6.6 - (i % 4) * 0.4}`).join('');
+  const wrap = h('div', { class: `py-route-wrap${look.car ? ' has-car2' : ''}` },
+    lineArt('py-rail', '0 0 1000 8', `<path d="${wobblyLine(0, 1000, 4, { seed: 5, amp: 0.7, step: 64 })}"/><path d="${ties}"/>`, true),
+    lineArt('py-route-line', '0 0 1000 6', `<path d="${wobblyLine(0, 1000, 3, { seed: 9, amp: 0.9, step: 72 })}"/>`, true),
+    h('ol', { class: 'py-route', 'aria-label': r ? 'Stations this week' : 'No stations yet' },
+      h('li', { class: 'py-depot', 'aria-hidden': 'true' }, lineArt('py-depot-art', '0 0 14 14', `<path d="${softRect(1, 1, 12, 12, 3, { seed: 4, amp: 0.5 })}"/>`)),
+      r ? r.stations.map((s, i) => stationNode(s, i, r.stations.length, arriving === s.day)) : null));
+  wrap.querySelector('.py-depot').style.setProperty('--at', '0');
+  const train = h('div', { class: 'py-train', 'aria-hidden': 'true' }, trainFigure(look, { cls: 'py-train-svg', night: night() }));
+  train.style.setProperty('--at', String(r ? r.trainAt / r.stations.length : 0));
+  wrap.append(train);
+  if (r) wrap.append(h('button', { class: 'py-route-open', type: 'button', 'aria-label': 'This week’s workouts: move a day or add reminders', onclick: openWeek }));
+  return wrap;
+}
+
+// ---------- Begin ----------
+function begin() {
+  const r0 = S.route();
+  const p = S.logPreview();
+  pending = { before: { fish: S.state.fish.balance, count: r0 ? r0.done : 0, goal: r0 ? goal(r0) : null }, arriving: p.kind === 'planned' || p.kind === 'moved' };
+  try { if (navigator.vibrate) navigator.vibrate(10); } catch { /* no haptics here */ }
+  const res = S.logWorkout();   // Today re-renders right away and rolls the train in from where it stood
+  if (!res) { pending = null; return; }
+  pending.res = res;
+}
+
+function arrive(view) {
+  const p = pending;
+  pending = null;
+  if (!p || !p.res || !view.isConnected) return;
+  const r = S.route();
+  const st = view.querySelector('.py-station.is-arriving');
+  if (st) { st.classList.remove('is-arriving'); fillStation(st); }
+  if (r) {
+    view.querySelector('.py-count-n').textContent = `${r.done} of ${r.target}`;
+    const g = goal(r);
+    const line = view.querySelector('.py-goal');
+    line.textContent = g.text;
+    line.classList.toggle('is-calm', g.calm);
   }
-  lastTrainAt = at;
-  return train;
+  const fishN = view.querySelector('.py-fish-n');
+  countTo(fishN, S.state.fish.balance);
+  view.querySelector('.py-fishpill').setAttribute('aria-label', `${S.state.fish.balance} Fish`);
+  // Pengu celebrates on the next frame, and the sheet's art is drawn in the quiet moment after.
+  requestAnimationFrame(() => { if (bound[0]) bound[0].celebrate(); });
+  setTimeout(() => { bandsArt(); faceArt(); }, 320);
+  const res = p.res;
+  const total = res.fish + res.bonus + res.comeback;
+  announce(res.kind === 'extra'
+    ? `Extra ride logged. No Fish.${res.extra ? ` You collected the ${res.extra.name}.` : ''}`
+    : `Workout logged. ${r.done} of ${r.target}.${res.comeback ? ' Comeback stamp.' : ''}${r.hit ? ' You hit your week.' : ''} Plus ${total} Fish.`);
+  setTimeout(() => openReward(res), reducedMotion() ? 0 : 600);
 }
 
-function hero(r) {
-  const info = S.streakInfo();
-  return h('section', { class: 'py-hero', 'aria-labelledby': 'py-hero-title' },
-    h('h2', { class: 'sr-only', id: 'py-hero-title' }, 'Your route this week'),
-    h('div', { class: 'py-hero-top' },
-      h('p', { class: 'py-streak' }, 'Week streak', h('span', { class: 'py-streak-n' }, String(info.streak))),
-      h('p', { class: 'py-cover' }, icon('i-shield'), info.coverReady ? 'Free streak cover ready this month' : 'Free streak cover used this month')),
-    h('div', { class: `py-route-wrap${S.look().car ? ' has-car2' : ''}` },
-      h('ol', { class: 'py-route', 'aria-label': 'Stations' },
-        h('li', { class: 'py-depot', 'aria-hidden': 'true' }),
-        r.stations.map((s, i) => stationNode(s, i, r.stations.length))),
-      trainNode(r)));
+// ---------- Sheets ----------
+let sheet = null;
+function closeSheet(now = false) {
+  const s = sheet;
+  if (!s) return;
+  sheet = null;
+  const done = () => { s.dlg.close(); s.dlg.remove(); const back = s.returnFocus && s.returnFocus(); if (back) back.focus({ preventScroll: true }); };
+  if (now) done(); else sheetOut(s.panel, done);
+}
+function openSheet(cls, label, build, returnFocus) {
+  closeSheet(true);
+  const panel = h('div', { class: 'py-sheet-panel' }, h('div', { class: 'py-sheet-grip', 'aria-hidden': 'true' }));
+  const dlg = h('dialog', { class: `py-sheet ${cls}`, 'aria-labelledby': label }, panel);
+  sheet = { dlg, panel, returnFocus };
+  const close = () => closeSheet();
+  build(panel, close);
+  document.body.append(dlg);
+  dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
+  // Keep Tab inside the sheet: from the last control back to the first, and the other way round.
+  dlg.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const items = [...panel.querySelectorAll('button:not([disabled]), a[href], input:not([disabled])')];
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) close(); });
+  // Swipe down to close.
+  let startY = null;
+  let dy = 0;
+  panel.addEventListener('pointerdown', (e) => { if (e.target.closest('button, a, input') || panel.scrollTop > 0) return; startY = e.clientY; dy = 0; });
+  panel.addEventListener('pointermove', (e) => { if (startY === null) return; dy = Math.max(0, e.clientY - startY); panel.style.setProperty('transform', `translateY(${dy}px)`); });
+  const end = () => { if (startY === null) return; startY = null; if (dy > 90) close(); else panel.style.setProperty('transform', 'translateY(0)'); };
+  panel.addEventListener('pointerup', end);
+  panel.addEventListener('pointercancel', end);
+  dlg.showModal();
+  sheetIn(panel);
 }
 
-// 5. Fish, and the next unlock with its fixed price: gear in its set order, then the train upgrades.
-const nextUnlock = () => S.nextGear() || S.TRAIN.find((t) => !S.owns(t.id)) || null;
-// Pengu shown wearing the next piece of gear, as a preview of what it unlocks.
-function gearPreview(id) {
-  if (id === 'scarf') return { scarf: true };
-  if (id === 'cap') return { hat: 'cap', outfit: false };
-  if (id === 'backpack') return { backpack: true };
-  return { outfit: true, hat: 'conductor' };
-}
-
-function fishBox(onShop) {
-  const fishN = h('span', { class: 'py-fish-n' });
-  const box = h('section', { class: 'py-fishbox', 'aria-labelledby': 'py-fish-title' },
-    h('h2', { class: 'sr-only', id: 'py-fish-title' }, 'Fish and your next unlock'),
-    h('p', { class: 'py-fish' }, icon('i-fish'), fishN, h('span', {}, 'Fish')));
+// The sunny reward card's lines: comeback first, then the full week, then the next unlock.
+function rewardCopy(res) {
+  const lines = [];
+  let title = 'Station filled.';
+  const moved = res.movedFrom ? `${weekday(S.parseKey(res.movedFrom))}’s station moved to today.` : '';
+  if (res.comeback) {
+    title = 'Welcome back.';
+    if (moved) lines.push(moved);
+    lines.push(`+${res.fish} Fish · +${res.comeback} Comeback stamp`);
+    if (res.bonus) lines.push(`+${res.bonus} full-week bonus`, `Week streak ${S.weekStreak()}`);
+  } else if (res.bonus) {
+    title = 'You hit your week.';
+    if (moved) lines.push(moved);
+    lines.push(`+${res.fish} Fish · +${res.bonus} full-week bonus`, `Week streak ${S.weekStreak()}`);
+  } else if (res.kind === 'extra') {
+    title = 'Extra ride logged.';
+    lines.push(res.extra ? `No Fish. You collected the ${res.extra.name} (looks only).` : 'No Fish. You have every extra, and it still counts.');
+  } else {
+    lines.push(moved ? `${moved} +${res.fish} Fish` : `+${res.fish} Fish`);
+  }
   const u = nextUnlock();
-  if (!u) {
-    box.append(h('p', { class: 'small muted' }, 'Pengu and the train have every upgrade, and they’re yours for good.'));
-    return { box, fishN };
-  }
-  const fish = S.state.fish.balance;
-  const st = S.unlockStatus(u.id);
-  const fill = h('span', { class: 'py-bar-fill' });
-  fill.style.setProperty('--p', `${Math.min(100, Math.round((fish / u.price) * 100))}%`);
-  const gear = S.GEAR.some((g) => g.id === u.id);
-  box.append(h('div', { class: 'py-next' },
-    h('span', { class: 'py-next-art', 'aria-hidden': 'true' }, gear ? penguFigure({ ...S.look(), ...gearPreview(u.id) }, { view: 'bust' }) : glyph(u.id)),
-    h('div', { class: 'py-next-text' },
-      h('p', { class: 'stat-label' }, 'Next unlock'),
-      h('p', { class: 'py-next-name' }, `${u.name} · ${u.price} Fish`),
-      h('span', { class: 'py-bar', role: 'progressbar', 'aria-label': `Fish saved toward the ${u.name}`, 'aria-valuemin': '0', 'aria-valuemax': String(u.price), 'aria-valuenow': String(Math.min(fish, u.price)) }, fill),
-      h('p', { class: 'small muted' }, st.state === 'ready' ? 'You can unlock it now. ' : `${st.short} more to go. `,
-        h('button', { class: 'link', type: 'button', onclick: onShop }, 'See all upgrades')))));
-  return { box, fishN };
+  const st = u && S.unlockStatus(u.id);
+  return { title, lines, stamp: Boolean(res.comeback), next: !u ? 'Pengu has every upgrade.' : st.state === 'ready' ? `${u.name} is ready to unlock` : `${u.name} · ${st.short} more Fish`, link: Boolean(u) };
 }
 
-// This week's workouts. Moving one to another free day has no penalty.
-function sessionCard(s, plan) {
+const stampArt = () => lineArt('py-reward-stamp', '0 0 80 80', `
+  <path d="${ring(40, 40, 34, { seed: 41, amp: 1 })}" fill="#FFE07A" stroke="#C2391F" stroke-width="3"/>
+  <path d="${ring(40, 40, 27, { seed: 42, amp: 0.8 })}" fill="none" stroke="#C2391F" stroke-width="1.6"/>
+  <text x="40" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#C2391F" letter-spacing=".5">COME</text>
+  <text x="40" y="51" text-anchor="middle" font-size="12" font-weight="800" fill="#C2391F" letter-spacing=".5">BACK</text>`);
+// The bands and Pengu's face never change, so they are drawn once and copied for each sheet.
+let bandsNode = null;
+let faceNode = null;
+const bandsArt = () => (bandsNode || (bandsNode = lineArt('py-reward-bands', '0 0 400 190', `
+  <path d="M0 64C96 26 300 26 400 64V190H0Z" fill="#FFE07A"/>
+  <path d="M0 128C116 96 286 98 400 128V190H0Z" fill="#FF9A52"/>`, true))).cloneNode(true);
+const faceArt = () => (faceNode || (faceNode = faceFigure())).cloneNode(true);
+
+function openReward(res) {
+  const copy = rewardCopy(res);
+  openSheet('py-reward', 'py-reward-title', (panel, close) => {
+    panel.append(...[
+      h('h2', { class: 'py-reward-title', id: 'py-reward-title' }, copy.title),
+      copy.stamp ? stampArt() : null,
+      h('ul', { class: 'py-reward-lines' }, copy.lines.map((l) => h('li', { class: 'num' }, l))),
+      h('p', { class: 'py-reward-next' }, copy.next, copy.link ? ' · ' : '', copy.link ? h('button', { class: 'link', type: 'button', onclick: () => { close(); refs.onShop(); } }, 'See Pengu') : null),
+      h('button', { class: 'btn glass-coral py-reward-ok', type: 'button', autofocus: true, onclick: close }, 'Nice'),
+      h('div', { class: 'py-reward-art', 'aria-hidden': 'true' }, bandsArt(), h('div', { class: 'py-reward-face' }, faceArt())),
+    ].filter(Boolean));
+    rise(panel.querySelector('.py-reward-face'));
+  }, () => document.querySelector('.py-count'));
+}
+
+// The week sheet: this week's sessions as sunny cards; Move costs nothing.
+function sessionCard(s, plan, refill) {
   const date = S.parseKey(s.day);
-  const stamped = Boolean(S.state.log[s.day] && S.state.log[s.day].comeback);
   const label = { done: 'Done', today: 'Today', upcoming: 'Planned', missed: 'Not logged' }[s.status];
   return h('li', { class: `py-session is-${s.status}` },
-    h('span', { class: 'py-session-day', 'aria-hidden': 'true' },
-      h('span', { class: 'py-session-dow' }, weekday(date, 'short')), h('span', { class: 'py-session-date' }, String(date.getDate()))),
+    h('span', { class: 'py-session-day', 'aria-hidden': 'true' }, h('span', { class: 'py-session-dow' }, weekday(date, 'short')), h('span', { class: 'py-session-date' }, String(date.getDate()))),
     h('div', { class: 'py-session-text' },
       h('p', { class: 'py-session-name' }, `${weekday(date)}, ${monthDay(date)}`),
       h('p', { class: 'py-session-when' }, when(plan))),
     h('div', { class: 'py-session-side' },
-      h('p', { class: 'py-session-status' }, s.status === 'done' ? icon('i-check') : null, label, stamped ? h('span', { class: 'sr-only' }, ', with a Comeback stamp') : null),
+      h('p', { class: 'py-session-status' }, s.status === 'done' ? icon('i-check') : null, label),
       S.canMove(s.day) ? h('button', {
         class: 'link py-session-move', type: 'button', 'aria-expanded': String(moving === s.day), 'aria-label': `Move ${weekday(date)}’s workout`,
-        onclick: () => { moving = moving === s.day ? '' : s.day; focusMove = Boolean(moving); rerenderRef(); },
+        onclick: () => { moving = moving === s.day ? '' : s.day; refill(); },
       }, 'Move') : null));
 }
 
-function movePicker() {
+function movePicker(refill) {
   if (!moving || !S.canMove(moving)) { moving = ''; return null; }
   const targets = S.moveTargets(moving);
   return h('div', { class: 'py-move', role: 'group', 'aria-labelledby': 'py-move-title' },
@@ -211,57 +263,89 @@ function movePicker() {
         onclick: () => {
           const from = moving;
           moving = '';
-          if (S.moveStation(from, d)) toast(`Moved to ${weekday(S.parseKey(d))}`, 'No penalty. You can update your calendar file below.');
+          if (S.moveStation(from, d)) toast(`Moved to ${weekday(S.parseKey(d))}. No penalty.`, '');
+          refill();
         },
       }, d === S.today() ? 'Today' : `${weekday(S.parseKey(d), 'short')} ${monthDay(S.parseKey(d))}`)),
-      h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { moving = ''; rerenderRef(); } }, 'Keep it')));
+      h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { moving = ''; refill(); } }, 'Keep it')));
 }
 
-function calendarRow(plan) {
+function calendarNote(plan, refill) {
   const fresh = plan.icsSeq === undefined;
   const stale = !fresh && plan.icsSeq !== plan.moves.length;
-  const get = () => { downloadIcs(); S.markCalendarSaved(); };
-  return h('p', { class: 'py-cal' }, icon('i-clock'),
-    h('span', {},
-      fresh ? 'Want a reminder 15 minutes before each workout? ' : stale ? 'You moved a workout, so your calendar still has the old day. ' : 'Reminders are in your calendar. ',
-      h('button', { class: 'link', type: 'button', onclick: get }, fresh ? 'Add to my calendar (.ics)' : stale ? 'Get the updated file (.ics)' : 'Download it again')));
+  const get = () => { downloadIcs(); S.markCalendarSaved(); refill(); };
+  return h('p', { class: 'py-sheet-note' }, icon('i-calendar'),
+    h('button', { class: 'link', type: 'button', onclick: get },
+      fresh ? 'Add reminders to my calendar (.ics)' : stale ? 'You moved a workout. Get the updated file (.ics).' : 'Download again'));
 }
 
-export function renderToday(root, rerender, { onShop = () => {} } = {}) {
-  rerenderRef = rerender;
-  if (drawnFor !== S.state.createdAt) {
-    drawnFor = S.state.createdAt;
-    lastFish = null; lastTrainAt = null; moving = '';
-    resetPlanDraft();
-  }
-  const r = S.route();
-  const view = h('div', { class: 'py-today' },
-    h('header', { class: 'py-head' }, h('h1', { class: 'py-greet' }, greeting()), weekStrip(r)));
-  root.append(view);
-  if (!r) { renderPlanFlow(view, rerender); return; }
+function openWeek() {
+  openSheet('py-weeksheet', 'py-weeksheet-title', function fill(panel, close) {
+    for (const n of [...panel.children]) if (!n.classList.contains('py-sheet-grip')) n.remove();
+    const r = S.route();
+    if (!r) { close(); return; }
+    const info = S.streakInfo();
+    const refill = () => fill(panel, close);
+    panel.append(...[
+      h('div', { class: 'py-sheet-head' },
+        h('h2', { class: 'py-weeksheet-title', id: 'py-weeksheet-title' }, 'This week'),
+        h('button', { class: 'py-sheet-close glass', type: 'button', 'aria-label': 'Close', onclick: close }, icon('i-close'))),
+      h('ul', { class: 'py-session-list' }, r.stations.map((s) => sessionCard(s, r.plan, refill))),
+      movePicker(refill),
+      calendarNote(r.plan, refill),
+      h('p', { class: 'py-sheet-note' }, icon('i-shield'), info.coverReady ? 'Free cover ready this month.' : 'Free cover used this month.'),
+    ].filter(Boolean));
+  }, () => document.querySelector('.py-route-open'));
+}
 
-  const focusCount = takeFocusRequest();
-  const g = goal(r);
-  const count = h('h2', { class: 'py-count', tabindex: '-1' }, 'Workouts this week: ', h('span', { class: 'py-count-n' }, `${r.done} of ${r.target}`));
-  const { box, fishN } = fishBox(onShop);
-  view.append(...[
-    beginCard(r),
-    celebrate(),
-    hero(r),
-    h('div', { class: 'py-tally' }, count, h('p', { class: `py-goal is-${g.tone}` }, g.text)),
-    box,
-    h('section', { class: 'py-sessions', 'aria-labelledby': 'py-sessions-title' },
-      h('h2', { class: 'py-section-title', id: 'py-sessions-title' }, 'This week’s workouts'),
-      h('ul', { class: 'py-session-list' }, r.stations.map((s) => sessionCard(s, r.plan))),
-      movePicker(),
-      calendarRow(r.plan)),
-  ].filter(Boolean));
-  fishN.dataset.value = String(lastFish === null ? S.state.fish.balance : lastFish);
-  countTo(fishN, S.state.fish.balance);
-  lastFish = S.state.fish.balance;
-  if (focusCount) count.focus({ preventScroll: true });
-  if (moving && focusMove) {
-    focusMove = false;
-    view.querySelector('.py-move .chip, .py-move .btn')?.focus({ preventScroll: true });
+// ---------- The screen ----------
+export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => {}, focus = false } = {}) {
+  refs = { onShop, onPlan };
+  for (const c of bound) if (c) c.stop();
+  bound = [];
+  if (drawnFor !== S.state.createdAt) { drawnFor = S.state.createdAt; lastAt = null; pending = null; moving = ''; }
+  const r = S.route();
+  const look = S.look();
+  const before = pending ? pending.before : null;
+  const shownFish = before ? before.fish : S.state.fish.balance;
+  const fishN = h('span', { class: 'py-fish-n' }, String(shownFish));
+  fishN.dataset.value = String(shownFish);
+  const b = beginState(r);
+  const g = r ? (before && before.goal ? before.goal : goal(r)) : null;
+  const count = h('h2', { class: 'py-count', id: 'py-count', tabindex: '-1' },
+    r ? ['Workouts this week: ', h('span', { class: 'py-count-n' }, `${before ? before.count : r.done} of ${r.target}`)] : 'No stations yet this week.');
+  const streak = S.weekStreak();
+
+  const view = h('div', { class: 'py-today' },
+    h('div', { class: 'py-topbar' },
+      h('p', { class: 'py-fishpill glass', 'aria-label': `${shownFish} Fish` }, icon('i-fish'), fishN),
+      h('button', { class: 'py-avatar-btn glass-pink', type: 'button', 'aria-label': 'Open Pengu', onclick: onShop }, penguFigure(look, { pose: 'bust' }))),
+    h('h1', { class: 'py-greet' }, S.greeting()),
+    h('section', { class: 'py-stage', 'aria-labelledby': 'py-count' },
+      streak >= 1 ? h('p', { class: 'py-streak-chip' }, 'Week streak ', h('strong', {}, String(streak))) : null,
+      routeBlock(r, look, before && pending.arriving ? S.today() : ''),
+      h('div', {}, count, g ? h('p', { class: `py-goal${g.calm ? ' is-calm' : ''}` }, g.text) : null),
+      b.logged
+        ? h('button', { class: 'py-begin-btn is-logged', type: 'button', 'aria-disabled': 'true' }, icon('i-check'), 'Logged today')
+        : h('button', { class: 'py-begin-btn glass-coral', type: 'button', onclick: b.plan ? onPlan : begin }, b.label),
+      h('p', { class: 'py-caption' }, b.caption)));
+  root.append(view);
+
+  // Roll the train in from where it stood, if a log just happened.
+  const train = view.querySelector('.py-train');
+  const at = r ? r.trainAt / r.stations.length : 0;
+  if (pending && lastAt !== null && lastAt !== at) {
+    const toLeft = train.offsetLeft;
+    train.style.setProperty('--at', String(lastAt));
+    const fromLeft = train.offsetLeft;
+    train.style.setProperty('--at', String(at));
+    rollTrain(train, fromLeft - toLeft, { wheelPx: 19 * (train.offsetHeight / 168), onArrive: () => setTimeout(() => arrive(view), 0) });
+  } else if (pending) {
+    setTimeout(() => arrive(view), 0);
   }
+  lastAt = at;
+
+  bound.push(bindPengu(train.querySelector('svg'), { follow: true, hop: true, wave: true }));
+  bound.push(bindPengu(view.querySelector('.py-avatar-btn svg'), { follow: true, hop: false }));
+  if (focus) count.focus({ preventScroll: true });
 }

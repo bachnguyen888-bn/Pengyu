@@ -19,8 +19,38 @@ export const EXTRAS = [
   { id: 'hat-party', name: 'Party hat', kind: 'hat' },
 ];
 
+// Train paint, once Paint colors is unlocked. Navy is the default; wheels stay red and trim stays brass.
+export const PAINTS = [
+  { id: 'navy', name: 'Night navy' },
+  { id: 'coral', name: 'Coral' },
+  { id: 'sunny', name: 'Sunny' },
+  { id: 'pink', name: 'Pink' },
+  { id: 'charcoal', name: 'Charcoal' },
+];
+
+// ---------- Clock ----------
+// Every date in Pengyu comes from now(). Tests swap the clock with setClock(); on localhost, and only
+// there, ?now=YYYY-MM-DDTHH:MM starts it at that moment (it keeps ticking), for screenshots.
+let clock = () => new Date();
+export const now = () => clock();
+export function setClock(fn) { clock = typeof fn === 'function' ? fn : () => new Date(); }
+(function devClock() {
+  if (typeof location === 'undefined' || !['localhost', '127.0.0.1'].includes(location.hostname)) return;
+  const m = /[?&]now=(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/.exec(location.search);
+  const offset = m ? new Date(m[1]).getTime() - Date.now() : NaN;
+  if (Number.isFinite(offset)) clock = () => new Date(Date.now() + offset);
+})();
+
+// "good morning." from 5:00 to 11:59, "good afternoon." from 12:00 to 16:59, "good evening." otherwise.
+export function greeting(d = now()) {
+  const hour = d.getHours();
+  if (hour >= 5 && hour < 12) return 'good morning.';
+  if (hour >= 12 && hour < 17) return 'good afternoon.';
+  return 'good evening.';
+}
+
 // ---------- Dates (local time, as YYYY-MM-DD keys; weeks start on Monday) ----------
-export function dayKey(d = new Date()) {
+export function dayKey(d = now()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 export function parseKey(key) { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d, 12); }
@@ -34,7 +64,7 @@ export const thisWeek = () => weekStart(today());
 function fresh() {
   return {
     v: 1,
-    createdAt: new Date().toISOString(),
+    createdAt: now().toISOString(),
     plans: {},            // monday -> { target, days, time, window, place, createdAt, moves: [{ from, to, at }] }
     log: {},              // day -> { at, kind: 'planned' | 'extra', comeback?: missedDay, extra?: id }; one a day
     fish: { balance: 0, lifetime: 0 },
@@ -61,6 +91,7 @@ function load() {
     const out = { ...base, ...saved, fish: { ...base.fish, ...saved.fish }, wear: { ...base.wear, ...saved.wear } };
     for (const k of ['weekBonusPaid', 'extras', 'coversAnnounced', 'events']) if (!Array.isArray(out[k])) out[k] = [];
     if (!out.owned || typeof out.owned !== 'object' || Array.isArray(out.owned)) out.owned = {};
+    if (!PAINTS.some((x) => x.id === out.wear.paint)) out.wear.paint = 'navy';   // mint and purple were retired
     return out;
   } catch { return fresh(); }
 }
@@ -83,7 +114,7 @@ function commit(result) {
 }
 
 function logEvent(type, details = {}) {
-  state.events.push({ type, at: new Date().toISOString(), ...details });
+  state.events.push({ type, at: now().toISOString(), ...details });
 }
 
 function pay(amount) {
@@ -179,7 +210,7 @@ export function createPlan({ target, days, time, window, place }) {
   if (planFor(monday)) return null;
   if (!TARGETS.includes(target) || picked.length !== target) return null;
   if (picked.some((d) => !week.includes(d) || d < t)) return null;
-  state.plans[monday] = { target, days: picked, time, window, place, createdAt: new Date().toISOString(), moves: [] };
+  state.plans[monday] = { target, days: picked, time, window, place, createdAt: now().toISOString(), moves: [] };
   logEvent('plan_created', { week: monday, target, days: picked, time, window, place });
   return commit({ type: 'plan' });
 }
@@ -199,7 +230,7 @@ export function moveStation(from, to) {
   if (!moveTargets(from).includes(to)) return null;
   const plan = planFor();
   plan.days[plan.days.indexOf(from)] = to;   // same slot, so a re-exported calendar updates that event
-  plan.moves.push({ from, to, at: new Date().toISOString() });
+  plan.moves.push({ from, to, at: now().toISOString() });
   return commit({ type: 'move', from, to });
 }
 
@@ -215,10 +246,10 @@ export function logWorkout() {
   const plan = planFor(monday);
   if (preview.kind === 'moved') {
     plan.days[plan.days.indexOf(preview.from)] = t;
-    plan.moves.push({ from: preview.from, to: t, at: new Date().toISOString(), reason: 'logged' });
+    plan.moves.push({ from: preview.from, to: t, at: now().toISOString(), reason: 'logged' });
   }
   const kind = preview.kind === 'extra' ? 'extra' : 'planned';
-  state.log[t] = { at: new Date().toISOString(), kind };
+  state.log[t] = { at: now().toISOString(), kind };
   let fish = 0;
   if (kind === 'planned') { pay(FISH.station); fish += FISH.station; }
   let comeback = 0;
@@ -280,20 +311,13 @@ export function announceCovers() {
 export const GEAR = [
   { id: 'scarf', name: 'Scarf', price: 40, line: 'A cosy coral scarf.' },
   { id: 'cap', name: 'Cap', price: 90, line: 'A sunny yellow cap.' },
-  { id: 'backpack', name: 'Backpack', price: 150, line: 'A mint backpack for the long route.' },
+  { id: 'backpack', name: 'Backpack', price: 150, line: 'A warm brown backpack for the long route.' },
   { id: 'conductor', name: 'Conductor outfit', price: 240, line: 'Navy jacket, gold buttons and a conductor’s cap.' },
 ];
 export const TRAIN = [
   { id: 'headlamp', name: 'Headlamp', price: 50, line: 'Lights the way on early starts.' },
-  { id: 'paint', name: 'Paint colours', price: 80, line: 'Repaint the engine coral, sunny, mint or purple, or keep it navy. Switch any time.' },
+  { id: 'paint', name: 'Paint colors', price: 80, line: 'Repaint the engine coral, sunny, pink or charcoal, or keep it navy.' },
   { id: 'car', name: 'Extra car', price: 130, line: 'A second car to carry the cargo.' },
-];
-export const PAINTS = [
-  { id: 'navy', name: 'Night navy' },
-  { id: 'coral', name: 'Coral' },
-  { id: 'sunny', name: 'Sunny' },
-  { id: 'mint', name: 'Mint' },
-  { id: 'purple', name: 'Pengu purple' },
 ];
 const UNLOCKS = [...GEAR.map((g) => ({ ...g, kind: 'gear' })), ...TRAIN.map((t) => ({ ...t, kind: 'train' }))];
 export const unlockById = (id) => UNLOCKS.find((u) => u.id === id) || null;
@@ -319,7 +343,7 @@ export function buy(id) {
   const st = unlockStatus(id);
   if (!u || !st || st.state !== 'ready') return null;
   state.fish.balance -= u.price;
-  state.owned[id] = { at: new Date().toISOString(), price: u.price };
+  state.owned[id] = { at: now().toISOString(), price: u.price };
   if (id === 'scarf') state.wear.scarf = true;
   if (id === 'cap') state.wear.hat = 'cap';
   if (id === 'backpack') state.wear.backpack = true;
@@ -377,7 +401,7 @@ export function look() {
 
 // ---------- Export and reset ----------
 export function exportData() {
-  return JSON.stringify({ exportedAt: new Date().toISOString(), storageKey: KEY, ...state }, null, 2);
+  return JSON.stringify({ exportedAt: now().toISOString(), storageKey: KEY, ...state }, null, 2);
 }
 
 // Start over: forget everything Pengyu saved in this browser, and the old preview's leftovers too.

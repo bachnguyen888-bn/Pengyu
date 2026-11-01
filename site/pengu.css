@@ -1,50 +1,66 @@
-/* Pengyu: one stylesheet, no build step. Light only: a warm off-white page, charcoal text, a coral accent,
-   sunny yellow session cards and one black card. Mobile first, in a single column.
-   Sections: 1. Fonts  2. Tokens  3. Base and type  4. Components  5. App shell  6. Today  7. Plan flow
-   8. Pengu tab  9. History  10. 404 page  11. Motion and print
-   Every colour comes from a token in section 2; the contrast notes are measured against the page or card. */
+/* Pengyu: one stylesheet, no build step. Three materials only: paper (the ground, with faint grain and
+   hand-drawn ink), glossy plastic (Pengu and the train's paint, drawn in js/pengyu/art.js) and liquid glass
+   (only on things you can press). Light only, one column, mobile first.
+   Sections: 1. Fonts  2. Tokens  3. Base and type  4. Glass  5. Components  6. Shell  7. Today
+   8. Sheets  9. Plan  10. Pengu tab  11. History  12. 404 page  13. Motion, transparency and print
+   Every colour is a token in section 2; contrast notes are measured against the surface named. */
 
-/* ---------- 1. Fonts (self-hosted, OFL) ---------- */
-@font-face { font-family: "Public Sans"; src: url("fonts/public-sans-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Public Sans"; src: url("fonts/public-sans-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+/* ---------- 1. Fonts (self-hosted Rubik, OFL; one variable file covers every weight) ---------- */
+@font-face {
+  font-family: "Rubik";
+  src: url("fonts/rubik-latin-wght-normal.woff2") format("woff2");
+  font-weight: 300 900;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
-/* ---------- 2. Tokens ---------- */
+/* ---------- 2. Tokens (the locked palette) ---------- */
 :root {
   color-scheme: light;
-  --ground: #FAF6F0;        /* the warm off-white page */
-  --surface: #FFFFFF;       /* cards */
-  --panel: #F3ECE4;         /* soft warm panels and tiles */
-  --ink: #2B2628;           /* charcoal: 13.8:1 on the page */
-  --ink-2: #5E5558;         /* secondary text: 6.7:1 on the page, 4.9:1 on sunny */
-  --ink-nav: #6B6164;       /* nav labels: 6.0:1 on white */
+  --paper: #FAF6F0;         /* the ground */
+  --paper-2: #F3ECE4;       /* soft panels */
+  --card: #FFFFFF;          /* sheets */
+  --ink: #2B2628;           /* charcoal text: 13.8:1 on paper */
+  --ink-2: #5E5558;         /* secondary text: 6.7:1 on paper */
   --line: #E6DCD3;
-  --line-strong: #9A8F88;   /* rings that carry meaning: 3.2:1 on white */
-  --black: #141213;         /* the one black card */
-  --on-black: #D9D2CE;      /* secondary text on black: 12.5:1 */
-  --coral: #FF6B4A;         /* the main accent, with charcoal text on it (5.3:1) */
-  --coral-strong: #E5532F;  /* coral marks behind white icons: 3.7:1 */
-  --coral-ink: #C2391F;     /* coral text on light: 5.0:1 on the page */
+  --line-strong: #9A8F88;   /* rings that carry meaning */
+  --stage: #141213;         /* the one dark card, lifted to #2B2829 */
+  --stage-lift: #2B2829;
+  --on-stage: #F7F2EE;
+  --on-stage-2: #D9D2CE;    /* 12.5:1 on the stage */
+  --coral: #FF6B4A;         /* the accent fill; charcoal text on it is 5.3:1, never white */
+  --coral-strong: #E5532F;  /* marks behind white icons: 3.7:1 */
+  --coral-ink: #C2391F;     /* coral text on paper: 5.0:1 */
+  --coral-on-stage: #FF9673;/* coral text on the stage: 8.7:1 */
   --coral-tint: #FFE3DA;
-  --coral-on-black: #FF9673;
-  --sun: #FFCE3A;           /* session cards: charcoal on it is 10:1 */
+  --splash: #F2541B;        /* white wordmark only, large text */
+  --sun: #FFCE3A;           /* charcoal on it is 10:1 */
   --sun-2: #FFE07A;
-  --sun-tint: #FFF3C4;
-  --gold-ink: #8A5A00;      /* on --sun-tint: 5.3:1 */
-  --danger: #B42318;        /* white on it: 6.6:1 */
-  --danger-tint: #FDE7E4;
-  --font: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --fs-small: 0.875rem;
-  --fs-tiny: 0.75rem;
-  --r-sm: 12px;
-  --r-md: 18px;
-  --r-lg: 24px;
+  --sun-3: #FF9A52;
+  --pengu-hi: #FDE6F3;
+  --pengu: #F7BFDF;
+  --pengu-shade: #E99BCB;
+  --pengu-edge: #D9779F;
+  --base: #8A4E22;
+  --base-hi: #B8763A;
+  --base-lo: #5E3414;
+  --navy-1: #4A5876;
+  --navy-2: #2F3A52;
+  --navy-3: #1D2537;
+  --brass: #E9A825;
+  --danger: #B42318;        /* only on the last Reset step; white on it is 6.6:1 */
+  --font: "Rubik", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --gutter: 20px;
+  --r-card: 28px;
   --r-pill: 999px;
-  --gutter: 16px;
   --tap: 44px;
-  --nav-h: 64px;
-  --shadow: 0 1px 2px rgba(43, 38, 40, 0.06), 0 8px 24px -14px rgba(43, 38, 40, 0.22);
-  --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --shadow: 0 1px 2px rgba(43, 38, 40, 0.06), 0 12px 32px -16px rgba(43, 38, 40, 0.28);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --tabbar-h: 64px;
+  /* Paper grain: tiled SVG noise at about 3.5% (the CSP allows data: images). */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .15 0 0 0 0 .16 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.06'/%3E%3C/svg%3E");
 }
 
 /* ---------- 3. Base and type ---------- */
@@ -52,8 +68,9 @@
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0; min-height: 100vh; overflow-x: clip;
-  background: var(--ground); color: var(--ink);
-  font-family: var(--font); font-size: 1rem; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  background: var(--paper) var(--grain); color: var(--ink);
+  font-family: var(--font); font-size: 1rem; line-height: 1.5; font-weight: 400;
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
 }
 @supports not (overflow-x: clip) { body { overflow-x: hidden; } }
 img, svg { display: block; max-width: 100%; }
@@ -63,323 +80,337 @@ h1, h2, h3, p, ul, ol, figure { margin: 0; }
 :where(ul, ol)[class] { padding: 0; list-style: none; }
 a { color: var(--coral-ink); text-underline-offset: 3px; }
 [hidden] { display: none !important; }
-:focus-visible { outline: 3px solid var(--coral-ink); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--coral-ink); outline-offset: 3px; }
 .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
-.sr-only {
-  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-}
-.skip {
-  position: absolute; left: var(--gutter); top: -80px; z-index: 100; padding: 10px 16px;
-  border-radius: var(--r-sm); background: var(--ink); color: #FFFFFF; font-weight: 600; text-decoration: none;
-}
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.skip { position: absolute; left: var(--gutter); top: -80px; z-index: 100; padding: 10px 16px; border-radius: 14px; background: var(--ink); color: #FFFFFF; font-weight: 600; text-decoration: none; }
 .skip:focus { top: var(--gutter); }
-/* Without the script, the app stays hidden and a short note shows instead. */
 html:not(.js) .js-only { display: none !important; }
 .js .nojs-only { display: none !important; }
-.small { font-size: var(--fs-small); line-height: 1.45; }
+.small { font-size: 0.8125rem; line-height: 1.45; }
 .muted { color: var(--ink-2); }
-.eyebrow { font-size: var(--fs-tiny); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--coral-ink); }
-.stat-label { font-size: var(--fs-tiny); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
-.icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.eyebrow, .stat-label { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.eyebrow { color: var(--coral-ink); }
+.num { font-variant-numeric: tabular-nums; }
+/* Hand-drawn line icons: round caps, a pencil-weight stroke. */
+.icon { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+/* The PENGYU wordmark: Rubik at its heaviest, leaning forward. */
+.py-wordmark { font-size: clamp(3.4rem, 17vw, 5.4rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1; text-transform: uppercase; color: #FFFFFF; transform: skewX(-8deg); }
+.py-wordmark.is-ink { color: var(--ink); font-size: 2.5rem; }
 
-/* ---------- 4. Components ---------- */
+/* ---------- 4. Liquid glass: only on things you can press ---------- */
+.glass, .glass-coral, .glass-pink { position: relative; isolation: isolate; overflow: hidden; }
+.glass {
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -10px 18px rgba(43, 38, 40, 0.04), 0 10px 28px -14px rgba(43, 38, 40, 0.3);
+}
+.glass-coral {
+  background: linear-gradient(180deg, #FF8768 0%, var(--coral) 52%, #F45E3D 100%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -10px 18px rgba(194, 57, 31, 0.2), 0 14px 34px -10px rgba(255, 107, 74, 0.55);
+}
+.glass-pink {
+  background: radial-gradient(circle at 34% 26%, var(--pengu-hi) 0%, var(--pengu) 52%, var(--pengu-shade) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -8px 14px rgba(217, 119, 159, 0.25), 0 8px 22px -10px rgba(217, 119, 159, 0.6);
+}
+/* The specular highlight: a soft, hand-shaped white across the top third, a little off-centre. */
+.glass::before, .glass-coral::before, .glass-pink::before {
+  content: ""; position: absolute; z-index: -1; left: 8%; right: 15%; top: 4%; height: 36%;
+  border-radius: 46% 54% 38% 62% / 72% 66% 34% 28%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
+  opacity: 0.35; pointer-events: none;
+  transition: transform 260ms var(--spring);
+}
+.glass-coral::before { opacity: 0.45; }
+/* Pressed: squash to 97% in 120ms, highlight 2px lower; spring back out in about 260ms. */
+button.glass, button.glass-coral, button.glass-pink { transition: transform 260ms var(--spring); }
+button.glass:active:not([aria-disabled="true"]), button.glass-coral:active:not([aria-disabled="true"]), button.glass-pink:active { transform: scale(0.97); transition: transform 120ms var(--ease-out); }
+button:active.glass::before, button:active.glass-coral::before, button:active.glass-pink::before { transform: translateY(2px); transition: transform 120ms var(--ease-out); }
+
+/* ---------- 5. Components ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 48px; padding: 0 22px; border: 0; border-radius: var(--r-pill);
+  min-height: 48px; padding: 0 24px; border: 0; border-radius: var(--r-pill);
   font-weight: 600; line-height: 1.2; text-decoration: none; text-align: center;
-  transition: transform 120ms var(--ease), background-color 120ms var(--ease);
 }
-.btn:active { transform: translateY(1px); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-.btn-primary { background: var(--coral); color: var(--ink); }
-.btn-primary:hover:not(:disabled) { background: #FF8466; }
-.btn-secondary { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
-.btn-secondary:hover:not(:disabled) { background: var(--panel); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(180deg, #FF8768 0%, var(--coral) 52%, #F45E3D 100%); color: var(--ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 10px 26px -12px rgba(255, 107, 74, 0.6); }
+.btn-secondary { background: var(--card); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
 .btn-ghost { background: transparent; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-.btn-ghost:hover { background: var(--panel); }
 .btn-danger { background: var(--danger); color: #FFFFFF; }
-.btn-danger:hover { background: #9A1D13; }
-.btn-sm { min-height: var(--tap); padding: 0 16px; font-size: 0.9375rem; }
+.btn-sm { min-height: var(--tap); padding: 0 18px; font-size: 0.9375rem; }
 .btn-block { width: 100%; }
-.btn .icon { width: 18px; height: 18px; stroke-width: 2; }
-/* Quiet text actions */
-.link {
-  padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600;
-  text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px;
-}
+.btn .icon { width: 18px; height: 18px; }
+.link { padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
 .link:hover { color: var(--coral-ink); }
 .chip {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  min-height: var(--tap); padding: 6px 14px; border: 1.5px solid var(--line); border-radius: 14px;
-  background: var(--surface); color: var(--ink); font-weight: 600;
+  min-height: var(--tap); padding: 6px 16px; border-radius: 16px; font-weight: 600; color: var(--ink);
+  background: rgba(255, 255, 255, 0.6); border: 1.5px solid var(--line);
 }
-.chip:hover:not(:disabled) { border-color: var(--line-strong); }
 .chip[aria-pressed="true"] { background: var(--coral-tint); border-color: var(--coral-strong); }
 .chip:disabled { opacity: 0.4; cursor: not-allowed; }
 .chip > span { display: grid; justify-items: center; line-height: 1.2; }
-.chip small { font-size: var(--fs-tiny); font-weight: 400; color: var(--ink-2); }
+.chip small { font-size: 0.75rem; font-weight: 400; color: var(--ink-2); }
 .field { display: grid; gap: 6px; }
-.field label { font-size: var(--fs-small); font-weight: 600; }
-.input {
-  width: 100%; min-height: var(--tap); padding: 0 14px;
-  border: 1.5px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface);
-}
-.banner {
-  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start;
-  padding: 14px 16px; border-radius: var(--r-md); background: var(--danger-tint); color: var(--ink);
-}
-.banner-icon { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--danger); color: #FFFFFF; }
-.banner-icon .icon { width: 14px; height: 14px; }
-/* Progress toward an unlock */
-.py-bar { display: block; height: 8px; border-radius: 4px; background: var(--panel); overflow: hidden; }
-.py-bar-fill { display: block; width: var(--p, 0%); height: 100%; border-radius: 4px; background: var(--coral); transition: width 600ms var(--ease); }
-.bump { animation: bump 500ms var(--ease-spring); }
-@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.2); } 100% { transform: scale(1); } }
-
-/* ---------- 5. App shell ---------- */
-.app {
-  max-width: 480px; margin: 0 auto;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) var(--gutter) calc(var(--nav-h) + 32px + env(safe-area-inset-bottom, 0px));
-}
-.py-view { display: grid; gap: 16px; }
-.py-view-title { padding-top: 8px; font-size: 1.75rem; font-weight: 600; line-height: 1.2; letter-spacing: -0.015em; }
-.py-section-title { font-size: 1.0625rem; font-weight: 600; line-height: 1.3; }
-.nojs { display: grid; gap: 12px; padding-top: 24px; }
-/* Bottom nav: three tabs, always in thumb reach */
-.tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-  background: var(--surface); border-top: 1px solid var(--line);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-.tabbar-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 480px; margin: 0 auto; }
-.tabbar-btn {
-  display: grid; justify-items: center; align-content: center; gap: 2px; width: 100%; min-height: var(--nav-h);
-  padding: 6px 0; border: 0; background: none; color: var(--ink-nav); font-size: var(--fs-tiny); font-weight: 600;
-}
-.tabbar-pill { display: grid; place-items: center; width: 56px; height: 30px; border-radius: var(--r-pill); }
-.tabbar-pill .icon { width: 24px; height: 24px; }
-.tabbar-btn:hover { color: var(--ink); }
-.tabbar-btn[aria-current="page"] { color: var(--ink); }
-.tabbar-btn[aria-current="page"] .tabbar-pill { background: var(--coral-tint); color: var(--coral-ink); }
-.tabbar-btn:focus-visible { outline-offset: -4px; border-radius: var(--r-md); }
-/* Toasts */
-.toasts {
-  position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 80; transform: translateX(-50%);
-  display: grid; gap: 8px; width: min(440px, calc(100% - 24px)); pointer-events: none;
-}
+.field label { font-size: 0.8125rem; font-weight: 600; }
+.input { width: 100%; min-height: var(--tap); padding: 0 14px; border: 1.5px solid var(--line-strong); border-radius: 14px; background: var(--card); }
+.banner { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 14px 16px; border-radius: 20px; background: var(--coral-tint); color: var(--ink); }
+.banner-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--coral-strong); color: #FFFFFF; }
+.banner-icon .icon { width: 16px; height: 16px; }
+.bump { animation: py-bump 460ms var(--spring); }
+@keyframes py-bump { 0% { transform: scale(1); } 40% { transform: scale(1.16); } 100% { transform: scale(1); } }
+/* Toasts: small notes on paper glass, at the top. */
+.toasts { position: fixed; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px)); z-index: 80; transform: translateX(-50%); display: grid; gap: 8px; width: min(400px, calc(100% - 24px)); pointer-events: none; }
 .toast {
-  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-md);
-  background: var(--surface); color: var(--ink); font-weight: 600;
-  box-shadow: 0 0 0 1px var(--line), 0 14px 32px -12px rgba(43, 38, 40, 0.38);
-  animation: toast-in 260ms var(--ease-spring);
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92); color: var(--ink); font-weight: 600;
+  box-shadow: 0 0 0 1px var(--line), 0 14px 32px -12px rgba(43, 38, 40, 0.35);
+  animation: py-toast-in 260ms var(--spring);
 }
 .toast small { display: block; font-weight: 400; color: var(--ink-2); }
 .toast.is-leaving { opacity: 0; transform: translateY(-8px); transition: opacity 180ms, transform 180ms; }
-@keyframes toast-in { from { opacity: 0; transform: translateY(-12px) scale(0.98); } to { opacity: 1; transform: none; } }
-.py-art { display: block; height: auto; user-select: none; -webkit-user-drag: none; }
+@keyframes py-toast-in { from { opacity: 0; transform: translateY(-12px) scale(0.98); } to { opacity: 1; transform: none; } }
+.py-art { display: block; height: auto; user-select: none; -webkit-user-select: none; }
 .py-toast-art { width: 40px; flex: none; }
+/* Pengu's moving parts (motion.js): every part turns around its own anchor. */
+.py-pengu { transform-box: fill-box; transform-origin: 50% 100%; }
+.py-eye { transform-box: fill-box; transform-origin: 50% 50%; }
+.py-flipper-l { transform-box: fill-box; transform-origin: 85% 6%; }
+.py-flipper-r { transform-box: fill-box; transform-origin: 15% 6%; }
+.py-scarf-tail { transform-box: fill-box; transform-origin: 40% 0; }
+.py-scarf-tail.is-wind { transform-origin: 100% 40%; }
+.py-belly-glow { transform-box: fill-box; }
+.py-rider { transform-box: fill-box; transform-origin: 50% 100%; }
+.py-spokes { transform-box: fill-box; transform-origin: 50% 50%; }
+.py-puff { transform-box: fill-box; transform-origin: 50% 50%; }
+.py-sparkles { position: fixed; z-index: 90; width: 0; height: 0; pointer-events: none; }
+.py-spark { position: absolute; left: calc(var(--s) / -2); top: calc(var(--s) / -2); width: var(--s); height: var(--s); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+.py-spark.is-coral { background: var(--coral); }
+.py-spark.is-sun { background: var(--sun); }
+.py-spark.is-white { background: #FFFFFF; box-shadow: 0 0 0 1px rgba(43, 38, 40, 0.08); }
 
-/* ---------- 6. Today ---------- */
-.py-today { display: grid; gap: 16px; }
-/* 1. Greeting and the week, Monday to Sunday */
-.py-head { display: grid; gap: 12px; padding-top: 8px; }
-.py-greet { font-size: 1.875rem; font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; }
-.py-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
-.py-strip-day { display: grid; justify-items: center; gap: 3px; padding: 8px 0 7px; border: 1.5px solid transparent; border-radius: 14px; }
-.py-strip-day.is-now { background: var(--surface); border-color: var(--ink); }
-.py-strip-name { font-size: var(--fs-tiny); font-weight: 600; color: var(--ink-2); }
-.py-strip-date { font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.py-strip-dot { width: 8px; height: 8px; border-radius: 50%; }
-.py-strip-day.is-done .py-strip-dot { background: var(--coral-strong); }
-.py-strip-day.is-today .py-strip-dot, .py-strip-day.is-upcoming .py-strip-dot { box-shadow: inset 0 0 0 2px var(--coral-strong); }
-.py-strip-day.is-missed .py-strip-dot { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
-/* 2. The black card and its one action */
-.py-begin { display: grid; gap: 10px; padding: 20px; border-radius: var(--r-lg); background: var(--black); color: #FFFFFF; }
-.py-begin-title { font-size: 1.375rem; font-weight: 600; line-height: 1.25; }
-.py-begin-note { color: var(--on-black); font-size: 0.9375rem; }
-.py-begin-btn {
-  justify-self: start; min-width: 148px; min-height: 52px; margin-top: 4px; padding: 0 32px;
-  border: 0; border-radius: var(--r-pill); background: #FFFFFF; color: var(--ink); font-size: 1.0625rem; font-weight: 600;
-  transition: transform 120ms var(--ease), background-color 120ms var(--ease);
+/* ---------- 6. Shell: one column, centred at 430px on wider screens ---------- */
+.app {
+  max-width: 430px; margin: 0 auto;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) var(--gutter) calc(var(--tabbar-h) + 32px + env(safe-area-inset-bottom, 0px));
 }
-.py-begin-btn:hover { background: var(--panel); }
-.py-begin-btn:active { transform: translateY(1px); }
-.py-begin :focus-visible { outline-color: var(--sun); }
-.py-begin-done {
-  display: inline-flex; align-items: center; gap: 8px; justify-self: start; min-height: var(--tap); margin-top: 4px; padding: 0 16px;
-  border-radius: var(--r-pill); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.45); font-weight: 600;
+.app.is-planning { padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
+.py-view { display: grid; gap: var(--s4); }
+.py-view-title { padding-top: var(--s2); font-size: 2.125rem; line-height: 2.5rem; font-weight: 700; letter-spacing: -0.02em; }
+.py-section-title { font-size: 1.125rem; font-weight: 600; line-height: 1.3; }
+.nojs { display: grid; gap: var(--s3); padding-top: var(--s6); }
+/* Splash: PENGYU on the splash orange, once per session. */
+.py-splash { position: fixed; inset: 0; z-index: 200; display: none; place-items: center; background: var(--splash); transition: opacity 260ms var(--ease-out); }
+html.is-splash .py-splash { display: grid; }
+.py-splash.is-leaving { opacity: 0; }
+/* The glass tab bar: three tabs, floating above the safe area. */
+.tabbar {
+  position: fixed; z-index: 50; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  width: min(406px, calc(100% - 24px)); border-radius: 26px;
 }
-.py-begin-done .icon { width: 18px; height: 18px; stroke-width: 2.4; color: var(--coral-on-black); }
-.py-celebrate { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--r-md); background: var(--sun-tint); }
-.py-celebrate-art { width: 48px; flex: none; }
-.py-celebrate-title { font-weight: 600; color: var(--gold-ink); }
-/* 3. The hero: Pengu's train on this week's route. Stations and the train share one coordinate: --at
-   runs from 0 (the depot) to 1 (the last station), set from js/pengyu/route.js. The train is --tw wide and
-   Pengu's cab sits --cab from its left edge, so the cab lines up with each station and the engine never
-   leaves the route. */
-.py-hero { display: grid; gap: 6px; padding: 14px 12px 6px; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow); }
-.py-hero-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 12px; padding: 0 4px; }
-.py-streak { display: inline-flex; align-items: baseline; gap: 8px; font-size: var(--fs-small); font-weight: 600; color: var(--ink-2); }
-.py-streak-n { color: var(--ink); font-size: 1.25rem; font-variant-numeric: tabular-nums; }
-.py-cover { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-small); color: var(--ink-2); }
-.py-cover .icon { color: var(--coral-ink); }
-.py-route-wrap { --th: 72px; --tw: calc(var(--th) * 1.786); --cab: calc(var(--tw) * 0.1933); position: relative; height: calc(var(--th) + 70px); }
-.py-route-wrap.has-car2 { --tw: calc(var(--th) * 2.452); --cab: calc(var(--tw) * 0.4126); }
-.py-route { position: absolute; left: 0; right: 0; top: var(--th); height: 70px; margin: 0; }
-.py-route::before { content: ""; position: absolute; left: 0; right: 0; top: 18px; height: 4px; border-radius: 2px; background: var(--line); }
-.py-station, .py-depot { position: absolute; left: calc(var(--cab) + var(--at, 0) * (100% - var(--tw))); transform: translateX(-50%); }
-.py-station { top: 0; display: grid; justify-items: center; gap: 4px; }
-.py-depot { top: 13px; width: 14px; height: 14px; border-radius: 4px; background: var(--line); }
-.py-stop {
-  position: relative; display: grid; place-items: center; width: 40px; height: 40px;
-  border: 2.5px solid var(--line-strong); border-radius: 50%; background: var(--surface); color: #FFFFFF;
+.tabbar-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tabbar-btn {
+  position: relative; display: grid; justify-items: center; align-content: center; gap: 2px; width: 100%; min-height: var(--tabbar-h);
+  padding: 6px 0 10px; border: 0; background: none; color: var(--ink-2); font-size: 0.8125rem; font-weight: 600;
 }
-.py-stop .icon { width: 20px; height: 20px; stroke-width: 2.6; }
-.py-station.is-done .py-stop { background: var(--coral-strong); border-color: var(--coral-strong); }
-.py-station.is-today .py-stop { border-width: 3px; border-color: var(--coral-strong); box-shadow: 0 0 0 4px var(--coral-tint); }
-.py-station.is-missed .py-stop { border-style: dashed; }
-.py-stop-day { font-size: var(--fs-small); font-weight: 600; line-height: 1.2; white-space: nowrap; }
-.py-station.is-today .py-stop-day { color: var(--coral-ink); }
-.py-station.is-missed .py-stop-day { color: var(--ink-2); font-weight: 400; }
-/* Comeback stamp: a sunny seal on the station where the player came back */
-.py-stamp {
-  position: absolute; top: -8px; right: -10px; display: grid; place-items: center; width: 22px; height: 22px;
-  border: 2px solid var(--surface); border-radius: 50%; background: var(--sun); color: var(--ink);
+.tabbar-btn .icon { width: 24px; height: 24px; }
+.tabbar-btn[aria-current="page"] { color: var(--ink); }
+.tabbar-btn[aria-current="page"]::after { content: ""; position: absolute; bottom: 6px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--coral); }
+.tabbar-btn:focus-visible { outline-offset: -4px; border-radius: 20px; }
+.app.is-planning ~ .tabbar { display: none; }
+
+/* ---------- 7. Today: "good evening." → the route → the count → Begin ---------- */
+.py-today { display: grid; gap: var(--s3); }
+.py-topbar { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
+.py-fishpill { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 16px 0 12px; border-radius: var(--r-pill); font-weight: 600; font-variant-numeric: tabular-nums; }
+.py-fishpill .icon { width: 22px; height: 22px; color: var(--coral-ink); }
+.py-fish-n { display: inline-block; min-width: 1ch; }
+.py-avatar-btn { width: 44px; height: 44px; padding: 0; border-radius: 50%; display: grid; place-items: center; }
+.py-avatar-btn svg { width: 38px; margin-top: 7px; }
+.py-greet { font-size: 2.125rem; line-height: 2.5rem; font-weight: 700; letter-spacing: -0.02em; }
+/* The stage: the one dark card, with a warm lift where the train rides. */
+.py-stage {
+  position: relative; display: grid; gap: var(--s3); padding: 18px var(--s4) var(--s4); border-radius: var(--r-card);
+  background: radial-gradient(130% 80% at 46% 22%, var(--stage-lift) 0%, var(--stage) 64%); color: var(--on-stage);
+  box-shadow: var(--shadow); contain: paint;
 }
-.py-stamp .icon { width: 12px; height: 12px; stroke-width: 2.4; }
-.py-stamp.is-new { animation: py-stamp-in 700ms var(--ease-spring); }
-@keyframes py-stamp-in { 0% { transform: scale(2.4) rotate(-30deg); opacity: 0; } 60% { transform: scale(0.9) rotate(6deg); opacity: 1; } 100% { transform: none; } }
-.py-train { position: absolute; top: 0; left: calc(var(--at, 0) * (100% - var(--tw))); width: var(--tw); height: var(--th); pointer-events: none; transition: left 900ms var(--ease-spring); }
-.py-train-art { width: 100%; height: 100%; }
-.py-rider { transform-box: fill-box; }
-.is-cheer { animation: py-hop 1.6s var(--ease-spring) 2; transform-origin: 50% 100%; }
-@keyframes py-hop { 0%, 100% { transform: none; } 30% { transform: translateY(-6px) scale(1.04, 0.97); } 55% { transform: translateY(0) scale(0.97, 1.03); } }
-/* Phones: a smaller train and stations, so four stations still fit beside the extra car. */
-@media (max-width: 419px) {
-  .py-route-wrap { --th: 66px; }
-}
+.py-stage :focus-visible { outline-color: var(--sun); }
+.py-streak-chip { justify-self: start; display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 12px; border-radius: var(--r-pill); background: rgba(247, 242, 238, 0.1); color: var(--on-stage); font-size: 0.8125rem; font-weight: 600; }
+.py-streak-chip strong { font-variant-numeric: tabular-nums; }
+/* The route: the train rides a hand-drawn rail; the stations sit on the route line below. Stations and
+   the train share --at, from 0 (the depot) to 1 (the last station). The train is --tw wide and its front
+   is --front from its left edge, so its front stops right above the station it has reached. */
+.py-route-wrap { --th: 72px; --tw: calc(var(--th) * 1.786); --front: calc(var(--tw) * 0.96); position: relative; height: calc(var(--th) + 62px); }
+.py-route-wrap.has-car2 { --th: 62px; --tw: calc(var(--th) * 2.452); --front: calc(var(--tw) * 0.9709); }
+.py-rail { position: absolute; left: 0; right: 0; top: calc(var(--th) * 0.9 - 3px); width: 100%; height: 8px; overflow: visible; }
+.py-rail path { fill: none; stroke: rgba(247, 242, 238, 0.32); stroke-width: 1.6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.py-route { position: absolute; left: 0; right: 0; top: calc(var(--th) + 8px); height: 54px; margin: 0; }
+.py-route-line { position: absolute; left: 0; right: 0; top: calc(var(--th) + 23px); width: 100%; height: 6px; overflow: visible; }
+.py-route-line path { fill: none; stroke: rgba(247, 242, 238, 0.24); stroke-width: 2.4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.py-station, .py-depot { position: absolute; left: calc(var(--front) + var(--at, 0) * (100% - var(--front) - 18px)); transform: translateX(-50%); }
+.py-depot { top: 11px; width: 14px; height: 14px; }
+.py-depot path { fill: rgba(247, 242, 238, 0.28); }
+.py-station { top: 0; display: grid; justify-items: center; gap: 3px; }
+.py-ring { width: 34px; height: 34px; overflow: visible; }
+.py-ring-line { fill: none; stroke: var(--line-strong); stroke-width: 2.4; stroke-linejoin: round; }
+.py-ring-fill { fill: var(--coral-strong); opacity: 0; transform-box: fill-box; transform-origin: 50% 50%; }
+.py-ring-check { fill: none; stroke: #FFFFFF; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.py-station.is-done .py-ring-line { stroke: var(--coral); }
+.py-station.is-done .py-ring-fill, .py-station.is-done .py-ring-check { opacity: 1; }
+.py-station.is-done.is-arriving .py-ring-fill, .py-station.is-done.is-arriving .py-ring-check { opacity: 0; }
+.py-station.is-today .py-ring-line { stroke: var(--on-stage); stroke-width: 3; }
+.py-station.is-today .py-ring { filter: drop-shadow(0 0 6px rgba(247, 242, 238, 0.45)); }
+.py-station.is-missed .py-ring-line { stroke-dasharray: 3.2 3.4; }
+.py-stop-day { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; color: var(--on-stage-2); white-space: nowrap; }
+.py-station.is-today .py-stop-day { color: var(--on-stage); }
+.py-station.is-missed .py-stop-day { font-weight: 400; }
+/* A comeback stamp sits on the ring where the player came back. */
+.py-stamp { position: absolute; top: -7px; right: -10px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--sun); color: var(--ink); box-shadow: 0 0 0 2px var(--stage); }
+.py-stamp .icon { width: 14px; height: 14px; stroke-width: 2.2; }
+.py-stamp.is-new { animation: py-stamp-in 700ms var(--spring) 1.3s both; }
+@keyframes py-stamp-in { 0% { transform: scale(2.2) rotate(-28deg); opacity: 0; } 60% { transform: scale(0.9) rotate(6deg); opacity: 1; } 100% { transform: none; opacity: 1; } }
+.py-train { position: absolute; top: 0; left: calc(var(--at, 0) * (100% - var(--front) - 18px)); width: var(--tw); height: var(--th); will-change: transform; }
+.py-train-svg { width: 100%; height: 100%; overflow: visible; }
+/* Tapping the route opens the week: a quiet button laid over the stations. */
+.py-route-open { position: absolute; left: 0; right: 0; top: calc(var(--th) + 2px); height: 60px; border: 0; border-radius: 16px; background: transparent; }
 @media (max-width: 399px) {
-  .py-station { top: 3px; }
-  .py-stop { width: 34px; height: 34px; }
-  .py-stop .icon { width: 17px; height: 17px; }
-  .py-stop-day { font-size: var(--fs-tiny); }
-  .py-route-wrap.has-car2 .py-station { top: 6px; }
-  .py-route-wrap.has-car2 .py-stop { width: 28px; height: 28px; border-width: 2px; }
-  .py-route-wrap.has-car2 .py-stop .icon { width: 14px; height: 14px; }
+  .py-route-wrap.has-car2 .py-ring { width: 28px; height: 28px; }
+  .py-route-wrap.has-car2 .py-station { top: 3px; }
 }
 @media (max-width: 359px) {
-  .py-route-wrap { --th: 52px; }
+  .py-route-wrap { --th: 54px; }
+  .py-route-wrap.has-car2 { --th: 48px; }
+  .py-ring { width: 30px; height: 30px; }
+  .py-station { top: 2px; }
 }
-/* 4. The count */
-.py-tally { display: grid; gap: 2px; padding: 0 4px; }
-.py-count { font-size: 1.375rem; font-weight: 600; line-height: 1.25; }
+@media (min-width: 400px) {
+  .py-route-wrap { --th: 84px; }
+  .py-route-wrap.has-car2 { --th: 72px; }
+}
+.py-count { font-size: 1.375rem; line-height: 1.75rem; font-weight: 600; color: var(--on-stage); }
 .py-count:focus:not(:focus-visible) { outline: none; }
-.py-count-n { color: var(--coral-ink); white-space: nowrap; }
-.py-goal { font-weight: 600; }
-.py-goal.is-hit { color: var(--coral-ink); }
-.py-goal.is-calm { color: var(--ink-2); font-weight: 400; }
-/* 5. Fish and the next unlock */
-.py-fishbox { display: grid; gap: 12px; padding: 16px; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow); }
-.py-fish { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-.py-fish .icon { width: 26px; height: 26px; stroke-width: 1.8; color: var(--coral-ink); }
-.py-fish-n { font-size: 1.75rem; line-height: 1; font-variant-numeric: tabular-nums; }
-.py-next { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; padding-top: 12px; border-top: 1px solid var(--line); }
-.py-next-art { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--panel); overflow: hidden; }
-.py-next-art svg { width: 46px; height: auto; }
-.py-next-art .py-glyph { width: 34px; height: 34px; }
-.py-next-text { display: grid; gap: 4px; min-width: 0; }
-.py-next-name { font-weight: 600; }
-/* This week's workouts: sunny session cards */
-.py-sessions { display: grid; gap: 10px; padding-top: 4px; }
-.py-session-list { display: grid; gap: 10px; }
-.py-session {
-  display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center;
-  padding: 12px 14px; border-radius: var(--r-md); background: var(--sun);
+.py-count-n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.py-goal { margin-top: 2px; font-size: 0.9375rem; font-weight: 600; color: var(--coral-on-stage); }
+.py-goal.is-calm { color: var(--on-stage-2); font-weight: 400; }
+/* One big Begin, and a quiet caption under it. */
+.py-begin-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 64px; margin-top: var(--s1); padding: 0 24px; border-radius: var(--r-pill); font-size: 1.1875rem; font-weight: 700; }
+.py-begin-btn.is-logged { background: rgba(247, 242, 238, 0.1); border: 1px solid rgba(247, 242, 238, 0.24); color: var(--on-stage); box-shadow: none; cursor: default; }
+.py-begin-btn.is-logged .icon { color: var(--coral-on-stage); stroke-width: 2.4; }
+.py-caption { text-align: center; font-size: 0.875rem; color: var(--on-stage-2); }
+
+/* ---------- 8. Sheets: they rise from the bottom edge ---------- */
+dialog.py-sheet {
+  position: fixed; inset: auto 0 0 0; width: min(430px, 100%); max-width: 100%; max-height: 92vh; margin: 0 auto; padding: 0;
+  border: 0; background: transparent; color: var(--ink); overflow: visible;
 }
+dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
+.py-sheet-panel { position: relative; display: grid; gap: var(--s3); max-height: 92vh; overflow: auto; overscroll-behavior: contain; border-radius: var(--r-card) var(--r-card) 0 0; padding: var(--s3) var(--gutter) calc(var(--s5) + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -18px 40px -24px rgba(43, 38, 40, 0.45); touch-action: pan-y; }
+.py-sheet-grip { justify-self: center; width: 40px; height: 5px; border-radius: 3px; background: rgba(43, 38, 40, 0.22); }
+.py-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.py-sheet-close { width: var(--tap); height: var(--tap); border-radius: 50%; display: grid; place-items: center; padding: 0; color: var(--ink); }
+/* The sunny reward sheet: Headspace-style bands with Pengu's face rising like a sun. */
+.py-reward .py-sheet-panel { min-height: min(60vh, 560px); align-content: start; overflow: hidden; background: var(--sun); padding-bottom: 0; }
+.py-reward-title { font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
+.py-reward-lines { display: grid; gap: 4px; font-size: 1.0625rem; font-weight: 600; }
+.py-reward-lines .num { font-variant-numeric: tabular-nums; }
+.py-reward-next { font-size: 0.9375rem; }
+.py-reward-ok { justify-self: start; min-width: 140px; }
+.py-reward-stamp { justify-self: start; width: 74px; height: 74px; transform: rotate(-8deg); }
+.py-reward-art { position: relative; height: 190px; margin: var(--s2) calc(-1 * var(--gutter)) 0; }
+.py-reward-bands { position: absolute; inset: 0; width: 100%; height: 100%; }
+.py-reward-face { position: absolute; left: 0; right: 0; bottom: -6px; width: min(320px, 82%); margin: 0 auto; }
+.py-reward-face svg { width: 100%; }
+/* The week sheet: this week's sessions as sunny cards. */
+.py-weeksheet .py-sheet-panel { background: var(--paper) var(--grain); }
+.py-weeksheet-title { font-size: 1.5rem; font-weight: 700; }
+.py-session-list { display: grid; gap: var(--s2); }
+.py-session { display: grid; grid-template-columns: 50px minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: 12px 14px; border-radius: 22px; background: var(--sun-2); }
+.py-session.is-today { background: var(--sun); box-shadow: 0 10px 24px -14px rgba(196, 138, 16, 0.8); }
 .py-session.is-done { background: var(--sun-2); }
 .py-session.is-missed { background: transparent; border: 1.5px dashed var(--line-strong); }
-.py-session-day { display: grid; justify-items: center; padding: 6px 0; border-radius: var(--r-sm); background: rgba(255, 255, 255, 0.6); line-height: 1.1; }
-.py-session.is-missed .py-session-day { background: var(--panel); }
-.py-session-dow { font-size: var(--fs-tiny); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
-.py-session-date { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.py-session-day { display: grid; justify-items: center; padding: 6px 0; border-radius: 14px; background: rgba(255, 255, 255, 0.55); line-height: 1.1; }
+.py-session.is-missed .py-session-day { background: var(--paper-2); }
+.py-session-dow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.py-session-date { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .py-session-text { min-width: 0; }
 .py-session-name { font-weight: 600; }
-.py-session-when { font-size: var(--fs-small); }
-.py-session-side { display: grid; justify-items: end; gap: 6px; }
-.py-session-status { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-small); font-weight: 600; white-space: nowrap; }
-.py-session-status .icon { stroke-width: 2.4; }
+.py-session-when { font-size: 0.875rem; }
+.py-session-side { display: grid; justify-items: end; gap: 4px; }
+.py-session-status { display: inline-flex; align-items: center; gap: 4px; font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
+.py-session-status .icon { width: 16px; height: 16px; stroke-width: 2.4; }
 .py-session.is-today .py-session-status { padding: 2px 10px; border-radius: var(--r-pill); background: var(--ink); color: #FFFFFF; }
 .py-session.is-missed .py-session-status { color: var(--ink-2); font-weight: 400; }
-.py-session-move { min-height: 32px; font-size: var(--fs-small); }
-.py-move { display: grid; gap: 10px; padding: 14px; border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow); }
+.py-session-move { min-height: 32px; font-size: 0.875rem; }
+.py-move { display: grid; gap: var(--s2); padding: 14px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
 .py-move-title { font-weight: 600; }
-.py-choices { display: flex; flex-wrap: wrap; gap: 8px; }
-.py-cal { display: flex; align-items: flex-start; gap: 10px; padding: 2px 4px 0; font-size: var(--fs-small); color: var(--ink-2); }
-.py-cal .icon { margin-top: 2px; color: var(--ink); }
+.py-choices { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.py-sheet-note { display: flex; align-items: flex-start; gap: 10px; font-size: 0.875rem; color: var(--ink-2); }
+.py-sheet-note .icon { width: 18px; height: 18px; margin-top: 1px; color: var(--ink); }
 
-/* ---------- 7. Plan flow (Monday: a target, the days, a time and a place) ---------- */
-.py-flow { display: grid; gap: 14px; padding: 20px 16px; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow); }
-.py-flow-top { display: grid; gap: 8px; }
-.py-progress { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-.py-progress span { height: 5px; border-radius: 3px; background: var(--panel); }
+/* ---------- 9. Plan: a full-screen paper view (rebuilt in M1) ---------- */
+.py-plan-view { display: grid; gap: var(--s4); }
+.py-plan-top { display: flex; align-items: center; gap: var(--s2); min-height: 44px; }
+.py-back { width: var(--tap); height: var(--tap); border-radius: 50%; display: grid; place-items: center; padding: 0; }
+.py-flow { display: grid; gap: 14px; padding: 20px 18px; border-radius: var(--r-card); background: var(--card); box-shadow: var(--shadow); }
+.py-flow-top { display: grid; gap: var(--s2); }
+.py-progress { display: flex; gap: 8px; }
+.py-progress span { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
 .py-progress span.is-on { background: var(--coral); }
-.py-step-title { font-size: 1.375rem; font-weight: 600; line-height: 1.25; }
+.py-step-title { font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
 .py-step-title:focus:not(:focus-visible) { outline: none; }
-.py-targets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.py-target { padding: 8px 0; }
-.py-target strong { font-size: 1.75rem; line-height: 1.1; }
-.py-target small { font-size: var(--fs-small); }
+.py-targets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+.py-target { padding: 10px 0; }
+.py-target strong { font-size: 1.875rem; line-height: 1.1; }
 .py-days { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .py-days .chip { padding: 6px 2px; }
-.py-counter { margin-top: 8px; color: var(--ink-2); }
-.py-custom { max-width: 260px; margin-top: 12px; }
-.py-review { display: grid; gap: 8px; }
-.py-review li { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--sun); font-weight: 600; }
-.py-review .icon { margin-top: 3px; stroke-width: 2.2; }
-.py-flow-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.py-counter { margin-top: var(--s2); color: var(--ink-2); }
+.py-custom { max-width: 260px; margin-top: var(--s3); }
+.py-review { display: grid; gap: var(--s2); }
+.py-review li { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 20px; background: var(--sun); font-weight: 600; }
+.py-review .icon { margin-top: 2px; stroke-width: 2.2; }
+.py-flow-nav { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
 .py-flow-nav .btn-primary { min-width: 148px; }
-@media (min-width: 420px) {
-  .py-days { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
-}
+@media (min-width: 400px) { .py-days { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; } }
 
-/* ---------- 8. Pengu tab: the showcase, the next goal, and the fixed-price lists ---------- */
-.py-shop { display: grid; gap: 20px; }
-.py-shop-top { display: grid; gap: 12px; }
+/* ---------- 10. Pengu tab (rebuilt in M2): gear and train upgrades, words only, no bars ---------- */
+.py-shop { display: grid; gap: var(--s5); }
+.py-shop-top { display: grid; gap: var(--s3); }
 .py-show { margin: 0; }
-.py-show-stage { display: grid; place-items: end center; padding: 16px 12px 8px; border-radius: var(--r-lg); background: var(--panel); }
-.py-scene { width: 100%; max-width: 440px; }
-.py-shop-side { display: grid; gap: 12px; }
-.py-wallet { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-.py-wallet .icon { width: 26px; height: 26px; stroke-width: 1.8; color: var(--coral-ink); }
+.py-show-stage { display: grid; place-items: end center; padding: var(--s4) var(--s3) var(--s2); border-radius: var(--r-card); background: var(--paper-2); }
+.py-scene { width: 100%; max-width: 400px; }
+.py-shop-side { display: grid; gap: var(--s3); }
+.py-wallet { display: flex; align-items: center; gap: var(--s2); font-weight: 600; }
+.py-wallet .icon { width: 24px; height: 24px; color: var(--coral-ink); }
 .py-wallet strong { font-size: 1.75rem; line-height: 1; font-variant-numeric: tabular-nums; }
-.py-goalcard { display: grid; gap: 6px; padding: 14px 16px; border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow); }
-.py-goalcard-title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-.py-goalcard.is-done .icon { color: var(--coral-ink); stroke-width: 2.2; }
+.py-goalcard { display: grid; gap: 6px; padding: 14px 16px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
+.py-goalcard-title { display: flex; align-items: center; gap: var(--s2); font-weight: 600; }
+.py-goalcard.is-done .icon { color: var(--coral-ink); }
 .py-shop-sec { display: grid; gap: 10px; }
 .py-shop-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
-.py-shop-h { font-size: 1.0625rem; font-weight: 600; }
+.py-shop-h { font-size: 1.125rem; font-weight: 600; }
 .py-items { display: grid; gap: 10px; }
-.py-item {
-  display: grid; grid-template-columns: 48px minmax(0, 1fr); grid-template-areas: "g t" "a a"; gap: 10px 12px; align-items: center;
-  padding: 12px 14px; border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow);
-}
+.py-item { display: grid; grid-template-columns: 48px minmax(0, 1fr); grid-template-areas: "g t" "a a"; gap: 10px 12px; align-items: center; padding: 12px 14px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
 .py-item.is-ready { box-shadow: inset 0 0 0 2px var(--coral-strong), var(--shadow); }
-.py-glyph-tile { grid-area: g; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: var(--panel); }
+.py-glyph-tile { grid-area: g; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 16px; background: var(--paper-2); }
 .py-glyph { width: 36px; height: 36px; }
 .py-item.is-locked .py-glyph { opacity: 0.5; filter: grayscale(0.6); }
 .py-item-text { grid-area: t; min-width: 0; }
 .py-item-name { font-weight: 600; }
 .py-item-status { font-weight: 600; color: var(--ink); }
 .py-act { grid-area: a; justify-self: start; }
-.py-owned, .py-lock { display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); font-size: var(--fs-small); font-weight: 600; }
-.py-owned .icon { color: var(--coral-ink); stroke-width: 2.2; }
+.py-owned, .py-lock { display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); font-size: 0.875rem; font-weight: 600; }
+.py-owned .icon { color: var(--coral-ink); }
 .py-lock { color: var(--ink-2); }
 .py-wear[aria-pressed="true"] { background: var(--coral-tint); box-shadow: inset 0 0 0 1.5px var(--coral-strong); }
-.py-confirm { grid-column: 1 / -1; display: grid; gap: 10px; padding: 12px 14px; border-radius: var(--r-sm); background: var(--panel); }
-.py-confirm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.py-swatches { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
-.py-swatch { display: grid; place-items: center; width: var(--tap); height: var(--tap); padding: 0; border: 2px solid var(--line); border-radius: 50%; background: var(--surface); }
+.py-confirm { grid-column: 1 / -1; display: grid; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--paper-2); }
+.py-confirm-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.py-swatches { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--s2); }
+.py-swatch { display: grid; place-items: center; width: var(--tap); height: var(--tap); padding: 0; border: 2px solid var(--line); border-radius: 50%; background: var(--card); }
 .py-swatch[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 3px var(--coral-tint); }
 .py-swatch-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--sw); }
 .py-shop-note { text-align: center; }
@@ -388,44 +419,51 @@ html:not(.js) .js-only { display: none !important; }
   .py-act { justify-self: end; }
 }
 
-/* ---------- 9. History ---------- */
-.py-hist-summary { display: flex; flex-wrap: wrap; gap: 8px; }
-.py-hist-summary li { padding: 6px 12px; border-radius: var(--r-pill); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: var(--fs-small); font-weight: 600; }
+/* ---------- 11. History (rebuilt in M2): words and small tags, no charts ---------- */
+.py-hist-summary { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.py-hist-summary li { padding: 6px 12px; border-radius: var(--r-pill); background: var(--card); box-shadow: inset 0 0 0 1px var(--line); font-size: 0.875rem; font-weight: 600; }
 .py-weeks { display: grid; gap: 10px; }
-.py-week { display: grid; gap: 8px; padding: 14px 16px; border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow); }
-.py-week-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.py-week { display: grid; gap: var(--s2); padding: 14px 16px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
+.py-week-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s3); }
 .py-week-title { font-size: 1rem; font-weight: 600; }
 .py-week-fish { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: var(--coral-ink); white-space: nowrap; }
+.py-week-fish .icon { width: 18px; height: 18px; }
 .py-week-dots { display: flex; flex-wrap: wrap; gap: 6px; }
 .py-dot { width: 14px; height: 14px; border: 2px solid var(--line-strong); border-radius: 50%; }
 .py-dot.is-done { background: var(--coral-strong); border-color: var(--coral-strong); }
 .py-dot.is-today { border-color: var(--coral-strong); }
 .py-dot.is-missed { border-style: dashed; }
-.py-week-line { font-size: var(--fs-small); color: var(--ink-2); }
+.py-week-line { font-size: 0.875rem; color: var(--ink-2); }
 .py-week-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.py-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--r-pill); background: var(--panel); font-size: var(--fs-tiny); font-weight: 600; }
-.py-tag .icon { width: 13px; height: 13px; }
+.py-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--r-pill); background: var(--paper-2); font-size: 0.75rem; font-weight: 600; }
+.py-tag .icon { width: 14px; height: 14px; }
 .py-tag.is-hit { background: var(--coral-tint); }
-.py-tag.is-stamp { background: var(--sun-tint); color: var(--gold-ink); }
-.py-data { display: grid; gap: 10px; padding: 16px; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow); }
-.py-data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.py-reset-confirm { display: grid; gap: 10px; padding: 14px; border-radius: var(--r-md); background: var(--danger-tint); }
+.py-tag.is-stamp { background: var(--sun-2); }
+.py-data { display: grid; gap: 10px; padding: var(--s4); border-radius: var(--r-card); background: var(--card); box-shadow: var(--shadow); }
+.py-data-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.py-reset-confirm { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--coral-tint); }
 
-/* ---------- 10. 404 page ---------- */
-.not-found { min-height: 100vh; display: grid; place-items: center; padding: 48px var(--gutter); text-align: center; }
-.not-found-inner { display: grid; gap: 20px; justify-items: center; max-width: 34rem; }
-.not-found h1 { font-size: 2rem; font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; }
-.lead { font-size: 1.125rem; color: var(--ink-2); }
-.brand { display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap); color: var(--ink); font-size: 1.125rem; font-weight: 600; text-decoration: none; }
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.actions.center { justify-content: center; }
+/* ---------- 12. 404 page ---------- */
+.not-found { min-height: 100vh; display: grid; place-items: center; padding: var(--s7) var(--gutter); text-align: center; }
+.not-found-inner { display: grid; gap: var(--s5); justify-items: center; max-width: 30rem; }
+.not-found-art { width: 140px; }
+.not-found h1 { font-size: 2.125rem; line-height: 2.5rem; font-weight: 700; letter-spacing: -0.02em; }
+.lead { font-size: 1.0625rem; color: var(--ink-2); }
 
-/* ---------- 11. Motion and print ---------- */
+/* ---------- 13. Motion, transparency and print ---------- */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
-  .btn:active, .py-begin-btn:active { transform: none; }
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
+/* Without backdrop blur, or when the viewer asks for less transparency, glass turns solid. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--card); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass { background: var(--card); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .glass-coral { background: var(--coral); }
+  .glass-pink { background: var(--pengu); }
 }
 @media print {
-  .tabbar, .toasts { display: none !important; }
+  .tabbar, .toasts, .py-splash { display: none !important; }
   body { background: #FFFFFF; }
 }

@@ -14,46 +14,65 @@
 <meta property="og:description" content="Plan two to four workouts for the week, ride Pengu’s train from station to station, and earn Fish for every planned workout. By ClearHealth.">
 <meta property="og:url" content="https://bachnguyenclearhealth.com">
 <meta property="og:image" content="https://bachnguyenclearhealth.com/og-pengu.jpg">
-<meta property="og:image:alt" content="Pengu, the ClearHealth penguin, beside the headline: Healthy habits, built like a game.">
+<meta property="og:image:alt" content="Pengu, a pink penguin, riding a navy steam train beside the PENGYU wordmark.">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#FAF6F0">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="preload" href="fonts/public-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/public-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/rubik-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="pengu.css">
 <script src="js/boot.js"></script>
 <script type="module" src="js/main.js"></script>
+<link rel="modulepreload" href="js/pengyu/app.js">
+<link rel="modulepreload" href="js/pengyu/state.js">
+<link rel="modulepreload" href="js/pengyu/route.js">
+<link rel="modulepreload" href="js/pengyu/art.js">
+<link rel="modulepreload" href="js/pengyu/ink.js">
+<link rel="modulepreload" href="js/pengyu/motion.js">
+<link rel="modulepreload" href="js/vendor/anime.esm.min.js">
+<link rel="modulepreload" href="js/pengyu/ui.js">
+<link rel="modulepreload" href="js/fx.js">
+<link rel="modulepreload" href="js/pengyu/plan.js">
+<link rel="modulepreload" href="js/pengyu/shop.js">
+<link rel="modulepreload" href="js/pengyu/history.js">
+<link rel="modulepreload" href="js/pengyu/ics.js">
 </head>
 <body>
-<!-- Line icons. Pengu and the train are drawn in js/pengyu/art.js -->
+<!-- Hand-drawn line icons. Pengu and the train are drawn in js/pengyu/art.js -->
 <svg class="sprite" aria-hidden="true" focusable="false">
-  <symbol id="i-alert" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5M8 11h.01"/></symbol>
-  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-  <symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-  <symbol id="i-fish" viewBox="0 0 16 16"><path d="M15 8c-1.5 2.5-3.8 3.7-6.4 3.7-2.3 0-4-1.1-5.1-2.5L1 11.2V4.8l2.5 2C4.6 5.4 6.3 4.3 8.6 4.3c2.6 0 4.9 1.2 6.4 3.7Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="11.6" cy="7.4" r="0.9" fill="currentColor"/></symbol>
-  <symbol id="i-lock" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7H4a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 4 15h8a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 12 7h-.5V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z"/></symbol>
-  <symbol id="i-refresh" viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3"/></symbol>
-  <symbol id="i-shield" viewBox="0 0 16 16"><path d="M8 1.75 13.25 3.8v3.95c0 3.05-2.15 5.45-5.25 6.5-3.1-1.05-5.25-3.45-5.25-6.5V3.8Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m5.6 8 1.7 1.7 3.1-3.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-  <!-- Bottom nav -->
-  <symbol id="i-today" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="15.2" r="2" fill="currentColor" stroke="none"/></symbol>
-  <symbol id="i-pengu" viewBox="0 0 24 24"><path d="M12 3C8.6 3 6.4 6.1 6.4 10.4c0 4.8 2.3 9.6 5.6 9.6s5.6-4.8 5.6-9.6C17.6 6.1 15.4 3 12 3Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6.6 11.5 4 15M17.4 11.5 20 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="14" cy="9" r="1.1" fill="currentColor" stroke="none"/><path d="M11 11.2h2l-1 1.4Z" fill="currentColor" stroke="none"/></symbol>
-  <symbol id="i-history" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4.5 4.5v4.2h4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v4.4l2.8 1.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-fish" viewBox="0 0 24 24"><path d="M21.6 12.2c-2.3 3.5-5.5 5.3-9.3 5.2-3.2-.1-5.6-1.6-7.2-3.7l-2.8 2.5.4-4.4-.3-4.3 2.8 2.5c1.7-2.2 4.2-3.5 7.4-3.4 3.8.1 6.9 2 9 5.6Z"/><circle cx="16.5" cy="10.9" r="1.15" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.2 12.9l4.2 4.5 9.5-10.4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><path d="M6.4 10.6h11.3c.9 0 1.5.7 1.5 1.6v6.6c0 .9-.7 1.6-1.6 1.6H6.5c-.9 0-1.6-.7-1.6-1.6v-6.7c0-.9.6-1.5 1.5-1.5Z"/><path d="M8.4 10.4V8.1c0-2.2 1.6-3.8 3.7-3.7 2 0 3.6 1.7 3.6 3.9v2.1"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12.1 3.4l6.9 2.6c.1 4.7-.2 7.6-1.9 10-1.3 1.9-3 3.2-5.1 4.1-2.1-.9-3.8-2.3-5-4.2C5.4 13.5 5 10.6 5.1 6Z"/><path d="M9.1 12.2l2 2.1 3.8-4.2"/></symbol>
+  <symbol id="i-stamp" viewBox="0 0 24 24"><path d="M12 3.6c4.7-.1 8.4 3.6 8.4 8.3.1 4.7-3.6 8.5-8.3 8.5-4.7.1-8.5-3.7-8.5-8.4 0-4.6 3.7-8.3 8.4-8.4Z"/><path d="M8.9 12.7a3.4 3.4 0 1 0 1.1-3.3M8.6 7.7l.4 2.3 2.3-.3"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M5.3 6.4h13.5c.9 0 1.6.7 1.6 1.6v10.6c0 .9-.7 1.7-1.6 1.7H5.2c-.9 0-1.6-.8-1.6-1.7V8c0-.9.8-1.6 1.7-1.6Z"/><path d="M3.8 10.6h16.4M8.2 4v4M15.9 4v4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.3 12.3a7.3 7.3 0 1 1-2.2-5.3"/><path d="M17.5 3.6l-.3 3.6-3.6-.1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.4 6.2l11.3 11.6M17.8 6.3L6.2 17.7"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.9 5.4L8.3 12.1l6.7 6.6"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.7c4.6-.1 8.4 3.7 8.4 8.3s-3.7 8.4-8.3 8.4c-4.7 0-8.5-3.8-8.5-8.4 0-4.6 3.8-8.3 8.4-8.3Z"/><path d="M12 7.6v5.3M12 16.3v.1"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 3.7c4.6-.1 8.4 3.7 8.4 8.3s-3.7 8.4-8.3 8.4c-4.7 0-8.5-3.8-8.5-8.4 0-4.6 3.8-8.3 8.4-8.3Z"/><path d="M12 7.4v4.9l3.1 1.9"/></symbol>
+  <symbol id="i-today" viewBox="0 0 24 24"><path d="M3.6 17.7h16.9"/><path d="M7.4 17.6c-.1-2.6 2-4.8 4.6-4.8 2.6 0 4.7 2.1 4.6 4.7"/><path d="M12 5.8v2.4M5.9 9.1l1.6 1.5M18.1 9l-1.6 1.6M2.9 13.9h1.9M19.3 13.8h1.8"/></symbol>
+  <symbol id="i-pengu" viewBox="0 0 24 24"><path d="M12 3.4c3.5 0 6.2 4.1 6.3 9.1.1 4.6-2.7 8-6.3 8-3.7 0-6.4-3.3-6.3-8 .1-5 2.8-9.1 6.3-9.1Z"/><circle cx="10" cy="10.3" r=".95" fill="currentColor" stroke="none"/><circle cx="14.1" cy="10.3" r=".95" fill="currentColor" stroke="none"/><path d="M11.1 12.3h1.9l-.95 1.3Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M4.6 12.2a7.4 7.4 0 1 0 2.3-5.4"/><path d="M4.4 4.6l.3 4h4"/><path d="M12 8.2v4.3l2.9 1.8"/></symbol>
 </svg>
+
+<!-- Once per browser session: the PENGYU wordmark, then Today. Decorative; a tap skips it. -->
+<div class="py-splash js-only" id="py-splash" aria-hidden="true"><p class="py-wordmark">PENGYU</p></div>
 
 <a class="skip" href="#main">Skip to content</a>
 
-<!-- Pengyu: plan 2 to 4 workouts a week, ride the route, earn Fish. Runs in js/pengyu/, saved only in this browser. -->
+<!-- Pengyu: plan 2 to 4 workouts a week, log them, Pengu's train moves, Fish upgrade Pengu. Runs in js/pengyu/, saved only in this browser. -->
 <main id="main" class="app">
   <div id="py-app" class="js-only"></div>
   <div class="nojs nojs-only">
-    <h1 class="py-greet">Pengyu</h1>
-    <p class="muted">Pengyu runs in your browser. Turn on JavaScript to plan your week and log workouts. Everything stays on your device.</p>
+    <p class="py-wordmark is-ink">PENGYU</p>
+    <p>Pengyu runs in your browser. Turn on JavaScript to plan your week and log workouts. Everything stays on your device.</p>
   </div>
 </main>
 
-<nav class="tabbar js-only" id="py-nav" aria-label="Pengyu"></nav>
+<nav class="tabbar glass js-only" id="py-nav" aria-label="Pengyu"></nav>
+<p class="sr-only" id="py-live" aria-live="polite"></p>
 <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 </body>
 </html>

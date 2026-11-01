@@ -1,0 +1,4 @@
+# Keep the build notes and the tests off the public site. They live in site/ so the next build session
+# can reread them, but Netlify answers "not found" for both folders.
+/docs/*   /404.html   404!
+/tests/*  /404.html   404!

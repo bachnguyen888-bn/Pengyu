@@ -40,15 +40,11 @@ function nextGoal() {
       h('p', { class: 'py-goalcard-title' }, icon('i-check'), 'Pengu’s gear is complete.'),
       h('p', { class: 'small muted' }, 'Everything you unlocked stays yours. Train upgrades are below.'));
   }
-  const pct = Math.min(100, Math.round((fish / g.price) * 100));
-  const bar = h('span', { class: 'py-bar-fill' });
-  bar.style.setProperty('--p', `${pct}%`);
   const short = g.price - fish;
   return h('div', { class: 'py-goalcard' },
     h('p', { class: 'stat-label' }, 'Next unlock'),
     h('p', { class: 'py-goalcard-title' }, `${g.name} · ${g.price} Fish`),
-    h('div', { class: 'py-bar', role: 'progressbar', 'aria-label': `Fish saved toward the ${g.name}`, 'aria-valuemin': '0', 'aria-valuemax': String(g.price), 'aria-valuenow': String(Math.min(fish, g.price)) }, bar),
-    h('p', { class: 'small muted' }, short > 0 ? `You have ${fish} Fish. ${short} more to go: about ${Math.max(1, Math.ceil(short / 10))} planned ${short > 10 ? 'workouts' : 'workout'}.` : `You have ${fish} Fish. You can unlock it now.`));
+    h('p', { class: 'small muted' }, short > 0 ? `${short} more Fish: about ${Math.max(1, Math.ceil(short / 10))} planned ${short > 10 ? 'workouts' : 'workout'}.` : 'Ready to unlock.'));
 }
 
 function buyNow(item, rerender) {
