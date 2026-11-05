@@ -5,12 +5,12 @@
 // Pages: the network first, if it answers within a few seconds; otherwise the saved copy.
 // Everything else: the saved copy at once, refreshed in the background for next time.
 // So online visits stay current and offline visits work, with no build step and no manual versioning.
-// Change VERSION only when a file is removed or renamed, so old copies are dropped.
+// Change VERSION when files are removed or renamed, or cached module APIs must update together.
 //
 // The worker's own requests follow the security policy sent with this file (site/_headers), which is
 // why that policy includes connect-src 'self'.
 
-const VERSION = 'pengyu-v1';
+const VERSION = 'pengyu-v2';
 
 // Everything the app needs to start and run offline, relative to the site root.
 const SHELL = [

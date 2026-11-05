@@ -98,7 +98,7 @@ function dataCard(rerender, onReset, onRestore) {
   const closeReset = () => { resetStep = 0; resetSaved = false; refocus = 'py-reset'; rerender(); };
   const card = h('section', { class: 'py-data', 'aria-labelledby': 'py-data-title' },
     h('h2', { class: 'py-section-title', id: 'py-data-title' }, 'Your data'),
-    h('p', { class: 'small muted' }, 'Everything is saved only in this browser. A backup file keeps Pengu safe.'),
+    h('p', { class: 'small muted' }, 'Your progress is saved in this browser. Save a backup downloads your data so you can restore it later.'),
     h('p', { class: 'py-data-privacy' }, h('a', { href: 'privacy.html' }, 'How Pengyu handles your data')),
     h('div', { class: 'py-data-actions' },
       h('button', {
@@ -161,10 +161,15 @@ export function renderHistory(root, rerender, { onReset = () => {}, onRestore = 
       h('h2', { class: 'py-section-title', id: 'py-weeks-title' }, 'Your weeks'),
       weeks.length
         ? h('ol', { class: 'py-weeks' }, weeks.map((m) => weekCard(m, info.covered.includes(m))))
-        : h('p', { class: 'muted' }, 'Your weeks show up here once you plan your first one.')),
-    dataCard(rerender, onReset, onRestore),
-    appFooter());
+        : h('p', { class: 'muted' }, 'Your weeks show up here once you plan your first one.')));
   root.append(view);
+  renderData(view, rerender, { onReset, onRestore });
+  view.append(appFooter());
+}
+
+// Both Settings and History use these same controls and confirmation steps.
+export function renderData(root, rerender, { onReset = () => {}, onRestore = () => {} } = {}) {
+  root.append(dataCard(rerender, onReset, onRestore));
   if (refocus) {
     const el = root.querySelector(`#${refocus}`);
     refocus = '';

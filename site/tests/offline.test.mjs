@@ -74,7 +74,7 @@ test('the privacy page: a stable address, linked from the app, and no scripts or
   assert.doesNotMatch(page, /<script/i, 'nothing on the privacy page can run or track');
   // Files the page loads are all its own (a canonical link names an address; nothing is fetched).
   for (const m of page.matchAll(/<(?:link|img|script|iframe)(?![^>]*rel="canonical")[^>]+(?:src|href)="([^"]+)"/g)) assert.doesNotMatch(m[1], /^https?:/, m[1]);
-  assert.match(page, /Export my data \(JSON\)/);
+  assert.match(page, /Save a backup \(JSON\)/);
   assert.match(page, /Reset everything/);
   assert.match(page, /pengyu\.v1/);
   assert.match(read('js/pengyu/history.js'), /href: 'privacy\.html'/, 'linked from Your data');

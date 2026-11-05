@@ -29,32 +29,32 @@
   <section class="doc-sec" aria-labelledby="short">
     <h2 id="short">The short version</h2>
     <ul class="doc-list">
-      <li>Pengyu saves your plans and progress in this browser’s localStorage. There’s no account or app backend.</li>
+      <li>Pengyu saves your plans and progress on this device, in this browser’s storage (localStorage). There’s no account or app server (backend).</li>
       <li>The app does not send your plans, workout history or other health data to a server.</li>
       <li>We do not sell your data. The app has no ads, analytics or tracking services.</li>
-      <li>You can export your saved app data as JSON, or reset it and start fresh.</li>
+      <li>You can download a backup of your saved app data, or reset it and start fresh.</li>
     </ul>
   </section>
 
   <section class="doc-sec" aria-labelledby="saved">
     <h2 id="saved">What Pengyu saves on your device</h2>
-    <p>Pengyu keeps one record in your browser’s local storage, named <code>pengyu.v1</code>. It holds:</p>
+    <p>Pengyu keeps your save in your browser’s local storage (localStorage). The record is named <code>pengyu.v1</code>. It holds:</p>
     <ul class="doc-list">
       <li>Your weekly plans: how many workouts, which days, a time, the time-window and place text you enter, and any days you move.</li>
-      <li>Your workouts: the day and time you tapped Begin, planned or extra.</li>
+      <li>Your workouts: the day and time you tapped Log finished workout, planned or extra.</li>
       <li>Your Fish: what you have now and everything you’ve earned.</li>
       <li>Your unlocks: gear, train upgrades and extras, what Pengu wears, and your train paint.</li>
-      <li>Comeback stamps, full-week bonuses and free covers.</li>
+      <li>Records of returning after a missed planned workout (Comeback stamps), completing your weekly plan (full-week bonuses), and protecting an existing week streak through a missed week (free covers, once per calendar month).</li>
       <li>A dated list of app actions, such as opening the app, making a plan, logging a workout or saving a backup. This list stays here; it is not sent to an analytics service.</li>
       <li>When your save began, whether you’ve saved calendar reminders, and whether you’ve seen the Home Screen tip.</li>
     </ul>
-    <p>A temporary storage check is written and removed when the app starts. A separate sessionStorage flag remembers that the opening splash already showed in this tab.</p>
+    <p>A temporary storage check is written and removed when the app starts. A separate temporary note (in sessionStorage) remembers that the opening splash already showed in this tab.</p>
     <p>There’s no automatic cloud backup or sync between browsers. If browser storage is blocked, changes won’t survive leaving the app. Clearing site data also removes your save.</p>
   </section>
 
   <section class="doc-sec" aria-labelledby="offline">
     <h2 id="offline">Files for offline use</h2>
-    <p>To work offline, Pengyu stores its own app files in your browser. That means pages, styles, code, fonts and icons. They’re the same for everyone and hold nothing about you.</p>
+    <p>To work offline, Pengyu keeps an offline copy (cache) of its own app files in your browser’s Cache Storage. That means pages, styles, code, fonts and icons. They’re the same for everyone and hold nothing about you.</p>
   </section>
 
   <section class="doc-sec" aria-labelledby="not">
@@ -72,24 +72,24 @@
   <section class="doc-sec" aria-labelledby="who">
     <h2 id="who">Who can see your data</h2>
     <p>Anyone with access to this browser profile can open Pengyu and see its saved data. Anyone you give a backup file to can read that file.</p>
-    <p>Loading or updating the app requests its files from the website host. Those requests do not include your saved plans or progress. Hosting request logs are separate from the app’s local data; this page does not claim that the host keeps no logs.</p>
+    <p>Loading or updating the app requests its files from the website host. Those requests do not include your saved plans or progress. The host may keep request logs, separate from your saved app data.</p>
     <p>If you choose Add reminders, Pengyu downloads a calendar file containing your planned days, times and place text. Importing that file into a calendar puts those details under that calendar’s settings.</p>
   </section>
 
   <section class="doc-sec" aria-labelledby="controls">
-    <h2 id="controls">Export my data (JSON)</h2>
+    <h2 id="controls">Save a backup (JSON)</h2>
     <ul class="doc-list">
-      <li>Open <strong>History → Your data → Save a backup</strong>. Settings also has an Open History button.</li>
-      <li>Your browser downloads <code>pengyu-backup-YYYY-MM-DD.json</code>. It contains your saved plans, progress, preferences and local action list, plus the export time. It does not include the splash flag or cached app files.</li>
+      <li>Open <strong>Settings → Your data → Save a backup</strong>. The same controls are also in History.</li>
+      <li>Your browser downloads <code>pengyu-backup-YYYY-MM-DD.json</code>. This JSON file is a readable copy of your saved plans, progress, preferences and local action list, plus the export time. It does not include the splash flag or cached app files.</li>
       <li><strong>Restore:</strong> Restore from a backup reads only the file you pick, on your device.</li>
-      <li>Saving a backup asks your browser to keep Pengyu’s storage. Some browsers ask you first.</li>
+      <li>Saving a backup also asks your browser to protect Pengyu’s saved data from automatic cleanup. Some browsers ask your permission first.</li>
     </ul>
   </section>
 
   <section class="doc-sec" aria-labelledby="delete">
     <h2 id="delete">Reset / delete everything</h2>
     <ul class="doc-list">
-      <li>Open <strong>History → Your data → Reset everything</strong>, then choose <strong>Continue</strong>.</li>
+      <li>Open <strong>Settings → Your data → Reset everything</strong> (also available in History), then choose <strong>Continue</strong>.</li>
       <li>You can save a backup on the next screen. To finish deleting, choose <strong>Reset everything</strong> again. Choose Keep my data to cancel.</li>
       <li>Reset removes your saved plans, workout history, Fish, unlocks, preferences and local action list from this browser, including leftover data from the old preview. It starts Pengyu fresh and cannot be undone without a backup.</li>
       <li>Reset leaves the splash flag and offline app files in place. To remove those too, close Pengyu’s tabs and clear this site’s stored data in your browser settings. Reopening Pengyu starts a new save and can cache its files again.</li>

@@ -107,7 +107,7 @@ export function initPengyu() {
     if (showPlan) renderPlanFlow(view, render, { onExit: () => go('today') });
     else if (tab === 'pengu') renderShop(view, render);
     else if (tab === 'history') renderHistory(view, render, { onReset, onRestore });
-    else if (tab === 'settings') renderSettings(view, { onData: () => go('history') });
+    else if (tab === 'settings') renderSettings(view, render, { onReset, onRestore });
     else renderToday(view, render, { onShop: () => go('pengu'), onPlan: openPlan, focus: takeFocusRequest() });
     for (const t of TABS) {
       if (t.id === tab) navButtons[t.id]?.setAttribute('aria-current', 'page');
