@@ -2,7 +2,8 @@
 // week's route, "Workouts this week: X of N" and one big Begin. Begin logs in one tap: the train rolls to
 // its station, the ring fills, the count and Fish update, Pengu celebrates and the sunny reward sheet
 // rises. Tapping the route opens the week sheet (sessions, moves, the calendar file and the cover).
-// Planned ahead on Sunday, the stage shows next week's route: "Your route starts Monday."
+// Planned ahead on Sunday, the stage shows next week's route: "Your route starts Monday." With no plan
+// this week, the stage says how Pengyu works in three short steps before "Plan my week".
 // No penalties and no shame: a day without a workout just reads "not logged".
 
 import * as S from './state.js';
@@ -57,6 +58,16 @@ function goal(r) {
   return { text: 'A new route starts Monday.', calm: true };
 }
 
+// With no plan this week: what the player does, how the train moves and what Fish are for.
+function howItWorks() {
+  const steps = [
+    ['i-calendar', 'Plan', ` ${S.TARGETS[0]} to ${S.TARGETS[S.TARGETS.length - 1]} workouts a week.`],
+    ['i-check', 'Log', ' each finished workout. The train moves one station.'],
+    ['i-fish', 'Earn Fish', ' to unlock Pengu’s gear and train upgrades.'],
+  ];
+  return h('ol', { class: 'py-how' }, steps.map(([name, lead, rest]) => h('li', {}, icon(name), h('span', {}, h('strong', {}, lead), rest))));
+}
+
 // What Begin says, and the quiet caption under it.
 function beginState(r, ahead) {
   if (!r) return { label: 'Plan my week', caption: 'Takes about 30 seconds.', plan: true };
@@ -90,7 +101,7 @@ function stationNode(s, i, count, arriving) {
 
 function routeBlock(r, look, arriving, ahead) {
   const ties = Array.from({ length: 30 }, (_, i) => `M${18 + i * 33.5 + (i % 3) * 1.4} ${1.4 + (i % 2) * 0.5}V${6.6 - (i % 4) * 0.4}`).join('');
-  const wrap = h('div', { class: `py-route-wrap${look.car ? ' has-car2' : ''}` },
+  const wrap = h('div', { class: `py-route-wrap${look.car ? ' has-car2' : ''}${r ? '' : ' is-empty'}` },
     lineArt('py-rail', '0 0 1000 8', `<path d="${wobblyLine(0, 1000, 4, { seed: 5, amp: 0.7, step: 64 })}"/><path d="${ties}"/>`, true),
     lineArt('py-route-line', '0 0 1000 6', `<path d="${wobblyLine(0, 1000, 3, { seed: 9, amp: 0.9, step: 72 })}"/>`, true),
     h('ol', { class: 'py-route', 'aria-label': !r ? 'No workouts planned yet' : ahead ? 'Workouts next week' : 'Workouts this week' },
@@ -339,7 +350,7 @@ function openWeek() {
       h('ul', { class: 'py-session-list' }, r.stations.map((s) => sessionCard(s, r.plan, refill))),
       movePicker(refill),
       calendarNote(r.plan, monday, refill),
-      h('p', { class: 'py-sheet-note' }, 'Weeks run Monday–Sunday. Log one finished workout per day: +10 Fish for a planned workout, +25 for completing your full week, and +15 for a comeback after a missed planned day. Extra workouts earn no Fish.'),
+      h('p', { class: 'py-sheet-note' }, `Weeks run Monday–Sunday. One workout a day counts. Each planned workout earns ${S.FISH.station} Fish. Hitting your week earns ${S.FISH.weekBonus} more. After a planned day that wasn’t logged, the next planned workout earns ${S.FISH.comeback} more. Extra workouts earn no Fish.`),
       h('p', { class: 'py-sheet-note' }, icon('i-shield'), info.coverReady ? 'Free cover ready this month.' : 'Free cover used this month.'),
     ].filter(Boolean));
   }, () => document.querySelector('.py-route-open'));
@@ -361,7 +372,7 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
   fishN.dataset.value = String(shownFish);
   const b = beginState(r, ahead);
   const g = r && !ahead ? (before && before.goal ? before.goal : goal(r)) : null;
-  let countText = 'No workouts planned this week.';
+  let countText = 'No plan yet this week.';
   if (r && ahead) countText = 'Your route starts Monday.';
   else if (r) countText = ['Workouts this week: ', h('span', { class: 'py-count-n' }, `${before ? before.count : r.done} of ${r.target}`)];
   const count = h('h2', { class: 'py-count', id: 'py-count', tabindex: '-1' }, countText);
@@ -375,7 +386,7 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
     h('section', { class: 'py-stage', 'aria-labelledby': 'py-count' },
       streak >= 1 ? h('p', { class: 'py-streak-chip' }, 'Week streak ', h('strong', {}, String(streak))) : null,
       routeBlock(r, look, before && pending.arriving ? S.today() : '', ahead),
-      h('div', {}, count, g ? h('p', { class: `py-goal${g.calm ? ' is-calm' : ''}` }, g.text) : !r ? h('p', { class: 'py-goal is-calm' }, 'Plan your week, then log each finished workout to move the train. Earn Fish to unlock Pengu’s gear and train upgrades.') : null),
+      h('div', {}, count, g ? h('p', { class: `py-goal${g.calm ? ' is-calm' : ''}` }, g.text) : !r ? howItWorks() : null),
       b.logged || b.waiting
         ? h('button', { class: 'py-begin-btn is-logged', type: 'button', 'aria-disabled': 'true' }, icon(b.logged ? 'i-check' : 'i-calendar'), b.label)
         : h('button', { class: 'py-begin-btn glass-coral', type: 'button', onclick: b.plan ? onPlan : begin }, b.label),

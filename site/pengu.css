@@ -248,6 +248,8 @@ html.is-splash .py-splash { display: grid; }
    is --front from its left edge, so its front stops right above the station it has reached. */
 .py-route-wrap { --th: 72px; --tw: calc(var(--th) * 1.786); --front: calc(var(--tw) * 0.96); position: relative; height: calc(var(--th) + 62px); }
 .py-route-wrap.has-car2 { --th: 62px; --tw: calc(var(--th) * 2.452); --front: calc(var(--tw) * 0.9709); }
+/* No plan yet: only the depot sits on the route line, so the empty row for station names goes. */
+.py-route-wrap.is-empty { height: calc(var(--th) + 38px); }
 .py-rail { position: absolute; left: 0; right: 0; top: calc(var(--th) * 0.9 - 3px); width: 100%; height: 8px; overflow: visible; }
 .py-rail path { fill: none; stroke: rgba(247, 242, 238, 0.32); stroke-width: 1.6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .py-route { position: absolute; left: 0; right: 0; top: calc(var(--th) + 8px); height: 54px; margin: 0; }
@@ -298,6 +300,11 @@ html.is-splash .py-splash { display: grid; }
 .py-count-n { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .py-goal { margin-top: 2px; font-size: 0.9375rem; font-weight: 600; color: var(--coral-on-stage); }
 .py-goal.is-calm { color: var(--on-stage-2); font-weight: 400; }
+/* With no plan this week: how Pengyu works, in three short steps under the heading. */
+.py-how { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 0.9375rem; line-height: 1.35; color: var(--on-stage-2); }
+.py-how li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; }
+.py-how .icon { width: 22px; height: 22px; margin-top: -1px; color: var(--coral-on-stage); }
+.py-how strong { font-weight: 600; color: var(--on-stage); }
 /* One big Begin, and a quiet caption under it. */
 .py-begin-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 64px; margin-top: var(--s1); padding: 0 24px; border-radius: var(--r-pill); font-size: 1.1875rem; font-weight: 700; }
 .py-begin-btn.is-logged { background: rgba(247, 242, 238, 0.1); border: 1px solid rgba(247, 242, 238, 0.24); color: var(--on-stage); box-shadow: none; cursor: default; }
