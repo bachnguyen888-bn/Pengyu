@@ -1,11 +1,12 @@
-// Pengyu on the page: the splash once per session, then three tabs in a glass bar (Today, Pengu and
-// History), plus the full-screen plan view behind "Plan my week". Everything is saved only in this
+// Pengyu on the page: the splash once per session, then Today, Pengu, History and Settings,
+// plus the full-screen plan view behind "Plan my week". Everything is saved only in this
 // browser (js/pengyu/state.js).
 
 import * as S from './state.js';
 import { renderToday } from './route.js';
 import { renderShop } from './shop.js';
 import { renderHistory } from './history.js';
+import { renderSettings } from './settings.js';
 import { renderPlanFlow, takeFocusRequest, resetPlanDraft } from './plan.js';
 import { penguFigure } from './art.js';
 import { reducedMotion } from './motion.js';
@@ -16,6 +17,7 @@ const TABS = [
   { id: 'today', label: 'Today', icon: 'i-today' },
   { id: 'pengu', label: 'Pengu', icon: 'i-pengu' },
   { id: 'history', label: 'History', icon: 'i-history' },
+  { id: 'settings', label: 'Settings', icon: 'i-shield' },
 ];
 
 // The PENGYU splash: shown at once by boot.js on a session's first visit, gone after about 900ms
@@ -105,6 +107,7 @@ export function initPengyu() {
     if (showPlan) renderPlanFlow(view, render, { onExit: () => go('today') });
     else if (tab === 'pengu') renderShop(view, render);
     else if (tab === 'history') renderHistory(view, render, { onReset, onRestore });
+    else if (tab === 'settings') renderSettings(view, { onData: () => go('history') });
     else renderToday(view, render, { onShop: () => go('pengu'), onPlan: openPlan, focus: takeFocusRequest() });
     for (const t of TABS) {
       if (t.id === tab) navButtons[t.id]?.setAttribute('aria-current', 'page');

@@ -214,7 +214,7 @@ html.is-splash .py-splash { display: grid; }
   position: fixed; z-index: 50; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
   width: min(406px, calc(100% - 24px)); border-radius: 26px;
 }
-.tabbar-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tabbar-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .tabbar-btn {
   position: relative; display: grid; justify-items: center; align-content: center; gap: 2px; width: 100%; min-height: var(--tabbar-h);
   padding: 6px 0 10px; border: 0; background: none; color: var(--ink-2); font-size: 0.8125rem; font-weight: 600;

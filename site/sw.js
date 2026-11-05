@@ -33,6 +33,7 @@ const SHELL = [
   'js/pengyu/motion.js',
   'js/pengyu/plan.js',
   'js/pengyu/route.js',
+  'js/pengyu/settings.js',
   'js/pengyu/shop.js',
   'js/pengyu/state.js',
   'js/pengyu/ui.js',
