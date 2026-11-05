@@ -152,7 +152,7 @@ function dataCard(rerender, onReset, onRestore) {
   return card;
 }
 
-export function renderHistory(root, rerender, { onReset = () => {}, onRestore = () => {} } = {}) {
+export function renderHistory(root, rerender, { onReset = () => {}, onRestore = () => {}, fresh = false } = {}) {
   const info = S.streakInfo();
   const weeks = mondays();
   const view = h('div', { class: 'py-view' },
@@ -163,12 +163,14 @@ export function renderHistory(root, rerender, { onReset = () => {}, onRestore = 
         ? h('ol', { class: 'py-weeks' }, weeks.map((m) => weekCard(m, info.covered.includes(m))))
         : h('p', { class: 'muted' }, 'Your weeks show up here once you plan your first one.')));
   root.append(view);
-  renderData(view, rerender, { onReset, onRestore });
+  renderData(view, rerender, { onReset, onRestore, fresh });
   view.append(appFooter());
 }
 
-// Both Settings and History use these same controls and confirmation steps.
-export function renderData(root, rerender, { onReset = () => {}, onRestore = () => {} } = {}) {
+// Both Settings and History use these same controls and confirmation steps. `fresh` means the tab was
+// just opened: a reset or restore step left open elsewhere starts closed here.
+export function renderData(root, rerender, { onReset = () => {}, onRestore = () => {}, fresh = false } = {}) {
+  if (fresh) { resetStep = 0; resetSaved = false; restore = null; refocus = ''; }
   root.append(dataCard(rerender, onReset, onRestore));
   if (refocus) {
     const el = root.querySelector(`#${refocus}`);

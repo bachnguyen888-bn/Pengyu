@@ -5,20 +5,31 @@
 import * as S from './state.js';
 import { renderToday } from './route.js';
 import { renderShop } from './shop.js';
-import { renderHistory } from './history.js';
-import { renderSettings } from './settings.js';
+// A namespace import, so one missing name cannot stop the app from starting if a launch still pairs
+// this file with an older history.js (an older offline copy refreshed its files one at a time).
+import * as History from './history.js';
 import { renderPlanFlow, takeFocusRequest, resetPlanDraft } from './plan.js';
 import { penguFigure } from './art.js';
 import { reducedMotion } from './motion.js';
-import { h, icon } from './ui.js';
+import { h, icon, appFooter } from './ui.js';
 import { toast } from '../fx.js';
 
+// Each label may break once, between its two parts, when large text needs a second line.
 const TABS = [
-  { id: 'today', label: 'Today', icon: 'i-today' },
-  { id: 'pengu', label: 'Pengu', icon: 'i-pengu' },
-  { id: 'history', label: 'History', icon: 'i-history' },
-  { id: 'settings', label: 'Settings', icon: 'i-shield' },
+  { id: 'today', label: ['To', 'day'], icon: 'i-today' },
+  { id: 'pengu', label: ['Pen', 'gu'], icon: 'i-pengu' },
+  { id: 'history', label: ['His', 'tory'], icon: 'i-history' },
+  { id: 'settings', label: ['Set', 'tings'], icon: 'i-shield' },
 ];
+
+// Settings: where the data lives, then the same data controls as History.
+function renderSettings(root, rerender, data) {
+  root.append(
+    h('h1', { class: 'py-view-title' }, 'Settings'),
+    h('p', { class: 'small muted' }, 'Your plans and progress stay in this browser. No account, cloud sync, tracking or ads.'));
+  if (History.renderData) History.renderData(root, rerender, data);
+  root.append(appFooter());
+}
 
 // The PENGYU splash: shown at once by boot.js on a session's first visit, gone after about 900ms
 // (300ms with reduced motion), or at the first tap or key.
@@ -45,6 +56,7 @@ export function initPengyu() {
   if (!root) return;
   splash();
   let tab = 'today';
+  let shown = '';   // the tab drawn last, so a tab that is opened again starts with its steps closed
   let planning = false;
   let day = S.today();
   let greet = S.greeting();
@@ -69,7 +81,7 @@ export function initPengyu() {
   const nav = document.getElementById('py-nav');
   if (nav) {
     nav.append(h('ul', { class: 'tabbar-list' }, TABS.map((t) => {
-      navButtons[t.id] = h('button', { class: 'tabbar-btn', type: 'button', onclick: () => go(t.id) }, icon(t.icon), h('span', {}, t.label));
+      navButtons[t.id] = h('button', { class: 'tabbar-btn', type: 'button', onclick: () => go(t.id) }, icon(t.icon), h('span', {}, t.label[0], h('wbr'), t.label[1]));
       return h('li', {}, navButtons[t.id]);
     })));
   }
@@ -104,10 +116,13 @@ export function initPengyu() {
     }
     const view = h('div', { class: `py-view py-view-${showPlan ? 'plan' : tab}` });
     root.append(view);
+    // A reset or restore step left open on one tab does not follow the player to another.
+    const data = { onReset, onRestore, fresh: shown !== tab };
+    shown = tab;
     if (showPlan) renderPlanFlow(view, render, { onExit: () => go('today') });
     else if (tab === 'pengu') renderShop(view, render);
-    else if (tab === 'history') renderHistory(view, render, { onReset, onRestore });
-    else if (tab === 'settings') renderSettings(view, render, { onReset, onRestore });
+    else if (tab === 'history') History.renderHistory(view, render, data);
+    else if (tab === 'settings') renderSettings(view, render, data);
     else renderToday(view, render, { onShop: () => go('pengu'), onPlan: openPlan, focus: takeFocusRequest() });
     for (const t of TABS) {
       if (t.id === tab) navButtons[t.id]?.setAttribute('aria-current', 'page');

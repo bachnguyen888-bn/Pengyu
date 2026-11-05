@@ -160,7 +160,7 @@ function extrasShelf() {
         return h('li', { class: 'py-shelf-item is-outline' },
           glyph(e.id, { outline: true }),
           h('p', { class: 'py-shelf-name' }, e.name),
-          h('p', { class: 'py-shelf-note' }, e === next ? 'Next extra ride' : 'Not earned yet'));
+          h('p', { class: 'py-shelf-note' }, e === next ? 'Next extra workout' : 'Not earned yet'));
       }
       return h('li', { class: 'py-shelf-item' },
         glyph(e.id),

@@ -150,7 +150,7 @@ function arrive(view) {
   const res = p.res;
   const total = res.fish + res.bonus + res.comeback;
   announce(res.kind === 'extra'
-    ? `Extra ride logged. No Fish.${res.extra ? ` You collected the ${res.extra.name}.` : ''}`
+    ? `Extra workout logged. No Fish.${res.extra ? ` You collected the ${res.extra.name}.` : ''}`
     : `Workout logged. ${r.done} of ${r.target}.${res.comeback ? ' Comeback stamp.' : ''}${r.hit ? ' You hit your week.' : ''} Plus ${total} Fish.`);
   setTimeout(() => openReward(res), reducedMotion() ? 0 : 600);
 }
@@ -207,7 +207,7 @@ function openSheet(cls, label, build, returnFocus, onClosed) {
 function rewardCopy(res) {
   const lines = [];
   let title = 'Workout logged.';
-  const moved = res.movedFrom ? `${weekday(S.parseKey(res.movedFrom))}’s station moved to today.` : '';
+  const moved = res.movedFrom ? `${weekday(S.parseKey(res.movedFrom))}’s workout moved to today.` : '';
   if (res.comeback) {
     title = 'Welcome back.';
     if (moved) lines.push(moved);
@@ -218,7 +218,7 @@ function rewardCopy(res) {
     if (moved) lines.push(moved);
     lines.push(`+${res.fish} Fish · +${res.bonus} full-week bonus`, `Week streak ${S.weekStreak()}`);
   } else if (res.kind === 'extra') {
-    title = 'Extra ride logged.';
+    title = 'Extra workout logged.';
     lines.push(res.extra ? `No Fish. You collected the ${res.extra.name} (looks only).` : 'No Fish. You have every extra, and it still counts.');
   } else {
     lines.push(moved ? `${moved} +${res.fish} Fish` : `+${res.fish} Fish`);
