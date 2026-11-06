@@ -9,9 +9,11 @@ import { softRect, rng } from './ink.js';
 const NS = 'http://www.w3.org/2000/svg';
 let uid = 0;
 
-// ---------- Pengu, in its own 120-unit space: an egg from x 18 to 103 and y 12 to 140 ----------
-// Slightly wider on the right, like the lamp.
-const EGG = 'M59.5 12C82.5 12 101.5 46 103.2 88C104.8 120.5 86.5 140 61 140C35 140 16.4 122 17.8 89C19.3 47 36.5 12 59.5 12Z';
+// ---------- Pengu, in its own 120-unit space: a round egg from x 16 to 105 and y 28 to 140 ----------
+// Slightly wider on the right, like the lamp. HEAD: how far the top of the head sits below y 12, where the
+// hats were drawn.
+const HEAD = 16;
+const EGG = 'M60 28C84.5 28 103.6 54 104.9 90C106.2 121.5 87.5 140 61 140C34.5 140 14.8 122.5 16 90C17.2 54.5 35.5 28 60 28Z';
 const BELLY = 'M60.5 66C79.5 65 91.5 84 91 105C90.5 125 77 136.5 60 136.5C42.5 136.5 29.5 125 30 104.5C30.5 83.5 42 67 60.5 66Z';
 const GLOW = 'M60 52C88 51 104 80 103 110C102 133 84 146 59 146C33 146 16 132 17 108C18 79 33 53 60 52Z';
 const FLIP_L = 'M21.5 86C14.5 89.5 10.8 99 12.6 107.5C13.6 111.6 18.3 111.5 20.6 107.6C23.2 103.2 24.6 96 24 89Z';
@@ -120,8 +122,8 @@ function penguMarkup(look, { pose = 'stand', base = false } = {}) {
       ${pose === 'stand' && !base ? FEET : ''}
       <g class="py-body">
         <path d="${EGG}" fill="url(#${id}-body)"/>
-        <path d="M37.5 33C42 23.5 51.5 18.5 60 18.8C53 22 46 29 42.5 38.5C41 42.3 35.6 39.5 37.5 33Z" fill="#FFFFFF" opacity=".72"/>
-        <circle cx="66.5" cy="22" r="2.2" fill="#FFFFFF" opacity=".55"/>
+        <path d="M34.5 49C39.5 39.5 50 34.3 59.5 34.8C52 38 44.5 45 40.5 54.5C38.8 58.3 32.6 55.5 34.5 49Z" fill="#FFFFFF" opacity=".72"/>
+        <circle cx="67" cy="38" r="2.2" fill="#FFFFFF" opacity=".55"/>
       </g>
       <g class="py-belly-glow"><path d="${GLOW}" fill="url(#${id}-glow)"/></g>
       <g class="py-belly"><path d="${BELLY}" fill="url(#${id}-belly)"/></g>
@@ -135,7 +137,7 @@ function penguMarkup(look, { pose = 'stand', base = false } = {}) {
       <g class="py-eye py-eye-r"><circle cx="75" cy="64" r="4.6" fill="#6E3424"/><circle cx="73.7" cy="62.4" r="1.35" fill="#FFFFFF"/></g>
       <g class="py-beak"><path d="M56.2 70.2Q60.8 68.8 65.4 70.2Q63.3 76.6 60.8 77.8Q58.3 76.6 56.2 70.2Z" fill="#A8622F"/><path d="M58.2 70.9Q60.8 70.2 63.4 70.9" fill="none" stroke="#C9844F" stroke-width=".9" stroke-linecap="round"/></g>
       ${look.scarf ? `<g class="py-scarf">${pose === 'cab' ? SCARF_WIND : SCARF_TAIL}${SCARF_BAND}<ellipse cx="78.5" cy="97.5" rx="6" ry="5" fill="#F25A3A"/></g>` : ''}
-      ${look.hat && HATS[look.hat] ? `<g class="py-hat">${HATS[look.hat]}</g>` : ''}
+      ${look.hat && HATS[look.hat] ? `<g class="py-hat"><g transform="translate(0 ${HEAD})">${HATS[look.hat]}</g></g>` : ''}
     </g>
     ${lamp ? `
       <path d="M10.5 126Q10.5 137.5 60.5 137.5Q110.5 137.5 110.5 126V140Q110.5 152 60.5 152Q10.5 152 10.5 140Z" fill="url(#${id}-base)"/>
@@ -153,7 +155,7 @@ function svgEl(viewBox, cls) {
   return svg;
 }
 
-const VIEW = { stand: '0 -16 121 162', lamp: '-16 -20 153 180', bust: '8 -14 105 112' };
+const VIEW = { stand: '0 0 121 146', lamp: '-16 -20 153 180', bust: '8 2 105 112' };
 
 // pose: 'stand' (full body), 'bust' (head and shoulders, for the avatar and toasts). base: the lamp base.
 // (The old option name `view` still works.)
@@ -167,10 +169,10 @@ export function penguFigure(look, { cls = '', pose, view, base = false } = {}) {
 // The big simple face that rises like a sun on the reward sheet: happy closed eyes, beak, blush. It wears
 // the same hat as Pengu (the face is only the top of the head, so the scarf and pack stay out of view).
 // The space above the dome is kept for hats, with or without one, so the face never shifts.
-const FACE_HAT = 'translate(63 -28) scale(2)';
+const FACE_HAT = 'translate(63 2) scale(2)';
 export function faceFigure(cls = '', look = {}) {
   const id = `pf${++uid}`;
-  const svg = svgEl('0 -56 360 226', `py-art py-face ${cls}`.trim());
+  const svg = svgEl('0 -26 360 196', `py-art py-face ${cls}`.trim());
   const hat = look.hat && HATS[look.hat] ? `<g class="py-hat"><g transform="${FACE_HAT}">${HATS[look.hat]}</g></g>` : '';
   svg.innerHTML = `
     <defs>
@@ -178,10 +180,10 @@ export function faceFigure(cls = '', look = {}) {
       <radialGradient id="${id}-glow" cx="50%" cy="100%" r="60%"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#FFF0F8" stop-opacity=".7"/><stop offset="1" stop-color="#FFF0F8" stop-opacity="0"/></radialGradient>
     </defs>
     <g class="py-face-body">
-      <path d="M8 170C10 78 88 12 182 12C276 12 352 80 352 170Z" fill="url(#${id}-body)"/>
+      <path d="M6 170C6 92 86 42 181 42C276 42 354 94 354 170Z" fill="url(#${id}-body)"/>
       <path d="M40 170C48 118 108 92 180 92C252 92 312 120 320 170Z" fill="url(#${id}-glow)"/>
-      <path d="M86 66C104 42 136 28 166 28C142 38 116 54 102 78C96 88 78 80 86 66Z" fill="#FFFFFF" opacity=".6"/>
-      <path d="M8 170C10 78 88 12 182 12C276 12 352 80 352 170" fill="none" stroke="#D9779F" stroke-opacity=".5" stroke-width="2"/>
+      <path d="M80 88C100 66 132 54 162 55C138 63 112 77 97 99C91 108 72 101 80 88Z" fill="#FFFFFF" opacity=".6"/>
+      <path d="M6 170C6 92 86 42 181 42C276 42 354 94 354 170" fill="none" stroke="#D9779F" stroke-opacity=".5" stroke-width="2"/>
       <circle cx="104" cy="122" r="14" fill="#F27FA8" opacity=".45"/><circle cx="258" cy="122" r="14" fill="#F27FA8" opacity=".45"/>
       <path d="M118 104Q133 88 148 103" fill="none" stroke="#6E3424" stroke-width="7" stroke-linecap="round"/>
       <path d="M214 103Q229 88 244 104" fill="none" stroke="#6E3424" stroke-width="7" stroke-linecap="round"/>
