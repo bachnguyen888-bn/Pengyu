@@ -58,14 +58,16 @@ export function initPengyu() {
   let tab = 'today';
   let shown = '';   // the tab drawn last, so a tab that is opened again starts with its steps closed
   let planning = false;
+  let preview = '';   // an unlock to show on the Pengu tab, from the reward sheet's "Preview on Pengu"
   let day = S.today();
   let greet = S.greeting();
   const bust = () => penguFigure(S.look(), { cls: 'py-toast-art', pose: 'bust' });
 
-  function go(id) {
-    if (tab === id && !planning) return;
+  function go(id, { show = '' } = {}) {
+    if (tab === id && !planning && !show) return;
     tab = id;
     planning = false;
+    preview = show;
     render();
     window.scrollTo(0, 0);
   }
@@ -120,10 +122,10 @@ export function initPengyu() {
     const data = { onReset, onRestore, fresh: shown !== tab };
     shown = tab;
     if (showPlan) renderPlanFlow(view, render, { onExit: () => go('today') });
-    else if (tab === 'pengu') renderShop(view, render);
+    else if (tab === 'pengu') { renderShop(view, render, { preview, fresh: data.fresh }); preview = ''; }
     else if (tab === 'history') History.renderHistory(view, render, data);
     else if (tab === 'settings') renderSettings(view, render, data);
-    else renderToday(view, render, { onShop: () => go('pengu'), onPlan: openPlan, focus: takeFocusRequest() });
+    else renderToday(view, render, { onShop: (id = '') => go('pengu', { show: id }), onPlan: openPlan, onHistory: () => go('history'), focus: takeFocusRequest() });
     for (const t of TABS) {
       if (t.id === tab) navButtons[t.id]?.setAttribute('aria-current', 'page');
       else navButtons[t.id]?.removeAttribute('aria-current');

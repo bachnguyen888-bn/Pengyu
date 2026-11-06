@@ -31,9 +31,10 @@ const dow = (key) => (S.parseKey(key).getDay() + 6) % 7;   // Monday 0 … Sunda
 function startDraft() {
   const week = S.planningWeek();
   const open = S.openDays(week);
-  const d = { week, step: 1, target: 0, days: [], timeId: '', customTime: '16:00', placeId: '', customPlace: '', icsFor: '' };
+  const d = { week, step: 1, target: 0, days: [], timeId: '', customTime: '16:00', placeId: '', customPlace: '', icsFor: '', fromLast: false };
   const last = S.lastPlanBefore(week);
   if (!last) return d;
+  d.fromLast = true;
   d.target = Math.max(S.TARGETS[0], Math.min(last.target, open.length));
   d.days = open.filter((x) => last.days.some((y) => dow(y) === dow(x))).slice(0, d.target);
   const time = !last.window.startsWith('at ') && TIMES.find((t) => t.time === last.time);
@@ -123,7 +124,7 @@ export function renderPlanFlow(root, rerender, { onExit = () => {} } = {}) {
       h('p', { class: 'py-counter', 'aria-live': 'polite' }, `${draft.days.length} of ${draft.target} picked`));
   } else if (draft.step === 3) {
     title = 'When?';
-    hint = 'If you add reminders, they ring 15 minutes before.';
+    hint = 'If you add the calendar file, your calendar reminds you 15 minutes before.';
     const custom = draft.timeId === 'custom';
     body = h('div', { class: 'py-step-body' },
       h('div', { class: 'py-grid2', role: 'group', 'aria-labelledby': 'py-step-title' },
@@ -152,6 +153,8 @@ export function renderPlanFlow(root, rerender, { onExit = () => {} } = {}) {
         p.days.map((d) => h('li', {}, icon('i-check'), h('span', {}, h('strong', {}, weekday(S.parseKey(d))), ` ${monthDay(S.parseKey(d))} · ${clock(p.time)}`)))),
       h('p', { class: 'py-summary-fish' }, `Each planned workout pays ${S.FISH.station} Fish, and the full week adds ${S.FISH.weekBonus}.`));
   }
+  // A returning player starts from last week's choices: say so, and that Next keeps them.
+  const prefilled = draft.fromLast && !onSummary ? h('p', { class: 'py-prefill' }, 'Filled in from last week. Change anything, or tap Next.') : null;
 
   // Next, or on the summary: Start my week, and the calendar file before the plan is even saved.
   let next;
@@ -172,11 +175,13 @@ export function renderPlanFlow(root, rerender, { onExit = () => {} } = {}) {
         else moveFocus = false;
       },
     }, 'Start my week');
+    // The calendar file is optional and the player's own: Pengyu never sends notifications itself.
     actions = h('div', { class: 'py-plan-actions' }, next,
       h('button', {
         class: 'btn btn-secondary py-plan-ics', type: 'button', 'data-key': 'ics',
         onclick: () => { const plan = planDraft(); downloadIcs(plan.week, { ...plan, moves: [] }); refocusKey = 'ics'; draft.icsFor = fileKey(plan); rerender(); },
-      }, icon('i-calendar'), saved ? 'Download again' : 'Add reminders to my calendar (.ics)'));
+      }, icon('i-calendar'), saved ? 'Download again' : 'Download calendar reminders'),
+      h('p', { class: 'py-ics-note' }, saved ? 'Downloaded. Open the file and add it to your calendar.' : 'Open the downloaded file and add it to your calendar.'));
   }
 
   const heading = h('h1', { class: 'py-step-title', id: 'py-step-title', tabindex: '-1' }, title);
@@ -187,7 +192,8 @@ export function renderPlanFlow(root, rerender, { onExit = () => {} } = {}) {
     h('div', { class: 'py-plan-head' },
       onSummary ? null : h('p', { class: 'eyebrow' }, `${ahead ? 'Next week' : 'Plan your week'} · Step ${draft.step} of ${STEPS}`),
       heading,
-      hint ? h('p', { class: 'py-hint' }, hint) : null),
+      hint ? h('p', { class: 'py-hint' }, hint) : null,
+      prefilled),
     body,
     actions));
   if (moveFocus) { moveFocus = false; refocusKey = ''; heading.focus({ preventScroll: true }); }

@@ -1,17 +1,25 @@
 // History: every week since the first plan, newest first ("Oct 26 – Nov 1"). Each week says how many
 // planned workouts were done, the Fish it paid, its Comeback stamps, the free cover if one was used, and
 // the extras collected: words and small tags only, no charts, no ranking, only this player's own weeks.
+// At the top, the first postcard: a keepsake for the first week with every planned workout logged (its
+// condition is shown until then), with an optional "Share this week" that only ever starts from a tap.
 // "Your data" holds Save a backup (also the data export), Restore from a backup and Reset everything.
 
 import * as S from './state.js';
 import { saveBackup } from './backup.js';
 import { h, icon, monthDay, plural, appFooter } from './ui.js';
 import { toast, reducedMotion } from '../fx.js';
+import { penguFigure } from './art.js';
+import { bindPengu } from './motion.js';
 
 let resetStep = 0;        // Reset everything: 0 closed, 1 "start over?", 2 "save a backup first?"
 let resetSaved = false;   // a backup was saved from the second step
 let restore = null;       // a checked backup waiting for the player's yes ({ text, summary }), or { error }
 let refocus = '';
+// Sharing the postcard: what the player picked (nothing is saved), and the last result to say.
+let share = { open: false, caption: 0, prop: '', dates: false, workouts: false, status: '' };
+let cheered = false;      // Pengu cheers for the postcard once each time the app is opened
+let bound = [];           // the postcard's Pengu, brought to life
 
 // Mondays from the first planned (or logged) week up to this one, newest first. A week planned ahead
 // (on Sunday) is not history yet.
@@ -152,17 +160,107 @@ function dataCard(rerender, onReset, onRestore) {
   return card;
 }
 
+// ---------- The first postcard ----------
+// A choice chip; after a re-render, focus comes back to the chip that was pressed.
+function chip(key, label, pressed, onclick) {
+  return h('button', { class: 'chip glass py-share-chip', type: 'button', id: `py-share-${key}`, 'aria-pressed': String(pressed), onclick: () => { refocus = `py-share-${key}`; onclick(); } }, label);
+}
+
+async function shareNow(text, rerender) {
+  try {
+    await navigator.share({ text });
+    share.status = 'Shared.';
+  } catch (err) {
+    share.status = err && err.name === 'AbortError' ? 'Not shared.' : 'Sharing didn’t work here. Try Copy text.';
+  }
+  refocus = 'py-share-status';
+  rerender();
+}
+async function copyNow(text, rerender) {
+  try {
+    await navigator.clipboard.writeText(text);
+    share.status = 'Copied. Paste it wherever you like.';
+    refocus = 'py-share-status';
+  } catch {
+    share.status = 'Copying isn’t allowed here. Select the text above to copy it.';
+    refocus = 'py-share-text';
+  }
+  rerender();
+}
+
+// Pick what to share; see exactly what it says; then share or copy it. Nothing leaves without a tap.
+function sharePanel(rerender) {
+  const set = (patch) => { Object.assign(share, patch, { status: '' }); rerender(); };
+  const text = S.postcardText(share);
+  return h('div', { class: 'py-share', role: 'group', 'aria-labelledby': 'py-share-title' },
+    h('p', { class: 'py-share-h', id: 'py-share-title', tabindex: '-1' }, 'Share this week'),
+    h('p', { class: 'small muted' }, 'Pick a caption and a prop. Dates and the workout count stay out unless you add them.'),
+    h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Caption' },
+      S.POSTCARD.captions.map((c, i) => chip(`cap${i}`, c, share.caption === i, () => set({ caption: i })))),
+    h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Prop' },
+      chip('prop-none', 'No prop', !share.prop, () => set({ prop: '' })),
+      S.POSTCARD.props.map((p) => chip(`prop-${p.id}`, `${p.mark} ${p.name}`, share.prop === p.id, () => set({ prop: p.id })))),
+    h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Add details' },
+      chip('dates', 'Add the dates', share.dates, () => set({ dates: !share.dates })),
+      chip('workouts', 'Add the workout count', share.workouts, () => set({ workouts: !share.workouts }))),
+    h('label', { class: 'py-share-label', for: 'py-share-text' }, 'What will be shared'),
+    h('textarea', { class: 'py-share-text', id: 'py-share-text', readonly: true, rows: String(text.split('\n').length) }, text),
+    h('div', { class: 'py-data-actions' },
+      typeof navigator.share === 'function'
+        ? h('button', { class: 'btn btn-primary btn-sm', type: 'button', id: 'py-share-go', onclick: () => shareNow(text, rerender) }, icon('i-share'), 'Share')
+        : null,
+      h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-copy', onclick: () => copyNow(text, rerender) }, 'Copy text'),
+      h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { share.open = false; share.status = ''; refocus = 'py-share-open'; rerender(); } }, 'Done')),
+    h('p', { class: 'py-share-status', id: 'py-share-status', role: 'status', tabindex: '-1' }, share.status));
+}
+
+function postcardSection(rerender) {
+  const card = S.firstFullWeek();
+  if (!card) {
+    // The exact condition, in advance. It pays no Fish: it is a keepsake.
+    return h('section', { class: 'py-postcard is-locked', 'aria-labelledby': 'py-postcard-title' },
+      h('span', { class: 'py-postcard-slot', 'aria-hidden': 'true' }, icon('i-stamp')),
+      h('div', { class: 'py-postcard-text' },
+        h('h2', { class: 'py-section-title', id: 'py-postcard-title' }, 'Your first postcard'),
+        h('p', { class: 'small muted' }, 'Log every planned workout in one week, Monday to Sunday, to get it. It’s a keepsake, not Fish.')));
+  }
+  const prop = S.POSTCARD.props.find((p) => p.id === share.prop);
+  const pengu = penguFigure(S.look(), { cls: 'py-postcard-pengu', pose: 'bust' });
+  return h('section', { class: 'py-postcard', 'aria-labelledby': 'py-postcard-title' },
+    h('h2', { class: 'py-section-title', id: 'py-postcard-title' }, 'Your first postcard'),
+    h('div', { class: 'py-postcard-card' },
+      h('div', { class: 'py-postcard-words' },
+        h('p', { class: 'py-postcard-caption' }, S.POSTCARD.captions[share.caption]),
+        h('p', { class: 'py-postcard-meta' }, `First full week · ${range(card.monday)}`),
+        h('p', { class: 'py-postcard-meta' }, `${card.done} of ${card.target} planned workouts`)),
+      h('div', { class: 'py-postcard-art', 'aria-hidden': 'true' }, pengu),
+      prop ? h('span', { class: 'py-postcard-prop', 'aria-hidden': 'true' }, prop.mark) : null),
+    share.open ? sharePanel(rerender) : h('div', { class: 'py-data-actions' },
+      h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-open', 'aria-expanded': 'false', onclick: () => { share.open = true; refocus = 'py-share-title'; rerender(); } }, icon('i-share'), 'Share this week')));
+}
+
 export function renderHistory(root, rerender, { onReset = () => {}, onRestore = () => {}, fresh = false } = {}) {
+  for (const b of bound) if (b) b.stop();
+  bound = [];
+  if (fresh) share = { ...share, open: false, status: '' };
   const info = S.streakInfo();
   const weeks = mondays();
   const view = h('div', { class: 'py-view' },
     h('h1', { class: 'py-view-title' }, 'History'),
+    postcardSection(rerender),
     h('section', { class: 'py-weeks-sec', 'aria-labelledby': 'py-weeks-title' },
       h('h2', { class: 'py-section-title', id: 'py-weeks-title' }, 'Your weeks'),
       weeks.length
         ? h('ol', { class: 'py-weeks' }, weeks.map((m) => weekCard(m, info.covered.includes(m))))
         : h('p', { class: 'muted' }, 'Your weeks show up here once you plan your first one.')));
   root.append(view);
+  // Pengu cheers for the postcard, once each time the app is opened.
+  const art = view.querySelector('.py-postcard-pengu');
+  if (art) {
+    const pengu = bindPengu(art, { follow: true, hop: true });
+    bound.push(pengu);
+    if (!cheered && pengu) { cheered = true; setTimeout(() => pengu.celebrate(), reducedMotion() ? 0 : 350); }
+  }
   renderData(view, rerender, { onReset, onRestore, fresh });
   view.append(appFooter());
 }

@@ -235,7 +235,7 @@ html.is-splash .py-splash { display: grid; }
 .py-fish-n { display: inline-block; min-width: 1ch; }
 .py-avatar-btn { width: 44px; height: 44px; padding: 0; border-radius: 50%; display: grid; place-items: center; }
 .py-avatar-btn svg { width: 38px; margin-top: 7px; }
-.py-greet { font-size: 2.125rem; line-height: 2.5rem; font-weight: 700; letter-spacing: -0.02em; }
+.py-greet { font-size: 2.125rem; line-height: 2.5rem; font-weight: 700; letter-spacing: -0.02em; overflow-wrap: anywhere; }   /* "afternoon." at 200% text on a narrow phone */
 /* The stage: the one dark card, with a warm lift where the train rides. */
 .py-stage {
   position: relative; display: grid; gap: var(--s3); padding: 18px var(--s4) var(--s4); border-radius: var(--r-card);
@@ -248,13 +248,13 @@ html.is-splash .py-splash { display: grid; }
 /* The route: the train rides a hand-drawn rail; the stations sit on the route line below. Stations and
    the train share --at, from 0 (the depot) to 1 (the last station). The train is --tw wide and its front
    is --front from its left edge, so its front stops right above the station it has reached. */
-.py-route-wrap { --th: 72px; --tw: calc(var(--th) * 1.786); --front: calc(var(--tw) * 0.96); position: relative; height: calc(var(--th) + 62px); }
+.py-route-wrap { --th: 72px; --tw: calc(var(--th) * 1.786); --front: calc(var(--tw) * 0.96); position: relative; height: calc(var(--th) + 22px + 2.5rem); }   /* 62px; the station names grow with larger text */
 .py-route-wrap.has-car2 { --th: 62px; --tw: calc(var(--th) * 2.452); --front: calc(var(--tw) * 0.9709); }
 /* No plan yet: only the depot sits on the route line, so the empty row for station names goes. */
 .py-route-wrap.is-empty { height: calc(var(--th) + 38px); }
 .py-rail { position: absolute; left: 0; right: 0; top: calc(var(--th) * 0.9 - 3px); width: 100%; height: 8px; overflow: visible; }
 .py-rail path { fill: none; stroke: rgba(247, 242, 238, 0.32); stroke-width: 1.6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.py-route { position: absolute; left: 0; right: 0; top: calc(var(--th) + 8px); height: 54px; margin: 0; }
+.py-route { position: absolute; left: 0; right: 0; top: calc(var(--th) + 8px); height: calc(14px + 2.5rem); margin: 0; }
 .py-route-line { position: absolute; left: 0; right: 0; top: calc(var(--th) + 23px); width: 100%; height: 6px; overflow: visible; }
 .py-route-line path { fill: none; stroke: rgba(247, 242, 238, 0.24); stroke-width: 2.4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .py-station, .py-depot { position: absolute; left: calc(var(--front) + var(--at, 0) * (100% - var(--front) - 18px)); transform: translateX(-50%); }
@@ -282,7 +282,7 @@ html.is-splash .py-splash { display: grid; }
 .py-train { position: absolute; top: 0; left: calc(var(--at, 0) * (100% - var(--front) - 18px)); width: var(--tw); height: var(--th); will-change: transform; }
 .py-train-svg { width: 100%; height: 100%; overflow: visible; }
 /* Tapping the route opens the week: a quiet button laid over the stations. */
-.py-route-open { position: absolute; left: 0; right: 0; top: calc(var(--th) + 2px); height: 60px; border: 0; border-radius: 16px; background: transparent; }
+.py-route-open { position: absolute; left: 0; right: 0; top: calc(var(--th) + 2px); height: calc(20px + 2.5rem); border: 0; border-radius: 16px; background: transparent; }
 @media (max-width: 399px) {
   .py-route-wrap.has-car2 .py-ring { width: 28px; height: 28px; }
   .py-route-wrap.has-car2 .py-station { top: 3px; }
@@ -312,6 +312,29 @@ html.is-splash .py-splash { display: grid; }
 .py-begin-btn.is-logged { background: rgba(247, 242, 238, 0.1); border: 1px solid rgba(247, 242, 238, 0.24); color: var(--on-stage); box-shadow: none; cursor: default; }
 .py-begin-btn.is-logged .icon { color: var(--coral-on-stage); stroke-width: 2.4; }
 .py-caption { text-align: center; font-size: 0.875rem; color: var(--on-stage-2); }
+.py-stage .link { color: var(--on-stage); }
+/* "Logged today": the check pops in the moment the tap lands (instant with reduced motion). */
+.py-begin-btn.is-logged.is-new .icon { animation: py-pop 420ms var(--spring) both; }
+@keyframes py-pop { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.25); opacity: 1; } 100% { transform: scale(1); } }
+/* The week sheet's visible door, under the route (the route itself stays tappable too). Its box starts
+   where the route ends; the strip in ::before keeps the tap area 44px tall. */
+.py-days-btn { position: relative; justify-self: start; display: inline-flex; align-items: center; gap: 8px; min-height: 32px; margin: -12px 0 -4px; padding: 0 4px 0 0; border: 0; background: none; color: var(--on-stage); font-size: 0.875rem; font-weight: 600; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+.py-days-btn::before { content: ""; position: absolute; inset: -6px 0; }
+.py-days-btn .icon { width: 18px; height: 18px; color: var(--coral-on-stage); }
+/* With the next stop showing as well, the stage packs a little closer so it still fits a small phone. */
+.py-stage.is-full { gap: var(--s2); padding-bottom: var(--s3); }
+.py-stage.is-full .py-days-btn { margin: -8px 0 -6px; }
+.py-stage.is-full .py-streak-chip { margin-bottom: -4px; }
+.py-stage.is-full .py-onward { padding-top: 6px; }
+/* After a log, or between planned days: the next stop and what it pays, then Pengu's next goal. */
+.py-onward { display: grid; justify-items: start; gap: 4px; padding-top: 10px; border-top: 1px solid rgba(247, 242, 238, 0.16); font-size: 0.9375rem; }
+.py-onward-stop { font-weight: 600; color: var(--on-stage); }
+/* Links here have 32px targets (above the 24px minimum) whose extra height sits in small negative margins,
+   with enough gap that one link's target never covers the other's words. */
+.py-onward-goal { display: inline-block; padding: 5px 0; margin: -5px 0; text-align: left; }
+.py-plan-next { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; margin: -5px 0; }
+.py-plan-next .icon { width: 18px; height: 18px; color: var(--coral-on-stage); }
+.py-chev { text-decoration: none; }
 
 /* ---------- 8. Sheets: they rise from the bottom edge ---------- */
 dialog.py-sheet {
@@ -335,6 +358,18 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-reward-bands { position: absolute; inset: 0; width: 100%; height: 100%; }
 .py-reward-face { position: absolute; left: 0; right: 0; bottom: -6px; width: min(320px, 82%); margin: 0 auto; }
 .py-reward-face svg { width: 100%; }
+/* The next goal on the reward sheet: a preview of the piece, the Fish in hand against its price. */
+.py-reward-goal { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 20px; background: rgba(255, 255, 255, 0.6); }
+.py-reward-goal-pic { display: grid; place-items: center; flex: none; width: 64px; height: 64px; border-radius: 16px; background: rgba(255, 255, 255, 0.75); overflow: hidden; }
+.py-reward-goal-pic svg { width: 54px; margin-top: 2px; }
+.py-reward-goal-pic.is-train svg { width: 60px; margin-top: 0; }
+.py-reward-goal-text { display: grid; gap: 2px; justify-items: start; min-width: 0; }
+.py-reward-goal-name { font-size: 1.0625rem; font-weight: 700; }
+.py-reward-goal-sub { font-size: 0.875rem; color: var(--ink-2); }
+.py-reward-extra { justify-self: start; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: rgba(255, 255, 255, 0.6); }
+.py-reward-extra svg { width: 40px; }
+.py-reward-postcard { display: flex; align-items: flex-start; gap: 8px; font-weight: 600; }
+.py-reward-postcard .icon { flex: none; margin-top: 2px; color: var(--coral-ink); }
 /* The one-time Home Screen tip (iPhone Safari): a sunny card. */
 .py-tip .py-sheet-panel { background: var(--sun); }
 .py-tip-head { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: var(--s3); align-items: center; }
@@ -373,6 +408,8 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-choices { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .py-sheet-note { display: flex; align-items: flex-start; gap: 10px; font-size: 0.875rem; color: var(--ink-2); }
 .py-sheet-note .icon { width: 18px; height: 18px; margin-top: 1px; color: var(--ink); }
+.py-cal-text { display: grid; gap: 2px; }
+.py-cal-text .link { justify-self: start; display: inline-flex; align-items: center; min-height: 32px; }
 
 /* ---------- 9. Plan: a full-screen paper view, four quick steps, then a sunny summary ---------- */
 .py-plan { display: grid; gap: var(--s5); align-content: start; }
@@ -399,6 +436,8 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-counter { font-size: 0.875rem; color: var(--ink-2); }
 .py-custom { max-width: 280px; }
 .py-plan-actions { display: grid; gap: var(--s3); }
+.py-ics-note { font-size: 0.875rem; color: var(--ink-2); text-align: center; }
+.py-prefill { justify-self: start; padding: 3px 10px; border-radius: var(--r-pill); background: var(--paper-2); font-size: 0.8125rem; font-weight: 600; color: var(--ink); }
 .py-next { width: 100%; min-height: 56px; font-size: 1.0625rem; font-weight: 700; }
 .py-plan-ics { width: 100%; padding: 0 14px; font-size: 0.9375rem; }
 .py-summary { display: grid; gap: var(--s3); padding: 22px 20px; border-radius: var(--r-card); background: var(--sun); box-shadow: 0 14px 30px -18px rgba(196, 138, 16, 0.9); }
@@ -450,6 +489,15 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-row-note.is-owned .icon { color: var(--coral-ink); }
 .py-row-note:focus:not(:focus-visible) { outline: none; }
 .py-wear[aria-pressed="true"] { background: var(--coral-tint); box-shadow: inset 0 0 0 1.5px var(--coral-strong); }
+/* Owned, previewed and locked never look alike: "Yours" and Wearing; a dashed line while previewed. */
+.py-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--coral-tint); font-size: 0.75rem; font-weight: 600; vertical-align: 1px; }
+.py-row-side { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 8px; }
+.py-preview-btn[aria-pressed="true"] { background: var(--coral-tint); box-shadow: inset 0 0 0 1.5px var(--coral-strong); text-decoration: none; }
+.py-row.is-previewing, .py-show.is-preview .py-show-stage { outline: 2px dashed var(--coral-strong); outline-offset: -2px; }
+.py-next-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.py-show-stage { position: relative; }
+.py-preview-badge { position: absolute; top: 12px; left: 12px; padding: 3px 10px; border-radius: var(--r-pill); background: var(--ink); color: #FFFFFF; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.py-preview-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 14px; border-radius: 18px; background: var(--coral-tint); }
 .py-confirm { display: grid; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--paper-2); }
 .py-confirm-q { font-weight: 600; }
 .py-confirm-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
@@ -482,6 +530,25 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-tag .icon { width: 14px; height: 14px; }
 .py-tag.is-hit { background: var(--coral-tint); }
 .py-tag.is-stamp { background: var(--sun-2); }
+/* The first postcard: its condition until then, then a sunny keepsake with optional sharing. */
+.py-postcard { display: grid; gap: 12px; }
+.py-postcard.is-locked { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 2px dashed var(--line-strong); border-radius: 22px; }
+.py-postcard-slot { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 14px; background: var(--paper-2); color: var(--ink-2); }
+.py-postcard-text { display: grid; gap: 4px; }
+.py-postcard-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; min-height: 150px; padding: 18px; border-radius: 22px; background: var(--sun); box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.45), var(--shadow); overflow: hidden; }
+.py-postcard-words { display: grid; gap: 4px; align-self: center; }
+.py-postcard-caption { font-size: 1.25rem; line-height: 1.3; font-weight: 700; }
+.py-postcard-meta { font-size: 0.875rem; color: var(--ink); }
+.py-postcard-pengu { display: block; width: 88px; }
+.py-postcard-prop { position: absolute; top: 12px; right: 16px; font-size: 1.75rem; line-height: 1; }
+.py-share { display: grid; gap: 10px; padding: 16px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
+.py-share-h { font-size: 1.0625rem; font-weight: 700; }
+.py-share-h:focus:not(:focus-visible) { outline: none; }
+.py-share-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.py-share-label { font-size: 0.875rem; font-weight: 600; }
+.py-share-text { width: 100%; padding: 10px 12px; border: 1.5px solid var(--line-strong); border-radius: 14px; background: var(--paper); color: var(--ink); font: inherit; line-height: 1.4; resize: none; }
+.py-share-status { min-height: 1.4em; font-size: 0.875rem; font-weight: 600; }
+.py-share-status:focus:not(:focus-visible) { outline: none; }
 .py-data { display: grid; gap: 10px; padding: var(--s4); border-radius: var(--r-card); background: var(--card); box-shadow: var(--shadow); }
 .py-data-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .py-reset-confirm { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--paper-2); }

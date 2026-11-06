@@ -1,7 +1,8 @@
 // The Pengu tab: Pengu glowing in the warm brown lamp base with the train behind, the next unlock, gear
 // in a fixed order, train upgrades in any order, and looks-only extras. Every price is fixed and shown,
 // unlocking takes a second tap, nothing is random, and what you unlock is yours for good. Wear toggles
-// change only what shows. Distances are written in words: no bars, no rings.
+// change only what shows. Anything not owned yet can be previewed on the showcase first: a preview is
+// labelled as one and never unlocks or spends anything. Distances are written in words: no bars, no rings.
 
 import * as S from './state.js';
 import { penguFigure, trainFigure, sceneFigure, glyph, PAINT_COLORS } from './art.js';
@@ -13,6 +14,8 @@ let confirming = '';   // the Unlock waiting for its second tap, as "where-id" (
 let refocus = '';      // the control that takes focus after a re-render
 let unlocked = null;   // the unlock that just happened: { id, fish } (Fish before), for its moment
 let bound = [];        // the showcase Pengu, brought to life
+let previewing = '';   // an unlock shown on the showcase before it is owned (looks only, nothing saved)
+let previewFrom = '';  // the Preview button that started it, where Stop preview returns focus
 
 const night = () => { const hr = S.now().getHours(); return hr >= 19 || hr < 6; };
 const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
@@ -36,13 +39,20 @@ function caption(look) {
   ].filter(Boolean).join(' ');
 }
 
-// The next unlock previewed: Pengu wearing the next gear piece, or the train with its next upgrade.
-function previewLook(look, id) {
-  if (id === 'scarf') return { ...look, scarf: true };
-  if (id === 'cap') return { ...look, hat: 'cap', outfit: false };
-  if (id === 'backpack') return { ...look, backpack: true };
-  if (id === 'conductor') return { ...look, outfit: true, hat: 'conductor' };
-  return { ...look, headlamp: look.headlamp || id === 'headlamp', car: look.car || id === 'car', paint: id === 'paint' ? 'coral' : look.paint };
+// Preview: the showcase wears it, labelled as a preview; a second tap (or Stop preview) takes it off.
+function previewButton(item, rerender, where = 'row') {
+  const on = previewing === item.id;
+  const id = where === 'next' ? `preview-next-${item.id}` : `preview-${item.id}`;
+  return h('button', {
+    class: 'btn btn-ghost btn-sm py-preview-btn', type: 'button', id, 'aria-pressed': String(on),
+    onclick: () => {
+      previewing = on ? '' : item.id;
+      previewFrom = id;
+      refocus = on ? id : 'py-preview-stop';
+      rerender();
+      if (!on) document.querySelector('.py-show')?.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'auto' : 'smooth' });
+    },
+  }, on ? 'Previewing' : 'Preview', h('span', { class: 'sr-only' }, ` ${the(item)}`));
 }
 
 // ---------- Unlocking: a tap, then "Unlock the cap for 90 Fish?" and a second tap ----------
@@ -64,6 +74,7 @@ function confirmPanel(item, where, rerender) {
 }
 function unlockNow(item) {
   confirming = '';
+  if (previewing === item.id) previewing = '';
   unlocked = { id: item.id, fish: S.state.fish.balance };
   refocus = item.id === 'paint' ? 'paint-navy' : S.GEAR.some((g) => g.id === item.id) ? `wear-${item.id}` : `owned-${item.id}`;
   if (!S.buy(item.id)) { unlocked = null; refocus = ''; }   // buy() saves and this tab redraws with the moment
@@ -75,7 +86,7 @@ function wearToggle(id, name, verb) {
   return h('button', {
     class: 'btn btn-secondary btn-sm py-wear', type: 'button', id: `wear-${id}`, 'aria-pressed': String(on),
     onclick: () => { refocus = `wear-${id}`; S.toggleWear(id); },
-  }, on ? icon('i-check') : null, verb, h('span', { class: 'sr-only' }, ` ${name}`));
+  }, on ? icon('i-check') : null, on ? `${verb}ing` : verb, h('span', { class: 'sr-only' }, ` ${name}`));
 }
 
 function nextCard(look, rerender) {
@@ -90,14 +101,16 @@ function nextCard(look, rerender) {
   }
   const st = S.unlockStatus(item.id);
   const art = gear
-    ? penguFigure(previewLook(look, item.id), { cls: 'py-next-pengu', pose: 'stand' })
-    : trainFigure(previewLook(look, item.id), { cls: 'py-next-train', night: night() });
+    ? penguFigure(S.lookWith(item.id, look), { cls: 'py-next-pengu', pose: 'stand' })
+    : trainFigure(S.lookWith(item.id, look), { cls: 'py-next-train', night: night() });
   return h('section', { class: `py-next is-${st.state}`, 'aria-labelledby': 'py-next-title' },
     h('div', { class: 'py-next-art', 'aria-hidden': 'true' }, art),
     h('div', { class: 'py-next-text' },
       h('p', { class: 'eyebrow' }, 'Next unlock'),
       h('h2', { class: 'py-next-name', id: 'py-next-title' }, item.name, h('span', { class: 'py-next-price' }, ` · ${item.price} Fish`)),
-      st.state === 'ready' ? unlockButton(item, 'next', rerender) : h('p', { class: 'py-next-short' }, `${st.short} more Fish`)),
+      h('div', { class: 'py-next-actions' },
+        st.state === 'ready' ? unlockButton(item, 'next', rerender) : h('p', { class: 'py-next-short' }, `${st.short} more Fish`),
+        previewButton(item, rerender, 'next'))),
     confirmPanel(item, 'next', rerender));
 }
 
@@ -108,12 +121,12 @@ function gearRow(g, rerender) {
   else if (st.state === 'ready') side = unlockButton(g, 'row', rerender);
   else if (st.state === 'saving') side = h('p', { class: 'py-row-note' }, `${st.short} more Fish`);
   else side = h('p', { class: 'py-row-note is-locked' }, icon('i-lock'), `After the ${lower(st.after.name)}`);
-  return h('li', { class: `py-row is-${st.state}` },
+  return h('li', { class: `py-row is-${st.state}${previewing === g.id ? ' is-previewing' : ''}` },
     h('span', { class: 'py-glyph-tile' }, glyph(g.id)),
     h('div', { class: 'py-row-text' },
-      h('p', { class: 'py-row-name' }, g.name),
+      h('p', { class: 'py-row-name' }, g.name, st.state === 'owned' ? h('span', { class: 'py-badge' }, 'Yours') : null),
       h('p', { class: 'py-row-price' }, `${g.price} Fish`)),
-    h('div', { class: 'py-row-side' }, side),
+    h('div', { class: 'py-row-side' }, side, st.state === 'owned' ? null : previewButton(g, rerender)),
     confirmPanel(g, 'row', rerender));
 }
 
@@ -123,12 +136,12 @@ function trainRow(t, rerender, look) {
   if (st.state === 'owned') side = h('p', { class: 'py-row-note is-owned', id: `owned-${t.id}`, tabindex: '-1' }, icon('i-check'), 'On your train');
   else if (st.state === 'ready') side = unlockButton(t, 'row', rerender);
   else side = h('p', { class: 'py-row-note' }, `${st.short} more Fish`);
-  const row = h('li', { class: `py-row is-${st.state}` },
+  const row = h('li', { class: `py-row is-${st.state}${previewing === t.id ? ' is-previewing' : ''}` },
     h('span', { class: 'py-glyph-tile' }, glyph(t.id)),
     h('div', { class: 'py-row-text' },
-      h('p', { class: 'py-row-name' }, t.name),
+      h('p', { class: 'py-row-name' }, t.name, st.state === 'owned' ? h('span', { class: 'py-badge' }, 'Yours') : null),
       h('p', { class: 'py-row-price' }, `${t.price} Fish`)),
-    h('div', { class: 'py-row-side' }, side),
+    h('div', { class: 'py-row-side' }, side, st.state === 'owned' ? null : previewButton(t, rerender)),
     confirmPanel(t, 'row', rerender));
   // Colors, once unlocked: switch any time, as often as you like.
   if (t.id === 'paint' && st.state === 'owned') {
@@ -169,9 +182,14 @@ function extrasShelf() {
     })));
 }
 
-export function renderShop(root, rerender) {
+// `preview`: an unlock to show straight away (the reward sheet's "Preview on Pengu"). `fresh`: the tab
+// was just opened, so an earlier preview is not kept.
+export function renderShop(root, rerender, { preview = '', fresh = false } = {}) {
   for (const b of bound) if (b) b.stop();
   bound = [];
+  if (fresh || preview) previewing = '';
+  if (preview && S.unlockById(preview) && !S.owns(preview)) { previewing = preview; previewFrom = `preview-next-${preview}`; refocus = 'py-preview-stop'; }
+  if (previewing && S.owns(previewing)) previewing = '';
   const look = S.look();
   const moment = unlocked;
   unlocked = null;
@@ -179,15 +197,21 @@ export function renderShop(root, rerender) {
   const shownFish = moment ? moment.fish : balance;
   const fishN = h('span', { class: 'py-fish-n' }, String(shownFish));
   fishN.dataset.value = String(shownFish);
-  const scene = sceneFigure(look, 'py-scene', { night: night() });
+  const shown = previewing ? S.lookWith(previewing, look) : look;
+  const scene = sceneFigure(shown, 'py-scene', { night: night() });
+  const item = previewing ? S.unlockById(previewing) : null;
+  const previewBar = item ? h('div', { class: 'py-preview-bar', role: 'status' },
+    h('p', {}, h('strong', {}, 'Preview: '), `${item.name}, not unlocked yet. Nothing is spent.`),
+    h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-preview-stop', onclick: () => { refocus = previewFrom || `preview-${item.id}`; previewing = ''; rerender(); } }, 'Stop preview')) : null;
 
   root.append(h('div', { class: 'py-shop' },
     h('div', { class: 'py-topbar' },
       h('p', { class: 'py-fishpill glass', 'aria-label': `${balance} Fish` }, icon('i-fish'), fishN)),
     h('h1', { class: 'py-view-title' }, 'Pengu'),
-    h('figure', { class: 'py-show' },
-      h('div', { class: 'py-show-stage' }, scene),
-      h('figcaption', { class: 'sr-only' }, caption(look))),
+    h('figure', { class: `py-show${item ? ' is-preview' : ''}` },
+      h('div', { class: 'py-show-stage' }, item ? h('p', { class: 'py-preview-badge', 'aria-hidden': 'true' }, 'Preview') : null, scene),
+      h('figcaption', { class: 'sr-only' }, item ? `Preview, not unlocked: ${caption(shown)}` : caption(look))),
+    previewBar,
     nextCard(look, rerender),
     h('section', { class: 'py-shop-sec', 'aria-labelledby': 'py-gear-title' },
       h('div', { class: 'py-shop-head' },

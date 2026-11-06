@@ -437,6 +437,85 @@ export function look() {
   };
 }
 
+// What Pengu and the train would show with one more unlock, for previews. Nothing is bought or saved.
+export function lookWith(id, base = look()) {
+  if (id === 'scarf') return { ...base, scarf: true };
+  if (id === 'cap') return { ...base, hat: 'cap', outfit: false };
+  if (id === 'backpack') return { ...base, backpack: true };
+  if (id === 'conductor') return { ...base, outfit: true, hat: 'conductor' };
+  if (id === 'headlamp') return { ...base, headlamp: true };
+  if (id === 'car') return { ...base, car: true };
+  if (id === 'paint') return { ...base, paint: base.paint === 'navy' ? 'coral' : base.paint };
+  return base;
+}
+
+// ---------- Progress, as the screens show it (reads only; nothing here changes the save) ----------
+// The goal Today and the reward sheet show: the next gear piece in its order, or the first train upgrade
+// not owned yet, against the Fish in hand ("Scarf: 10 / 40 Fish"). Null once everything is owned.
+export function nextGoal() {
+  const item = nextGear() || TRAIN.find((t) => !owns(t.id)) || null;
+  if (!item) return null;
+  const balance = state.fish.balance;
+  return { item, balance, price: item.price, ready: balance >= item.price };
+}
+
+// The week's goal line. "one-left" and "more" only while every planned workout still open can hit the
+// week (so the +25 is still in reach); "out-of-reach" once a planned day passed unlogged.
+export function weekGoal(monday = thisWeek()) {
+  const r = route(monday);
+  if (!r) return null;
+  const need = r.target - r.done;
+  if (need <= 0) return { kind: 'hit' };
+  if (r.open >= need) return { kind: need === 1 ? 'one-left' : 'more', need };
+  if (r.open > 0) return { kind: 'out-of-reach', open: r.open };
+  return { kind: 'over' };
+}
+
+// The next planned workout from today (from tomorrow once today is logged): this week's next open
+// station, or the first one of next week once that week is planned. What it pays if it is logged as
+// planned: 10, plus 15 if a comeback is due by then. `completes`: it would hit its week (+25).
+export function nextStop() {
+  const t = today();
+  const from = state.log[t] ? addDays(t, 1) : t;
+  for (const monday of [thisWeek(), addDays(thisWeek(), 7)]) {
+    const plan = planFor(monday);
+    const day = plan && stations(plan).find((d) => d >= from && !isDone(d));
+    if (!day) continue;
+    const r = route(monday);
+    return { day, week: monday, fish: FISH.station, comeback: comebackDue(day) ? FISH.comeback : 0, completes: r.target - r.done === 1 };
+  }
+  return null;
+}
+// Next week can be planned now (the planning rules allow it from Sunday) and is not planned yet.
+export const canPlanNextWeek = () => planningWeek() !== thisWeek() && !planFor(planningWeek());
+
+// The first postcard: the first week whose every planned workout was logged. Worked out from the save
+// each time, so it needs no record of its own and changes no Fish or counts.
+export function firstFullWeek() {
+  const monday = Object.keys(state.plans).sort().find((m) => weekHit(m));
+  if (!monday) return null;
+  const plan = planFor(monday);
+  return { monday, done: plan.days.length, target: plan.target };
+}
+
+// Sharing the postcard: only what the player picks. Captions and props are chosen, never from anyone
+// else; the dates and the workout count are added only when switched on. No name, place or link.
+export const POSTCARD = {
+  captions: ['Week complete with Pengu.', 'Every stop, start to finish.', 'Pengu and I reached the last station.'],
+  props: [{ id: 'confetti', name: 'Confetti', mark: '🎉' }, { id: 'sun', name: 'Sunshine', mark: '☀️' }, { id: 'train', name: 'Train', mark: '🚂' }],
+};
+export function postcardText({ caption = 0, prop = '', dates = false, workouts = false } = {}, card = firstFullWeek()) {
+  if (!card) return '';
+  const p = POSTCARD.props.find((x) => x.id === prop);
+  const lines = [`${POSTCARD.captions[caption] || POSTCARD.captions[0]}${p ? ` ${p.mark}` : ''}`];
+  if (dates) {
+    const fmt = (key) => parseKey(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    lines.push(`${fmt(card.monday)} – ${fmt(addDays(card.monday, 6))}`);
+  }
+  if (workouts) lines.push(`${card.done} of ${card.target} planned workouts`);
+  return lines.join('\n');
+}
+
 // ---------- Backups: export, check and import ----------
 // A backup is the saved state itself, as JSON with v: 1. It is also the data export. Importing checks
 // the whole file first and changes nothing unless every part of it is good.
