@@ -66,6 +66,8 @@
 /* ---------- 3. Base and type ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* Keyboard focus never hides behind the floating tab bar: a focused control scrolls into view above it. */
+html { scroll-padding-bottom: calc(var(--tabbar-h) + 32px + env(safe-area-inset-bottom, 0px)); }
 body {
   margin: 0; min-height: 100vh; overflow-x: clip;
   background: var(--paper) var(--grain); color: var(--ink);
@@ -329,6 +331,20 @@ html.is-splash .py-splash { display: grid; }
 .py-streak-chip + .py-route-wrap.is-empty { margin-top: -6px; }
 .py-stage.is-full .py-onward { padding-top: 6px; }
 /* After a log, or between planned days: the next stop and what it pays, then Pengu's next goal. */
+/* A first visit: the first goal, drawn (Pengu in the scarf) beside the plain math of a full week. */
+.py-first-goal { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 4px 12px 4px 4px; border-radius: 18px; background: rgba(247, 242, 238, 0.08); }
+.py-first-goal-pic { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 14px; background: rgba(247, 242, 238, 0.12); overflow: hidden; }
+.py-first-goal-pic svg { width: 42px; margin-top: 6px; }
+/* A first visit packs a little closer, so the steps, the goal and "No account needed" fit a small phone. */
+.py-stage.is-first { gap: var(--s2); padding-bottom: var(--s3); }
+.py-stage.is-first .py-how { gap: 3px; margin-top: 6px; }
+.py-first-goal p { font-size: 0.875rem; line-height: 1.35; color: var(--on-stage-2); }
+.py-first-goal strong { display: block; color: var(--on-stage); font-weight: 600; }
+/* A returning player: last plan on one card, ready to start again. */
+.py-repeat { display: grid; gap: 2px; margin-top: 8px; padding: 10px 12px; border-radius: 18px; background: rgba(247, 242, 238, 0.08); }
+.py-repeat-days { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--on-stage); }
+.py-repeat-days .icon { width: 18px; height: 18px; flex: none; color: var(--coral-on-stage); }
+.py-repeat-when { padding-left: 26px; font-size: 0.875rem; color: var(--on-stage-2); }
 .py-onward { display: grid; justify-items: start; gap: 4px; padding-top: 10px; border-top: 1px solid rgba(247, 242, 238, 0.16); font-size: 0.9375rem; }
 .py-onward-stop { font-weight: 600; color: var(--on-stage); }
 /* Links here have 32px targets (above the 24px minimum) whose extra height sits in small negative margins,
@@ -361,6 +377,7 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-reward-face { position: absolute; left: 0; right: 0; bottom: -6px; width: min(320px, 82%); margin: 0 auto; }
 .py-reward-face svg { width: 100%; }
 /* The next goal on the reward sheet: a preview of the piece, the Fish in hand against its price. */
+.py-reward-stop { margin-top: -6px; font-weight: 600; }
 .py-reward-goal { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 20px; background: rgba(255, 255, 255, 0.6); }
 .py-reward-goal-pic { display: grid; place-items: center; flex: none; width: 64px; height: 64px; border-radius: 16px; background: rgba(255, 255, 255, 0.75); overflow: hidden; }
 .py-reward-goal-pic svg { width: 54px; margin-top: 2px; }
@@ -573,6 +590,13 @@ section.py-next.is-ready { box-shadow: inset 0 0 0 2px var(--coral-strong), var(
 .py-share-status:focus:not(:focus-visible) { outline: none; }
 .py-data { display: grid; gap: 10px; padding: var(--s4); border-radius: var(--r-card); background: var(--card); box-shadow: var(--shadow); }
 .py-data-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.py-backup-when { margin-top: -2px; }
+/* After an unlock with no backup yet: one tap to keep Pengu's progress safe. */
+.py-keep { display: grid; gap: 10px; padding: 14px 16px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
+.py-keep.is-saved { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.py-keep.is-saved .icon { width: 18px; height: 18px; color: var(--coral-ink); }
+.py-row > .py-keep { flex-basis: 100%; padding: 12px 14px; border-radius: 16px; background: var(--paper-2); box-shadow: none; }
+.py-keep:focus:not(:focus-visible) { outline: none; }
 .py-reset-confirm { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--paper-2); }
 .py-reset-confirm.is-last { background: var(--coral-tint); }
 .py-reset-saved { display: inline-flex; align-items: center; gap: 6px; font-size: 0.875rem; font-weight: 600; }

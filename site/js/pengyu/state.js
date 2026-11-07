@@ -459,6 +459,27 @@ export function nextGoal() {
   return { item, balance, price: item.price, ready: balance >= item.price };
 }
 
+// The first goal, as the first screen states it: the scarf's price, and what the smallest full week pays
+// (2 planned workouts, both logged: 2 × 10 + the 25 week bonus = 45). True only if the plan is completed.
+export function firstGoal() {
+  const item = GEAR[0];
+  const smallest = TARGETS[0];
+  return { item, price: item.price, smallest, earns: smallest * FISH.station + FISH.weekBonus };
+}
+
+// How close the next unlock is if the player finishes this week's plan: the Fish in hand, plus 10 for each
+// planned workout still open this week, plus the week bonus while it can still be earned. Comebacks and
+// extra workouts are never counted. `inWeek`: finishing the plan reaches the price (not yet in hand).
+export function reach(goal = nextGoal()) {
+  if (!goal) return null;
+  const r = route(thisWeek());
+  const left = r ? r.open : 0;
+  const need = r ? r.target - r.done : 0;
+  const bonus = r && need > 0 && r.open >= need && !state.weekBonusPaid.includes(thisWeek()) ? FISH.weekBonus : 0;
+  const potential = goal.balance + left * FISH.station + bonus;
+  return { ...goal, left, bonus, potential, inWeek: !goal.ready && left > 0 && potential >= goal.price };
+}
+
 // The week's goal line. "one-left" and "more" only while every planned workout still open can hit the
 // week (so the +25 is still in reach); "out-of-reach" once a planned day passed unlogged.
 export function weekGoal(monday = thisWeek()) {
@@ -521,13 +542,17 @@ const dayName = (key) => parseKey(key).toLocaleDateString('en-US', { weekday: 'l
 const andList = (names) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] || '');
 const clockText = (hhmm) => { const [hr, m] = hhmm.split(':').map(Number); return new Date(2000, 0, 1, hr, m).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); };
 
-// The postcard: captions and props are chosen, never from anyone else; the dates, the workout count and
-// the Pengyu link are added only when switched on (the link only if the owner set one). No name or place.
+// How a friend can try Pengyu: the owner's link when there is one; until then, an honest "ask me".
+export const inviteLine = (url = appLink()) => (url ? `Plan your own week with Pengyu: ${url}` : 'Plan your own week with Pengyu. Ask me for the link.');
+
+// The postcard: captions and props are chosen, never from anyone else; the dates and the workout count
+// are added only when switched on, and so is the invitation line (on unless the player turns it off). No
+// name or place, ever.
 export const POSTCARD = {
   captions: ['Week complete with Pengu.', 'Every stop, start to finish.', 'Pengu and I reached the last station.'],
   props: [{ id: 'confetti', name: 'Confetti', mark: '🎉' }, { id: 'sun', name: 'Sunshine', mark: '☀️' }, { id: 'train', name: 'Train', mark: '🚂' }],
 };
-export function postcardText({ caption = 0, prop = '', dates = false, workouts = false, link = false } = {}, card = firstFullWeek(), url = appLink()) {
+export function postcardText({ caption = 0, prop = '', dates = false, workouts = false, invite = false } = {}, card = firstFullWeek(), url = appLink()) {
   if (!card) return '';
   const p = POSTCARD.props.find((x) => x.id === prop);
   const lines = [`${POSTCARD.captions[caption] || POSTCARD.captions[0]}${p ? ` ${p.mark}` : ''}`];
@@ -536,13 +561,13 @@ export function postcardText({ caption = 0, prop = '', dates = false, workouts =
     lines.push(`${fmt(card.monday)} – ${fmt(addDays(card.monday, 6))}`);
   }
   if (workouts) lines.push(`${card.done} of ${card.target} planned workouts`);
-  if (link && url) lines.push(url);
+  if (invite) lines.push(inviteLine(url));
   return lines.join('\n');
 }
 
-// The invitation after a first plan: the same few words for everyone, and the Pengyu link when the
-// owner set one. The player's days, time and place appear only if they switch each one on. It claims
-// nothing about the friend and pays nothing.
+// The invitation after a first plan: the same few words for everyone, then the Pengyu link when the
+// owner set one, or "Ask me for the link." until then. The player's days, time and place appear only if
+// they switch each one on. It claims nothing about the friend and pays nothing.
 export const INVITE = [
   'I’m planning my workouts for the week with Pengyu.',
   'You pick 2 to 4 workouts, and Pengu’s train moves as you log them.',
@@ -553,7 +578,7 @@ export function inviteText({ days = false, time = false, place = false } = {}, p
   if (plan && days) lines.push(`My days: ${andList(stations(plan).map(dayName))}.`);
   if (plan && time) lines.push(`My time: ${plan.window.startsWith('at ') ? clockText(plan.time) : `${plan.window}, ${clockText(plan.time)}`}.`);
   if (plan && place) lines.push(`My place: ${plan.place}.`);
-  if (url) lines.push(url);
+  lines.push(url || 'Ask me for the link.');
   return lines.join('\n');
 }
 
@@ -576,6 +601,18 @@ export function planReview(week = planningWeek()) {
     time: last.time, window: last.window, place: last.place,
   };
 }
+// One tap to the same plan again: allowed only when last plan fits the week exactly as it is (every
+// weekday still open, the same number). Otherwise the review asks the player to choose.
+export function canRepeat(week = planningWeek()) {
+  const rv = planReview(week);
+  return Boolean(rv && rv.target && !rv.missing.length && rv.days.length === rv.target);
+}
+export function repeatLastPlan(week = planningWeek()) {
+  if (!canRepeat(week)) return null;
+  const rv = planReview(week);
+  return createPlan({ week, target: rv.target, days: rv.days, time: rv.time, window: rv.window, place: rv.place });
+}
+
 // What Today and the review call it: "Review last week's plan" when it is last week's, and words that
 // stay true on Sunday (planning next week from this one) or after a week without a plan.
 export function reviewLabel(review = planReview()) {
@@ -643,6 +680,11 @@ export function importData(input) {
 // These only add a line to the saved events, so the screen does not need to redraw.
 function note(type, details) { logEvent(type, details); save(); }
 export function markBackupSaved() { note('backup_saved', {}); }
+// When a backup of this progress was last saved (from its own record of events), or '' if never.
+export function lastBackupAt() {
+  const e = [...state.events].reverse().find((x) => x.type === 'backup_saved' && typeof x.at === 'string');
+  return e ? e.at : '';
+}
 // At most once a day.
 export function noteAppOpened() {
   const t = today();

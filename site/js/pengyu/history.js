@@ -18,7 +18,8 @@ let resetSaved = false;   // a backup was saved from the second step
 let restore = null;       // a checked backup waiting for the player's yes ({ text, summary }), or { error }
 let refocus = '';
 // Sharing the postcard: what the player picked (nothing is saved), and the last result to say.
-let share = { open: false, caption: 0, prop: '', dates: false, workouts: false, link: false, status: '' };
+// The invitation line is on by default (it is not personal); dates and the workout count are off.
+let share = { open: false, caption: 0, prop: '', dates: false, workouts: false, invite: true, status: '' };
 let picture = { key: '', url: '', file: null, failed: false, job: null };   // the postcard image, made on this device
 let cheered = false;      // Pengu cheers for the postcard once each time the app is opened
 let bound = [];           // the postcard's Pengu, brought to life
@@ -109,6 +110,12 @@ export async function checkRestoreFile(f) {
   return true;
 }
 
+// "Last backup saved Nov 4." from the save's own record, or "No backup saved yet."
+function lastBackupLine() {
+  const at = S.lastBackupAt ? S.lastBackupAt() : '';
+  if (!at) return 'No backup saved yet.';
+  return `Last backup saved ${new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`;
+}
 function dataCard(rerender, onReset, onRestore) {
   const file = h('input', { class: 'sr-only', type: 'file', accept: 'application/json,.json', tabindex: '-1', 'aria-hidden': 'true', onchange: (e) => readPicked(e, rerender) });
   const closeReset = () => { resetStep = 0; resetSaved = false; refocus = 'py-reset'; rerender(); };
@@ -120,7 +127,12 @@ function dataCard(rerender, onReset, onRestore) {
     h('div', { class: 'py-data-actions' },
       h('button', {
         class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-backup',
-        onclick: () => { saveBackup(); toast('Backup saved.', 'Keep the file somewhere safe.'); },
+        onclick: () => {
+          saveBackup();
+          toast('Backup saved.', 'Keep the file somewhere safe.');
+          const when = document.getElementById('py-backup-when');
+          if (when) when.textContent = lastBackupLine();
+        },
       }, 'Save a backup'),
       h('button', {
         class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-restore',
@@ -130,7 +142,8 @@ function dataCard(rerender, onReset, onRestore) {
         class: 'btn btn-ghost btn-sm', type: 'button', id: 'py-reset', 'aria-expanded': String(resetStep > 0),
         onclick: () => { if (resetStep) { closeReset(); return; } resetStep = 1; restore = null; refocus = 'py-reset-next'; rerender(); },
       }, 'Reset everything')),
-    file);
+    file,
+    h('p', { class: 'small muted py-backup-when', id: 'py-backup-when' }, lastBackupLine()));
   if (restore && restore.error) {
     card.append(h('p', { class: 'py-data-error', role: 'alert' }, icon('i-alert'), h('span', {}, restore.error)));
   } else if (restore) {
@@ -292,7 +305,7 @@ async function copyNow(text, rerender) {
 function sharePanel(rerender, card) {
   const set = (patch) => { Object.assign(share, patch, { status: '' }); rerender(); };
   const link = S.appLink ? S.appLink() : '';
-  const text = S.postcardText({ ...share, link: share.link && Boolean(link) });
+  const text = S.postcardText({ ...share });
   const canShare = typeof navigator.share === 'function';
   const job = postcardPicture(card);
   const images = sharesImages();
@@ -324,9 +337,7 @@ function sharePanel(rerender, card) {
   requestAnimationFrame(() => { if (box.isConnected) { box.style.height = 'auto'; box.style.height = `${box.scrollHeight + 2}px`; } });
   return h('div', { class: 'py-share', role: 'group', 'aria-labelledby': 'py-share-title' },
     h('h3', { class: 'py-share-h', id: 'py-share-title', tabindex: '-1' }, 'Preview your postcard'),
-    h('p', { class: 'small muted' }, link
-      ? 'Pick a caption and a prop. Dates, the workout count and the Pengyu link stay out unless you add them.'
-      : 'Pick a caption and a prop. Dates and the workout count stay out unless you add them.'),
+    h('p', { class: 'small muted' }, 'Pick a caption and a prop. Dates and the workout count stay out unless you add them.'),
     h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Caption' },
       S.POSTCARD.captions.map((c, i) => chip(`cap${i}`, c, share.caption === i, () => set({ caption: i })))),
     h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Prop' },
@@ -335,7 +346,7 @@ function sharePanel(rerender, card) {
     h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Add details' },
       chip('dates', 'Add the dates', share.dates, () => set({ dates: !share.dates })),
       chip('workouts', 'Add the workout count', share.workouts, () => set({ workouts: !share.workouts })),
-      link ? chip('link', 'Include Pengyu link', share.link, () => set({ link: !share.link })) : null),
+      chip('invite', link ? 'Invite to Pengyu (with link)' : 'Invite to Pengyu', share.invite, () => set({ invite: !share.invite }))),
     h('p', { class: 'py-share-label' }, 'What will be shared'),
     h('figure', { class: 'py-share-figure' }, img, making),
     h('label', { class: 'py-share-label', for: 'py-share-text' }, 'Text'),

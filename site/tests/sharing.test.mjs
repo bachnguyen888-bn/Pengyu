@@ -36,48 +36,51 @@ test('the Pengyu link: only a plain https address the owner wrote; nothing else 
 });
 
 // ---------- The postcard ----------
-test('postcard text: the caption alone by default; the link only when chosen and only if the owner set one', async () => {
+test('postcard text: the caption alone unless the player adds more; the invitation line uses the owner’s link or asks', async () => {
   const S = await freshApp(`${MON}T07:00`);
   plan(S, MWF);
   for (const d of MWF) logOn(S, d);
   const card = S.firstFullWeek();
   const url = 'https://pengyu.example/';
-  assert.equal(S.postcardText({}, card, url), 'Week complete with Pengu.', 'no dates, count or link unless chosen');
-  assert.equal(S.postcardText({ link: true }, card, ''), 'Week complete with Pengu.', 'no owner link: none is invented');
-  assert.equal(S.postcardText({ link: true }, card), 'Week complete with Pengu.', 'and none without a page either');
-  assert.equal(S.postcardText({ link: true }, card, url), `Week complete with Pengu.\n${url}`);
-  assert.equal(S.postcardText({ caption: 2, prop: 'train', dates: true, workouts: true, link: true }, card, url),
-    `Pengu and I reached the last station. 🚂\nNov 2 – Nov 8\n3 of 3 planned workouts\n${url}`);
-  for (const opts of [{}, { dates: true, workouts: true, link: true }]) {
+  assert.equal(S.postcardText({}, card, url), 'Week complete with Pengu.', 'no dates, count or invitation unless chosen');
+  assert.equal(S.postcardText({ invite: true }, card, ''), 'Week complete with Pengu.\nPlan your own week with Pengyu. Ask me for the link.', 'no owner link: none is invented, the friend is told to ask');
+  assert.equal(S.postcardText({ invite: true }, card), 'Week complete with Pengu.\nPlan your own week with Pengyu. Ask me for the link.', 'and none without a page either');
+  assert.equal(S.postcardText({ invite: true }, card, url), `Week complete with Pengu.\nPlan your own week with Pengyu: ${url}`);
+  assert.equal(S.postcardText({ caption: 2, prop: 'train', dates: true, workouts: true, invite: true }, card, url),
+    `Pengu and I reached the last station. 🚂\nNov 2 – Nov 8\n3 of 3 planned workouts\nPlan your own week with Pengyu: ${url}`);
+  for (const opts of [{}, { invite: true }, { dates: true, workouts: true, invite: true }]) {
     const t = S.postcardText(opts, card, url);
     assert.ok(!/gym|after class|3:30|15:30|at the/i.test(t), `never the place or time: ${t}`);
   }
+  assert.equal(S.inviteLine(''), 'Plan your own week with Pengyu. Ask me for the link.');
+  assert.equal(S.inviteLine(url), `Plan your own week with Pengyu: ${url}`);
 });
 
 // ---------- The invitation ----------
-test('invitation: the same words for everyone; days, time and place only when each is switched on', async () => {
+test('invitation: the same words for everyone, then the link or "ask me"; days, time and place only when switched on', async () => {
   const S = await freshApp(`${MON}T07:00`);
   plan(S, MWF);
   const p = S.planFor(MON);
   const base = S.INVITE.join('\n');
-  assert.equal(S.inviteText({}, p, ''), base, 'generic, and no link when none is set');
-  assert.equal(S.inviteText({}, p), base, 'no page: no owner link');
+  const ask = 'Ask me for the link.';
+  assert.equal(S.inviteText({}, p, ''), `${base}\n${ask}`, 'generic, and an honest "ask me" when no link is set');
+  assert.equal(S.inviteText({}, p), `${base}\n${ask}`, 'no page: no owner link');
   assert.equal(S.inviteText({}, p, 'https://pengyu.example/'), `${base}\nhttps://pengyu.example/`);
-  assert.equal(S.inviteText({ days: true }, p, ''), `${base}\nMy days: Monday, Wednesday and Friday.`);
-  assert.equal(S.inviteText({ time: true }, p, ''), `${base}\nMy time: after class, 3:30 PM.`);
-  assert.equal(S.inviteText({ place: true }, p, ''), `${base}\nMy place: at the gym.`);
+  assert.equal(S.inviteText({ days: true }, p, ''), `${base}\nMy days: Monday, Wednesday and Friday.\n${ask}`);
+  assert.equal(S.inviteText({ time: true }, p, ''), `${base}\nMy time: after class, 3:30 PM.\n${ask}`);
+  assert.equal(S.inviteText({ place: true }, p, ''), `${base}\nMy place: at the gym.\n${ask}`);
   assert.equal(S.inviteText({ days: true, time: true, place: true }, p, 'https://pengyu.example/'),
     `${base}\nMy days: Monday, Wednesday and Friday.\nMy time: after class, 3:30 PM.\nMy place: at the gym.\nhttps://pengyu.example/`);
   // The default words carry nothing personal and claim nothing.
   assert.ok(!/Monday|Wednesday|Friday|3:30|gym|after class/.test(base));
   assert.ok(!/joined|is in|reward|bonus|Fish|friends? (are|have)/i.test(base), base);
-  for (const line of S.INVITE) assert.ok(line.split(/\s+/).length < 15, `short: ${line}`);
+  for (const line of [...S.INVITE, ask]) assert.ok(line.split(/\s+/).length < 15, `short: ${line}`);
 });
 
 test('invitation: a typed time reads as a clock time', async () => {
   const S = await freshApp(`${MON}T07:00`);
   S.createPlan({ target: 2, days: ['2026-11-03', '2026-11-05'], time: '16:00', window: 'at 4:00 PM', place: 'at the pool' });
-  assert.equal(S.inviteText({ time: true, place: true }, S.planFor(MON), '').split('\n').slice(-2).join(' | '), 'My time: 4:00 PM. | My place: at the pool.');
+  assert.equal(S.inviteText({ time: true, place: true }, S.planFor(MON), '').split('\n').slice(-3).join(' | '), 'My time: 4:00 PM. | My place: at the pool. | Ask me for the link.');
 });
 
 // ---------- Reviewing last week's plan ----------

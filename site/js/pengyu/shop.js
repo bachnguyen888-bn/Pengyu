@@ -9,6 +9,7 @@ import { penguFigure, trainFigure, sceneFigure, glyph, PAINT_COLORS } from './ar
 import { bindPengu, showUnlock, reducedMotion } from './motion.js';
 import { h, icon, appFooter } from './ui.js';
 import { countTo, toast } from '../fx.js';
+import { saveBackup } from './backup.js';
 
 let confirming = '';   // the Unlock waiting for its second tap, as "where-id" ("next-cap", "row-headlamp")
 let refocus = '';      // the control that takes focus after a re-render
@@ -16,6 +17,7 @@ let unlocked = null;   // the unlock that just happened: { id, fish } (Fish befo
 let bound = [];        // the showcase Pengu, brought to life
 let previewing = '';   // an unlock shown on the showcase before it is owned (looks only, nothing saved)
 let previewFrom = '';  // the Preview button that started it, where Stop preview returns focus
+let keep = null;       // after an unlock with no backup saved yet: { ask, id }, then { saved } (until the tab is left)
 
 const night = () => { const hr = S.now().getHours(); return hr >= 19 || hr < 6; };
 const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
@@ -69,13 +71,13 @@ function confirmPanel(item, where, rerender) {
   return h('div', { class: 'py-confirm', role: 'group', 'aria-labelledby': `q-${key}` },
     h('p', { class: 'py-confirm-q', id: `q-${key}` }, `Unlock ${the(item)} for ${item.price} Fish?`),
     h('div', { class: 'py-confirm-actions' },
-      h('button', { class: 'btn glass-coral btn-sm', type: 'button', id: `yes-${key}`, onclick: () => unlockNow(item) }, 'Unlock'),
+      h('button', { class: 'btn glass-coral btn-sm', type: 'button', id: `yes-${key}`, onclick: () => unlockNow(item, where) }, 'Unlock'),
       h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { confirming = ''; refocus = `unlock-${key}`; rerender(); } }, 'Not now')));
 }
-function unlockNow(item) {
+function unlockNow(item, where) {
   confirming = '';
   if (previewing === item.id) previewing = '';
-  unlocked = { id: item.id, fish: S.state.fish.balance };
+  unlocked = { id: item.id, fish: S.state.fish.balance, where };
   refocus = item.id === 'paint' ? 'paint-navy' : S.GEAR.some((g) => g.id === item.id) ? `wear-${item.id}` : `owned-${item.id}`;
   if (!S.buy(item.id)) { unlocked = null; refocus = ''; }   // buy() saves and this tab redraws with the moment
 }
@@ -127,7 +129,8 @@ function gearRow(g, rerender) {
       h('p', { class: 'py-row-name' }, g.name, st.state === 'owned' ? h('span', { class: 'py-badge' }, 'Yours') : null),
       h('p', { class: 'py-row-price' }, `${g.price} Fish`)),
     h('div', { class: 'py-row-side' }, side, st.state === 'owned' ? null : previewButton(g, rerender)),
-    confirmPanel(g, 'row', rerender));
+    confirmPanel(g, 'row', rerender),
+    keepAt('row', g.id, rerender));
 }
 
 function trainRow(t, rerender, look) {
@@ -155,6 +158,8 @@ function trainRow(t, rerender, look) {
         }, dot);
       })));
   }
+  const k = keepAt('row', t.id, rerender);
+  if (k) row.append(k);
   return row;
 }
 
@@ -184,15 +189,34 @@ function extrasShelf() {
 
 // `preview`: an unlock to show straight away (the reward sheet's "Preview on Pengu"). `fresh`: the tab
 // was just opened, so an earlier preview is not kept.
+// Right after an unlock, if no backup was ever saved: where progress lives, and one tap to keep it.
+function keepCard(rerender) {
+  if (keep && keep.saved) return h('p', { class: 'py-keep is-saved', id: 'py-keep-done', role: 'status', tabindex: '-1' }, icon('i-check'), 'Backup saved. Keep the file somewhere safe.');
+  if (!keep || !keep.ask) return null;
+  // Not now hands focus to the unlocked piece's own control, as the unlock itself does.
+  const back = keep.id === 'paint' ? 'paint-navy' : S.GEAR.some((g) => g.id === keep.id) ? `wear-${keep.id}` : `owned-${keep.id}`;
+  return h('div', { class: 'py-keep', role: 'group', 'aria-labelledby': 'py-keep-h' },
+    h('p', { id: 'py-keep-h' }, h('strong', {}, 'Keep Pengu’s progress safe.'), ' It’s saved in this browser only. A backup file can bring it back.'),
+    h('div', { class: 'py-data-actions' },
+      h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-keep-save', onclick: () => { saveBackup(); keep = { saved: true, id: keep.id, where: keep.where }; refocus = 'py-keep-done'; rerender(); } }, 'Save a backup'),
+      h('button', { class: 'btn btn-ghost btn-sm', type: 'button', id: 'py-keep-later', onclick: () => { keep = null; refocus = back; rerender(); } }, 'Not now')));
+}
+// The card sits where the unlock was tapped, so it is seen: inside that gear or train row, right under
+// the piece's own control, or above the next unlock when it came from there.
+const keepAt = (where, id, rerender) => (keep && (keep.where === 'row' ? where === 'row' && keep.id === id : where === 'top') ? keepCard(rerender) : null);
+
 export function renderShop(root, rerender, { preview = '', fresh = false } = {}) {
   for (const b of bound) if (b) b.stop();
   bound = [];
   if (fresh || preview) previewing = '';
+  if (fresh) keep = null;
   if (preview && S.unlockById(preview) && !S.owns(preview)) { previewing = preview; previewFrom = `preview-next-${preview}`; refocus = 'py-preview-stop'; }
   if (previewing && S.owns(previewing)) previewing = '';
   const look = S.look();
   const moment = unlocked;
   unlocked = null;
+  // The first moment progress is worth keeping: an unlock, and no backup saved yet.
+  if (moment && !(S.lastBackupAt && S.lastBackupAt())) keep = { ask: true, id: moment.id, where: moment.where };
   const balance = S.state.fish.balance;
   const shownFish = moment ? moment.fish : balance;
   const fishN = h('span', { class: 'py-fish-n' }, String(shownFish));
@@ -212,6 +236,7 @@ export function renderShop(root, rerender, { preview = '', fresh = false } = {})
       h('div', { class: 'py-show-stage' }, item ? h('p', { class: 'py-preview-badge', 'aria-hidden': 'true' }, 'Preview') : null, scene),
       h('figcaption', { class: 'sr-only' }, item ? `Preview, not unlocked: ${caption(shown)}` : caption(look))),
     previewBar,
+    keepAt('top', '', rerender),
     nextCard(look, rerender),
     h('section', { class: 'py-shop-sec', 'aria-labelledby': 'py-gear-title' },
       h('div', { class: 'py-shop-head' },
@@ -245,5 +270,13 @@ export function renderShop(root, rerender, { preview = '', fresh = false } = {})
     const el = root.querySelector(`#${CSS.escape(refocus)}`);
     refocus = '';
     if (el) el.focus({ preventScroll: true });
+  }
+  // After an unlock: the piece's own control, which has focus, is never left under the floating tab bar,
+  // and a new backup card is brought into view next to it.
+  if (moment) {
+    const f = document.activeElement;
+    const bar = document.getElementById('py-nav');
+    if (f && f !== document.body && bar && f.getBoundingClientRect().bottom > bar.getBoundingClientRect().top) f.scrollIntoView({ block: 'nearest' });
+    if (keep && keep.ask) root.querySelector('.py-keep')?.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' });
   }
 }
