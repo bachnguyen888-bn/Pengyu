@@ -498,13 +498,36 @@ export function firstFullWeek() {
   return { monday, done: plan.days.length, target: plan.target };
 }
 
-// Sharing the postcard: only what the player picks. Captions and props are chosen, never from anyone
-// else; the dates and the workout count are added only when switched on. No name, place or link.
+// ---------- Sharing: only what the player picks, and only from a tap ----------
+// The Pengyu link is the address the site's owner wrote into the app page's
+// <meta name="pengyu-share-url"> after opening it and seeing Pengyu load. Until then it is empty and no
+// link is ever offered: Pengyu never guesses an address. Only a plain https address is accepted, with no
+// login, query or fragment, so it cannot carry a tracking code.
+export function shareLink(raw) {
+  const text = typeof raw === 'string' ? raw.trim() : '';
+  if (!text) return '';
+  let url;
+  try { url = new URL(text); } catch { return ''; }
+  if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || text.includes('?') || text.includes('#')) return '';
+  if (!url.hostname.includes('.') || /^[\d.]+$/.test(url.hostname)) return '';
+  return url.href;
+}
+export function appLink() {
+  const el = typeof document !== 'undefined' ? document.querySelector('meta[name="pengyu-share-url"]') : null;
+  return shareLink(el ? el.getAttribute('content') : '');
+}
+
+const dayName = (key) => parseKey(key).toLocaleDateString('en-US', { weekday: 'long' });
+const andList = (names) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] || '');
+const clockText = (hhmm) => { const [hr, m] = hhmm.split(':').map(Number); return new Date(2000, 0, 1, hr, m).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); };
+
+// The postcard: captions and props are chosen, never from anyone else; the dates, the workout count and
+// the Pengyu link are added only when switched on (the link only if the owner set one). No name or place.
 export const POSTCARD = {
   captions: ['Week complete with Pengu.', 'Every stop, start to finish.', 'Pengu and I reached the last station.'],
   props: [{ id: 'confetti', name: 'Confetti', mark: '🎉' }, { id: 'sun', name: 'Sunshine', mark: '☀️' }, { id: 'train', name: 'Train', mark: '🚂' }],
 };
-export function postcardText({ caption = 0, prop = '', dates = false, workouts = false } = {}, card = firstFullWeek()) {
+export function postcardText({ caption = 0, prop = '', dates = false, workouts = false, link = false } = {}, card = firstFullWeek(), url = appLink()) {
   if (!card) return '';
   const p = POSTCARD.props.find((x) => x.id === prop);
   const lines = [`${POSTCARD.captions[caption] || POSTCARD.captions[0]}${p ? ` ${p.mark}` : ''}`];
@@ -513,7 +536,53 @@ export function postcardText({ caption = 0, prop = '', dates = false, workouts =
     lines.push(`${fmt(card.monday)} – ${fmt(addDays(card.monday, 6))}`);
   }
   if (workouts) lines.push(`${card.done} of ${card.target} planned workouts`);
+  if (link && url) lines.push(url);
   return lines.join('\n');
+}
+
+// The invitation after a first plan: the same few words for everyone, and the Pengyu link when the
+// owner set one. The player's days, time and place appear only if they switch each one on. It claims
+// nothing about the friend and pays nothing.
+export const INVITE = [
+  'I’m planning my workouts for the week with Pengyu.',
+  'You pick 2 to 4 workouts, and Pengu’s train moves as you log them.',
+  'Want to plan your own week?',
+];
+export function inviteText({ days = false, time = false, place = false } = {}, plan = planFor(shownWeek()), url = appLink()) {
+  const lines = [...INVITE];
+  if (plan && days) lines.push(`My days: ${andList(stations(plan).map(dayName))}.`);
+  if (plan && time) lines.push(`My time: ${plan.window.startsWith('at ') ? clockText(plan.time) : `${plan.window}, ${clockText(plan.time)}`}.`);
+  if (plan && place) lines.push(`My place: ${plan.place}.`);
+  if (url) lines.push(url);
+  return lines.join('\n');
+}
+
+// ---------- A returning plan ----------
+// Last plan, set on the week being planned: the same weekdays, time and place. A weekday that has
+// passed this week is listed in `missing`, never swapped for another day; when fewer days are open than
+// the last count, `target` is 0 so the player picks a number. Nothing is saved here.
+export function planReview(week = planningWeek()) {
+  if (planFor(week)) return null;
+  const from = Object.keys(state.plans).filter((m) => m < week).sort().pop();
+  if (!from) return null;
+  const last = state.plans[from];
+  const open = openDays(week);
+  const onWeek = stations(last).map((d) => addDays(week, (parseKey(d).getDay() + 6) % 7));
+  return {
+    from, week, open,
+    target: last.target <= open.length ? last.target : 0,
+    days: onWeek.filter((d) => open.includes(d)),
+    missing: onWeek.filter((d) => !open.includes(d)),
+    time: last.time, window: last.window, place: last.place,
+  };
+}
+// What Today and the review call it: "Review last week's plan" when it is last week's, and words that
+// stay true on Sunday (planning next week from this one) or after a week without a plan.
+export function reviewLabel(review = planReview()) {
+  if (!review) return '';
+  if (review.week === thisWeek() && review.from === addDays(review.week, -7)) return 'Review last week’s plan';
+  if (review.week !== thisWeek() && review.from === thisWeek()) return 'Review this week’s plan for next week';
+  return 'Review your last plan';
 }
 
 // ---------- Backups: export, check and import ----------

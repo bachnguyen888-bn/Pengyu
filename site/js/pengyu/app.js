@@ -58,7 +58,9 @@ export function initPengyu() {
   let tab = 'today';
   let shown = '';   // the tab drawn last, so a tab that is opened again starts with its steps closed
   let planning = false;
-  let preview = '';   // an unlock to show on the Pengu tab, from the reward sheet's "Preview on Pengu"
+  // What a tab opens with: an unlock to preview on Pengu ("Preview on Pengu"), the postcard's preview in
+  // History ("Preview your postcard"), or a picked backup waiting for its Restore question in Settings.
+  let preview = '';
   let day = S.today();
   let greet = S.greeting();
   const bust = () => penguFigure(S.look(), { cls: 'py-toast-art', pose: 'bust' });
@@ -119,13 +121,23 @@ export function initPengyu() {
     const view = h('div', { class: `py-view py-view-${showPlan ? 'plan' : tab}` });
     root.append(view);
     // A reset or restore step left open on one tab does not follow the player to another.
-    const data = { onReset, onRestore, fresh: shown !== tab };
+    const data = { onReset, onRestore, fresh: shown !== tab && preview !== 'restore' };
     shown = tab;
     if (showPlan) renderPlanFlow(view, render, { onExit: () => go('today') });
     else if (tab === 'pengu') { renderShop(view, render, { preview, fresh: data.fresh }); preview = ''; }
-    else if (tab === 'history') History.renderHistory(view, render, data);
-    else if (tab === 'settings') renderSettings(view, render, data);
-    else renderToday(view, render, { onShop: (id = '') => go('pengu', { show: id }), onPlan: openPlan, onHistory: () => go('history'), focus: takeFocusRequest() });
+    else if (tab === 'history') { History.renderHistory(view, render, { ...data, postcard: preview === 'postcard' }); preview = ''; }
+    else if (tab === 'settings') { renderSettings(view, render, data); preview = ''; }
+    else {
+      renderToday(view, render, {
+        onShop: (id = '') => go('pengu', { show: id }),
+        onPlan: openPlan,
+        onHistory: () => go('history'),
+        onPostcard: () => go('history', { show: 'postcard' }),
+        // A backup picked in the Home Screen tip: checked, then Settings asks before anything is replaced.
+        onRestoreFile: async (file) => { if (History.checkRestoreFile && await History.checkRestoreFile(file)) go('settings', { show: 'restore' }); },
+        focus: takeFocusRequest(),
+      });
+    }
     for (const t of TABS) {
       if (t.id === tab) navButtons[t.id]?.setAttribute('aria-current', 'page');
       else navButtons[t.id]?.removeAttribute('aria-current');

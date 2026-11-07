@@ -5,7 +5,9 @@
 // or "View or move workout days", opens the week sheet (sessions, moves, the calendar file, the cover).
 // After a log, and on days between planned workouts, the stage names the next stop and what it pays.
 // Planned ahead on Sunday, the stage shows next week's route: "Your route starts Monday." With no plan
-// this week, the stage says how Pengyu works in three short steps before "Plan my week".
+// this week, the stage says how Pengyu works in three short steps before "Plan my week", or, for a
+// returning player, "Review last week's plan". Right after a very first plan, a sheet offers an optional
+// invitation for a friend to plan their own week: its words are shown before anything is shared.
 // No penalties and no shame: a day without a workout just reads "not logged".
 
 import * as S from './state.js';
@@ -23,7 +25,7 @@ let lastAt = null;    // where the train stood when Today was last drawn (0 = de
 let drawnFor = '';    // the save those were drawn for: after a reset everything starts afresh
 let bound = [];       // the Pengu drawings brought to life on this screen
 let moving = '';      // the session whose "move to" chips are open in the week sheet
-let refs = { onShop() {}, onPlan() {}, onHistory() {} };
+let refs = { onShop() {}, onPlan() {}, onHistory() {}, onPostcard() {}, onRestoreFile() {} };
 
 const SAY = { done: 'done', today: 'planned for today', upcoming: 'planned', missed: 'not logged' };
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -86,7 +88,7 @@ function onward() {
   let first;
   const p = S.logPreview();
   if (stop) first = h('p', { class: 'py-onward-stop' }, stopLine(stop, Boolean(p.comeback && p.kind === 'moved')));
-  else if (S.canPlanNextWeek()) first = h('button', { class: 'link py-plan-next', type: 'button', id: 'py-plan-next', onclick: () => refs.onPlan() }, icon('i-calendar'), 'Plan next week');
+  else if (S.canPlanNextWeek()) first = h('button', { class: 'link py-plan-next', type: 'button', id: 'py-plan-next', onclick: () => refs.onPlan() }, icon('i-calendar'), (S.reviewLabel && S.reviewLabel()) || 'Plan next week');
   else first = h('p', { class: 'py-onward-stop' }, 'You can plan next week on Sunday.');
   return h('div', { class: 'py-onward' }, first, goalRow());
 }
@@ -103,7 +105,10 @@ function howItWorks() {
 
 // What Begin says, and the quiet caption under it.
 function beginState(r, ahead) {
-  if (!r) return { label: 'Plan my week', caption: 'Takes about 30 seconds.', plan: true };
+  if (!r) {
+    const review = S.reviewLabel && S.reviewLabel();
+    return review ? { label: review, caption: 'Start it as it is, or edit it first.', plan: true } : { label: 'Plan my week', caption: 'Takes about 30 seconds.', plan: true };
+  }
   if (ahead) return { label: `First stop: ${weekday(S.parseKey(r.stations[0].day))}`, waiting: true, caption: ifThen(r.plan) };
   const p = S.logPreview();
   if (p.kind === 'logged') return { label: 'Logged today', logged: true, caption: '' };   // the next stop follows
@@ -218,7 +223,7 @@ function openSheet(cls, label, build, returnFocus, onClosed) {
   // Keep Tab inside the sheet: from the last control back to the first, and the other way round.
   dlg.addEventListener('keydown', (e) => {
     if (e.key !== 'Tab') return;
-    const items = [...panel.querySelectorAll('button:not([disabled]), a[href], input:not([disabled])')];
+    const items = [...panel.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]):not([tabindex="-1"]), textarea')];
     if (!items.length) return;
     const first = items[0];
     const last = items[items.length - 1];
@@ -229,7 +234,7 @@ function openSheet(cls, label, build, returnFocus, onClosed) {
   // Swipe down to close.
   let startY = null;
   let dy = 0;
-  panel.addEventListener('pointerdown', (e) => { if (e.target.closest('button, a, input') || panel.scrollTop > 0) return; startY = e.clientY; dy = 0; });
+  panel.addEventListener('pointerdown', (e) => { if (e.target.closest('button, a, input, textarea') || panel.scrollTop > 0) return; startY = e.clientY; dy = 0; });
   panel.addEventListener('pointermove', (e) => { if (startY === null) return; dy = Math.max(0, e.clientY - startY); panel.style.setProperty('transform', `translateY(${dy}px)`); });
   const end = () => { if (startY === null) return; startY = null; if (dy > 90) close(); else panel.style.setProperty('transform', 'translateY(0)'); };
   panel.addEventListener('pointerup', end);
@@ -314,7 +319,7 @@ function openReward(res) {
       copy.stamp ? stampArt() : null,
       copy.extra ? h('div', { class: 'py-reward-extra', 'aria-hidden': 'true' }, glyph(copy.extra.id)) : null,
       h('ul', { class: 'py-reward-lines' }, copy.lines.map((l) => h('li', { class: 'num' }, l))),
-      copy.postcard ? h('p', { class: 'py-reward-postcard' }, icon('i-stamp'), h('span', {}, 'Your first postcard is ready. ', h('button', { class: 'link', type: 'button', onclick: () => { close(true); refs.onHistory(); } }, 'See it in History'))) : null,
+      copy.postcard ? h('p', { class: 'py-reward-postcard' }, icon('i-stamp'), h('span', {}, 'Your first postcard is ready. ', h('button', { class: 'link', type: 'button', id: 'py-reward-postcard', onclick: () => { close(true); refs.onPostcard(); } }, 'Preview your postcard'))) : null,
       goalBlock(close),
       h('button', { class: 'btn glass-coral py-reward-ok', type: 'button', autofocus: true, onclick: () => close() }, 'Nice'),
       h('div', { class: 'py-reward-art', 'aria-hidden': 'true' }, bandsArt(), h('div', { class: 'py-reward-face' }, faceArt())),
@@ -330,6 +335,10 @@ function openTip() {
   S.markTipSeen();
   openSheet('py-tip', 'py-tip-title', (panel, close) => {
     const status = h('p', { class: 'py-tip-status', role: 'status' });
+    const file = h('input', {
+      class: 'sr-only', type: 'file', accept: 'application/json,.json', tabindex: '-1', 'aria-hidden': 'true',
+      onchange: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; close(true); refs.onRestoreFile(f); },
+    });
     panel.append(
       h('div', { class: 'py-tip-head' },
         h('h2', { class: 'py-tip-title', id: 'py-tip-title' }, 'Keep Pengu safe: add Pengyu to your Home Screen.'),
@@ -337,11 +346,67 @@ function openTip() {
       h('ol', { class: 'py-tip-steps' },
         h('li', {}, h('span', { class: 'py-tip-n', 'aria-hidden': 'true' }, '1'), h('span', {}, 'Tap ', icon('i-share', 'icon py-tip-share'), h('strong', {}, 'Share'), ' in Safari.')),
         h('li', {}, h('span', { class: 'py-tip-n', 'aria-hidden': 'true' }, '2'), h('span', {}, 'Choose ', h('strong', {}, 'Add to Home Screen'), '.'))),
+      h('p', { class: 'py-tip-note py-handoff' }, 'Progress is saved in this browser. Another browser or Home Screen app may have a separate save.'),
       h('p', { class: 'py-tip-note' }, 'Already have progress here? Save a backup, then restore it in the Home Screen app.'),
       h('div', { class: 'py-tip-actions' },
-        h('button', { class: 'btn glass-coral', type: 'button', onclick: () => { saveBackup(); status.textContent = 'Backup saved. Keep the file somewhere safe.'; } }, 'Save a backup'),
+        h('button', { class: 'btn glass-coral', type: 'button', id: 'py-tip-backup', onclick: () => { saveBackup(); status.textContent = 'Backup saved. Keep the file somewhere safe.'; } }, 'Save a backup'),
+        // Restore asks first, as always: the file is checked, then Settings shows what it holds and waits for Restore.
+        h('button', { class: 'btn btn-secondary', type: 'button', id: 'py-tip-restore', onclick: () => file.click() }, 'Restore from a backup'),
         h('button', { class: 'btn btn-ghost', type: 'button', autofocus: true, onclick: () => close() }, 'Got it')),
+      file,
       status);
+  }, () => document.querySelector('.py-count'));
+}
+
+// ---------- The invitation, once, right after a very first plan ----------
+// The same few words for everyone, plus the Pengyu link when the owner set one. The player's days, time
+// and place join only when switched on. Nothing is shared until Share or Copy text is tapped, and
+// nothing is counted or rewarded either way.
+let invite = { days: false, time: false, place: false, status: '' };
+function openInvite(monday) {
+  const plan = S.planFor(monday);
+  if (!plan || !S.inviteText || !document.querySelector('.py-today')) return;
+  invite = { days: false, time: false, place: false, status: '' };
+  openSheet('py-invite', 'py-invite-title', function fill(panel, close, focusId = '') {
+    for (const n of [...panel.children]) if (!n.classList.contains('py-sheet-grip')) n.remove();
+    const refill = (id) => fill(panel, close, id);
+    const text = S.inviteText(invite, plan);
+    const say = (msg, id = 'py-invite-status') => { invite.status = msg; refill(id); };
+    const toggle = (key, label) => h('button', {
+      class: 'chip glass py-share-chip', type: 'button', id: `py-invite-${key}`, 'aria-pressed': String(invite[key]),
+      onclick: () => { invite[key] = !invite[key]; invite.status = ''; refill(`py-invite-${key}`); },
+    }, label);
+    panel.append(
+      h('div', { class: 'py-sheet-head' },
+        h('div', {},
+          h('p', { class: 'eyebrow' }, 'Your week is planned'),
+          h('h2', { class: 'py-invite-title', id: 'py-invite-title', tabindex: '-1', autofocus: !focusId }, 'Invite a friend to plan their own week')),
+        h('button', { class: 'py-sheet-close glass', type: 'button', 'aria-label': 'Close', onclick: () => close() }, icon('i-close'))),
+      h('p', { class: 'py-sheet-note' }, 'Optional. Nothing is sent until you tap Share or Copy text.'),
+      h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Add your plan details' },
+        toggle('days', 'Add my days'), toggle('time', 'Add my time'), toggle('place', 'Add my place')),
+      h('label', { class: 'py-share-label', for: 'py-invite-text' }, 'What will be shared'),
+      h('textarea', { class: 'py-share-text', id: 'py-invite-text', readonly: true, rows: String(text.split('\n').length) }, text),
+      S.appLink() ? null : h('p', { class: 'py-sheet-note' }, 'No Pengyu link is set up yet, so the message has no link.'),
+      h('div', { class: 'py-data-actions' },
+        typeof navigator.share === 'function' ? h('button', {
+          class: 'btn btn-primary btn-sm', type: 'button', id: 'py-invite-share',
+          onclick: async () => {
+            try { await navigator.share({ text }); say('Shared.'); } catch (err) { say(err && err.name === 'AbortError' ? 'Not shared.' : 'Sharing didn’t work here. Try Copy text.'); }
+          },
+        }, icon('i-share'), 'Share invitation') : null,
+        h('button', {
+          class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-invite-copy',
+          onclick: async () => {
+            try { await navigator.clipboard.writeText(text); say('Copied. Paste it wherever you like.'); } catch { say('Copying isn’t allowed here. Select the text above to copy it.', 'py-invite-text'); }
+          },
+        }, 'Copy text'),
+        h('button', { class: 'btn btn-ghost btn-sm', type: 'button', id: 'py-invite-later', onclick: () => close() }, 'Not now')),
+      h('p', { class: 'py-share-status', id: 'py-invite-status', role: 'status', tabindex: '-1' }, invite.status));
+    if (focusId) panel.querySelector(`#${focusId}`)?.focus({ preventScroll: true });
+    // The box grows to show every line it will share, wrapped or not.
+    const box = panel.querySelector('#py-invite-text');
+    requestAnimationFrame(() => { if (box.isConnected) { box.style.height = 'auto'; box.style.height = `${box.scrollHeight + 2}px`; } });
   }, () => document.querySelector('.py-count'));
 }
 
@@ -415,8 +480,8 @@ function openWeek() {
 }
 
 // ---------- The screen ----------
-export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => {}, onHistory = () => {}, focus = false } = {}) {
-  refs = { onShop, onPlan, onHistory };
+export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => {}, onHistory = () => {}, onPostcard = onHistory, onRestoreFile = () => {}, focus = false } = {}) {
+  refs = { onShop, onPlan, onHistory, onPostcard, onRestoreFile };
   for (const c of bound) if (c) c.stop();
   bound = [];
   if (drawnFor !== S.state.createdAt) { drawnFor = S.state.createdAt; lastAt = null; pending = null; moving = ''; }
@@ -471,5 +536,6 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
   bound.push(bindPengu(train.querySelector('svg'), { follow: true, hop: true, wave: true }));
   bound.push(bindPengu(view.querySelector('.py-avatar-btn svg'), { follow: true, hop: false }));
   if (focus) count.focus({ preventScroll: true });
+  if (focus === 'first-plan') setTimeout(() => openInvite(monday), reducedMotion() ? 0 : 350);
   if (!faceNodes.has(faceKey())) whenIdle(primeRewardArt);
 }

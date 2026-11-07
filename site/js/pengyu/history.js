@@ -2,7 +2,8 @@
 // planned workouts were done, the Fish it paid, its Comeback stamps, the free cover if one was used, and
 // the extras collected: words and small tags only, no charts, no ranking, only this player's own weeks.
 // At the top, the first postcard: a keepsake for the first week with every planned workout logged (its
-// condition is shown until then), with an optional "Share this week" that only ever starts from a tap.
+// condition is shown until then), with an optional "Preview your postcard": the image and the text, exactly
+// as they would be shared, then Share or Copy text. Nothing is shared without a tap.
 // "Your data" holds Save a backup (also the data export), Restore from a backup and Reset everything.
 
 import * as S from './state.js';
@@ -17,7 +18,8 @@ let resetSaved = false;   // a backup was saved from the second step
 let restore = null;       // a checked backup waiting for the player's yes ({ text, summary }), or { error }
 let refocus = '';
 // Sharing the postcard: what the player picked (nothing is saved), and the last result to say.
-let share = { open: false, caption: 0, prop: '', dates: false, workouts: false, status: '' };
+let share = { open: false, caption: 0, prop: '', dates: false, workouts: false, link: false, status: '' };
+let picture = { key: '', url: '', file: null, failed: false, job: null };   // the postcard image, made on this device
 let cheered = false;      // Pengu cheers for the postcard once each time the app is opened
 let bound = [];           // the postcard's Pengu, brought to life
 
@@ -91,6 +93,12 @@ async function readPicked(e, rerender) {
   const f = e.target.files && e.target.files[0];
   e.target.value = '';
   if (!f) return;
+  await checkRestoreFile(f);
+  rerender();
+}
+// A picked file, checked: the Restore question (or what is wrong with the file) waits in "Your data".
+// The Home Screen tip uses this too, then opens Settings, where the same question asks first.
+export async function checkRestoreFile(f) {
   let text = '';
   try { text = await f.text(); } catch { text = ''; }
   const checked = S.checkBackup(text);
@@ -98,7 +106,7 @@ async function readPicked(e, rerender) {
   resetStep = 0;
   resetSaved = false;
   refocus = checked.ok ? 'py-restore-yes' : 'py-restore';
-  rerender();
+  return true;
 }
 
 function dataCard(rerender, onReset, onRestore) {
@@ -106,7 +114,8 @@ function dataCard(rerender, onReset, onRestore) {
   const closeReset = () => { resetStep = 0; resetSaved = false; refocus = 'py-reset'; rerender(); };
   const card = h('section', { class: 'py-data', 'aria-labelledby': 'py-data-title' },
     h('h2', { class: 'py-section-title', id: 'py-data-title' }, 'Your data'),
-    h('p', { class: 'small muted' }, 'Your progress is saved in this browser. Save a backup downloads your data so you can restore it later.'),
+    h('p', { class: 'small muted py-handoff' }, 'Progress is saved in this browser. Another browser or Home Screen app may have a separate save.'),
+    h('p', { class: 'small muted' }, 'Save a backup downloads your data. Restore from a backup brings it into this browser.'),
     h('p', { class: 'py-data-privacy' }, h('a', { href: 'privacy.html' }, 'How Pengyu handles your data')),
     h('div', { class: 'py-data-actions' },
       h('button', {
@@ -166,10 +175,100 @@ function chip(key, label, pressed, onclick) {
   return h('button', { class: 'chip glass py-share-chip', type: 'button', id: `py-share-${key}`, 'aria-pressed': String(pressed), onclick: () => { refocus = `py-share-${key}`; onclick(); } }, label);
 }
 
-async function shareNow(text, rerender) {
+// ---------- The postcard image ----------
+// Drawn on this device from the same choices as the text: the sunny card, the caption, Pengu as they look
+// now, the prop, and the dates or workout count only when added. Never a name, a place or the link.
+const FONT = '"Rubik", system-ui, sans-serif';
+const pictureKey = (card) => JSON.stringify([share.caption, share.prop, share.dates, share.workouts, S.look(), card.monday]);
+
+function svgImage(svg) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Pengu image'));
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(svg))}`;
+  });
+}
+function wrapLines(ctx, text, width) {
+  const lines = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    const test = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(test).width > width) { lines.push(line); line = word; } else line = test;
+  }
+  return line ? [...lines, line] : lines;
+}
+async function drawPostcard(card) {
+  const size = 1080;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  try { if (document.fonts) await Promise.all([document.fonts.load(`700 84px ${FONT}`), document.fonts.load(`500 44px ${FONT}`)]); } catch { /* a system font, then */ }
+  ctx.fillStyle = '#FFCE3A';
+  ctx.fillRect(0, 0, size, size);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.lineWidth = 24;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(36, 36, size - 72, size - 72, 56); else ctx.rect(36, 36, size - 72, size - 72);
+  ctx.stroke();
+  const pengu = penguFigure(S.look(), { pose: 'bust' });
+  pengu.setAttribute('width', '520');
+  pengu.setAttribute('height', '555');
+  ctx.drawImage(await svgImage(pengu), size - 520 - 80, size - 555 - 48, 520, 555);
+  const prop = S.POSTCARD.props.find((x) => x.id === share.prop);
+  if (prop) {
+    ctx.font = `120px ${FONT}`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(prop.mark, size - 96, 92);
+  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#2B2628';
+  ctx.font = `700 84px ${FONT}`;
+  let y = 200;
+  for (const line of wrapLines(ctx, S.POSTCARD.captions[share.caption] || S.POSTCARD.captions[0], prop ? 720 : 870)) { ctx.fillText(line, 96, y); y += 100; }
+  ctx.font = `500 44px ${FONT}`;
+  if (share.dates) { ctx.fillText(range(card.monday), 96, y + 6); y += 62; }
+  if (share.workouts) ctx.fillText(`${card.done} of ${card.target} planned workouts`, 96, y + 6);
+  ctx.font = `800 52px ${FONT}`;
+  ctx.fillStyle = '#E5532F';
+  ctx.fillText('Pengyu', 96, size - 96);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) throw new Error('No image');
+  const url = await new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(blob); });
+  return { file: new File([blob], 'pengyu-postcard.png', { type: 'image/png' }), url };
+}
+// One image per set of choices; a newer choice replaces an older drawing still in progress.
+function postcardPicture(card) {
+  const key = pictureKey(card);
+  if (picture.key === key) return picture.job;
+  const job = drawPostcard(card).then(
+    (made) => { if (picture.key === key) Object.assign(picture, made); return picture; },
+    () => { if (picture.key === key) picture.failed = true; return picture; });
+  picture = { key, url: '', file: null, failed: false, job };
+  return job;
+}
+// Whether this browser's share sheet takes an image file (checked with a tiny stand-in, nothing shared).
+function sharesImages() {
   try {
-    await navigator.share({ text });
-    share.status = 'Shared.';
+    return typeof navigator.share === 'function' && typeof navigator.canShare === 'function'
+      && navigator.canShare({ files: [new File([new Uint8Array([137, 80, 78, 71])], 'pengyu-postcard.png', { type: 'image/png' })] });
+  } catch { return false; }
+}
+
+// ---------- Sharing: only from a tap, and only what the preview shows ----------
+async function shareNow(text, rerender, card) {
+  const wanted = sharesImages() && !picture.failed;
+  let data = { text };
+  if (wanted) {
+    const made = picture.file ? picture : await postcardPicture(card);
+    if (made.file && navigator.canShare({ files: [made.file] })) data = { files: [made.file], text };
+  }
+  try {
+    await navigator.share(data);
+    share.status = data.files ? 'Shared the postcard.' : wanted ? 'Shared the text. The image couldn’t be added.' : 'Shared the text.';
   } catch (err) {
     share.status = err && err.name === 'AbortError' ? 'Not shared.' : 'Sharing didn’t work here. Try Copy text.';
   }
@@ -179,7 +278,7 @@ async function shareNow(text, rerender) {
 async function copyNow(text, rerender) {
   try {
     await navigator.clipboard.writeText(text);
-    share.status = 'Copied. Paste it wherever you like.';
+    share.status = 'Copied the text. Paste it wherever you like.';
     refocus = 'py-share-status';
   } catch {
     share.status = 'Copying isn’t allowed here. Select the text above to copy it.';
@@ -188,13 +287,46 @@ async function copyNow(text, rerender) {
   rerender();
 }
 
-// Pick what to share; see exactly what it says; then share or copy it. Nothing leaves without a tap.
-function sharePanel(rerender) {
+// Preview your postcard: pick the words, see the image and the text exactly as they would go, then
+// share or copy. With no Pengyu link set by the site's owner, no link is offered.
+function sharePanel(rerender, card) {
   const set = (patch) => { Object.assign(share, patch, { status: '' }); rerender(); };
-  const text = S.postcardText(share);
+  const link = S.appLink ? S.appLink() : '';
+  const text = S.postcardText({ ...share, link: share.link && Boolean(link) });
+  const canShare = typeof navigator.share === 'function';
+  const job = postcardPicture(card);
+  const images = sharesImages();
+  const prop = S.POSTCARD.props.find((p) => p.id === share.prop);
+  const alt = `Postcard image: ${S.POSTCARD.captions[share.caption]}${prop ? ` With ${prop.name.toLowerCase()}.` : ''}${share.dates ? ' With the dates.' : ''}${share.workouts ? ' With the workout count.' : ''} Pengu on a sunny card.`;
+  // What Share does, said plainly; if the image turns out not to be possible here, the words follow.
+  const howText = (failed) => (failed ? (canShare ? 'Share sends the text above.' : 'This browser can’t open a share sheet. Copy the text instead.')
+    : images ? 'Share sends this image and the text above.'
+      : canShare ? 'This browser shares the text only, not the image.'
+        : 'This browser can’t open a share sheet. Copy the text instead.');
+  const goText = (failed) => (images && !failed ? 'Share postcard' : 'Share text');
+  const NO_IMAGE = 'The image couldn’t be made in this browser. The text can still be shared.';
+  const img = h('img', { class: 'py-share-img', alt, width: '1080', height: '1080', src: picture.url || null, hidden: !picture.url });
+  const making = h('p', { class: 'py-share-making' }, picture.failed ? NO_IMAGE : 'Making the image…');
+  if (picture.url) making.hidden = true;
+  const how = h('p', { class: 'small muted py-share-how' }, howText(picture.failed));
+  const goLabel = h('span', {}, goText(picture.failed));
+  if (!picture.url && !picture.failed) {
+    job.then((made) => {
+      if (!img.isConnected) return;
+      if (made.url) { img.src = made.url; img.hidden = false; making.hidden = true; return; }
+      making.textContent = NO_IMAGE;
+      how.textContent = howText(true);
+      goLabel.textContent = goText(true);
+    });
+  }
+  // The text box grows to show every line it will share, wrapped or not.
+  const box = h('textarea', { class: 'py-share-text', id: 'py-share-text', readonly: true, rows: String(text.split('\n').length) }, text);
+  requestAnimationFrame(() => { if (box.isConnected) { box.style.height = 'auto'; box.style.height = `${box.scrollHeight + 2}px`; } });
   return h('div', { class: 'py-share', role: 'group', 'aria-labelledby': 'py-share-title' },
-    h('p', { class: 'py-share-h', id: 'py-share-title', tabindex: '-1' }, 'Share this week'),
-    h('p', { class: 'small muted' }, 'Pick a caption and a prop. Dates and the workout count stay out unless you add them.'),
+    h('h3', { class: 'py-share-h', id: 'py-share-title', tabindex: '-1' }, 'Preview your postcard'),
+    h('p', { class: 'small muted' }, link
+      ? 'Pick a caption and a prop. Dates, the workout count and the Pengyu link stay out unless you add them.'
+      : 'Pick a caption and a prop. Dates and the workout count stay out unless you add them.'),
     h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Caption' },
       S.POSTCARD.captions.map((c, i) => chip(`cap${i}`, c, share.caption === i, () => set({ caption: i })))),
     h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Prop' },
@@ -202,13 +334,15 @@ function sharePanel(rerender) {
       S.POSTCARD.props.map((p) => chip(`prop-${p.id}`, `${p.mark} ${p.name}`, share.prop === p.id, () => set({ prop: p.id })))),
     h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Add details' },
       chip('dates', 'Add the dates', share.dates, () => set({ dates: !share.dates })),
-      chip('workouts', 'Add the workout count', share.workouts, () => set({ workouts: !share.workouts }))),
-    h('label', { class: 'py-share-label', for: 'py-share-text' }, 'What will be shared'),
-    h('textarea', { class: 'py-share-text', id: 'py-share-text', readonly: true, rows: String(text.split('\n').length) }, text),
+      chip('workouts', 'Add the workout count', share.workouts, () => set({ workouts: !share.workouts })),
+      link ? chip('link', 'Include Pengyu link', share.link, () => set({ link: !share.link })) : null),
+    h('p', { class: 'py-share-label' }, 'What will be shared'),
+    h('figure', { class: 'py-share-figure' }, img, making),
+    h('label', { class: 'py-share-label', for: 'py-share-text' }, 'Text'),
+    box,
+    how,
     h('div', { class: 'py-data-actions' },
-      typeof navigator.share === 'function'
-        ? h('button', { class: 'btn btn-primary btn-sm', type: 'button', id: 'py-share-go', onclick: () => shareNow(text, rerender) }, icon('i-share'), 'Share')
-        : null,
+      canShare ? h('button', { class: 'btn btn-primary btn-sm', type: 'button', id: 'py-share-go', onclick: () => shareNow(text, rerender, card) }, icon('i-share'), goLabel) : null,
       h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-copy', onclick: () => copyNow(text, rerender) }, 'Copy text'),
       h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { share.open = false; share.status = ''; refocus = 'py-share-open'; rerender(); } }, 'Done')),
     h('p', { class: 'py-share-status', id: 'py-share-status', role: 'status', tabindex: '-1' }, share.status));
@@ -235,14 +369,17 @@ function postcardSection(rerender) {
         h('p', { class: 'py-postcard-meta' }, `${card.done} of ${card.target} planned workouts`)),
       h('div', { class: 'py-postcard-art', 'aria-hidden': 'true' }, pengu),
       prop ? h('span', { class: 'py-postcard-prop', 'aria-hidden': 'true' }, prop.mark) : null),
-    share.open ? sharePanel(rerender) : h('div', { class: 'py-data-actions' },
-      h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-open', 'aria-expanded': 'false', onclick: () => { share.open = true; refocus = 'py-share-title'; rerender(); } }, icon('i-share'), 'Share this week')));
+    share.open ? sharePanel(rerender, card) : h('div', { class: 'py-data-actions' },
+      h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-open', 'aria-expanded': 'false', onclick: () => { share.open = true; refocus = 'py-share-title'; rerender(); } }, icon('i-share'), 'Preview your postcard')));
 }
 
-export function renderHistory(root, rerender, { onReset = () => {}, onRestore = () => {}, fresh = false } = {}) {
+export function renderHistory(root, rerender, { onReset = () => {}, onRestore = () => {}, fresh = false, postcard = false } = {}) {
   for (const b of bound) if (b) b.stop();
   bound = [];
   if (fresh) share = { ...share, open: false, status: '' };
+  // From the reward sheet's "Preview your postcard": the preview opens at once, with focus on it.
+  const opening = postcard && Boolean(S.firstFullWeek());
+  if (opening) share = { ...share, open: true, status: '' };
   const info = S.streakInfo();
   const weeks = mondays();
   const view = h('div', { class: 'py-view' },
@@ -263,6 +400,10 @@ export function renderHistory(root, rerender, { onReset = () => {}, onRestore = 
   }
   renderData(view, rerender, { onReset, onRestore, fresh });
   view.append(appFooter());
+  if (opening) {
+    view.querySelector('#py-share-title')?.focus({ preventScroll: true });
+    view.querySelector('.py-share')?.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'auto' : 'smooth' });
+  }
 }
 
 // Both Settings and History use these same controls and confirmation steps. `fresh` means the tab was
