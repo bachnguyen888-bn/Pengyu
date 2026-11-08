@@ -33,12 +33,15 @@ const SHELL = [
   'js/pengyu/history.js',
   'js/pengyu/ics.js',
   'js/pengyu/ink.js',
+  'js/pengyu/invite.js',
   'js/pengyu/motion.js',
   'js/pengyu/plan.js',
   'js/pengyu/route.js',
   'js/pengyu/shop.js',
   'js/pengyu/state.js',
+  'js/pengyu/story.js',
   'js/pengyu/ui.js',
+  'js/pengyu/window.js',
   'js/vendor/anime.esm.min.js',
 ];
 

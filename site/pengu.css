@@ -276,6 +276,9 @@ html.is-splash .py-splash { display: grid; }
 .py-stop-day { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; color: var(--on-stage-2); white-space: nowrap; }
 .py-station.is-today .py-stop-day { color: var(--on-stage); }
 .py-station.is-missed .py-stop-day { font-weight: 400; }
+/* Large text (a text-size setting or page zoom, both of which shrink the width in em): two-letter days. */
+.py-stop-short { display: none; }
+@media (max-width: 18em) { .py-stop-long { display: none; } .py-stop-short { display: inline; } }
 /* A comeback stamp sits on the ring where the player came back. */
 .py-stamp { position: absolute; top: -7px; right: -10px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--sun); color: var(--ink); box-shadow: 0 0 0 2px var(--stage); }
 .py-stamp .icon { width: 14px; height: 14px; stroke-width: 2.2; }
@@ -323,13 +326,15 @@ html.is-splash .py-splash { display: grid; }
 .py-days-btn { position: relative; justify-self: start; display: inline-flex; align-items: center; gap: 8px; min-height: 32px; margin: -12px 0 -4px; padding: 0 4px 0 0; border: 0; background: none; color: var(--on-stage); font-size: 0.875rem; font-weight: 600; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
 .py-days-btn::before { content: ""; position: absolute; inset: -6px 0; }
 .py-days-btn .icon { width: 18px; height: 18px; color: var(--coral-on-stage); }
-/* With the next stop showing as well, the stage packs a little closer so it still fits a small phone. */
-.py-stage.is-full { gap: var(--s2); padding-bottom: var(--s3); }
+/* With the next stop and Pengu's window showing as well, the stage packs a little closer so it still fits
+   a small phone (375 × 667) without scrolling. Begin keeps its full 64px. */
+.py-stage.is-full { gap: 6px; padding-bottom: 10px; }
 .py-stage.is-full .py-days-btn { margin: -8px 0 -6px; }
-.py-stage.is-full .py-streak-chip { margin-bottom: -4px; }
+.py-stage.is-full .py-streak-chip { margin-bottom: -6px; }
+.py-stage.is-full .py-begin-btn { margin-top: 0; }
 /* No plan yet, after a streak week (where "Review last week's plan" waits): a little closer, to fit a small phone. */
 .py-streak-chip + .py-route-wrap.is-empty { margin-top: -6px; }
-.py-stage.is-full .py-onward { padding-top: 6px; }
+.py-stage.is-full .py-onward { padding-top: 4px; gap: 2px; }
 /* After a log, or between planned days: the next stop and what it pays, then Pengu's next goal. */
 /* A first visit: the first goal, drawn (Pengu in the scarf) beside the plain math of a full week. */
 .py-first-goal { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 4px 12px 4px 4px; border-radius: 18px; background: rgba(247, 242, 238, 0.08); }
@@ -353,6 +358,15 @@ html.is-splash .py-splash { display: grid; }
 .py-plan-next { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; margin: -5px 0; }
 .py-plan-next .icon { width: 18px; height: 18px; color: var(--coral-on-stage); }
 .py-chev { text-decoration: none; }
+/* "Look out the window": the quiet door to Pengu's window, a 32px link with a 44px tap strip. */
+.py-window-btn { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 32px; margin: -3px 0 -5px; text-align: left; }
+.py-window-btn::before { content: ""; position: absolute; inset: -6px 0; }
+.py-window-btn .icon { width: 18px; height: 18px; flex: none; color: var(--coral-on-stage); }
+/* The three-second arrival: the Fish a log paid ("+10") ride to the station, then fly into the Fish pill.
+   Placed with left/top once, then moved with transform only; `translate` centres it above the ring. */
+.py-fish-token { position: fixed; z-index: 60; display: inline-flex; align-items: center; gap: 4px; padding: 4px 11px 4px 8px; border-radius: var(--r-pill); background: var(--sun); color: var(--ink); font-size: 0.9375rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; box-shadow: 0 0 0 2px var(--stage), 0 8px 18px -8px rgba(0, 0, 0, 0.6); pointer-events: none; translate: -50% -100%; }
+.py-fish-token .icon { width: 16px; height: 16px; color: var(--coral-ink); }
+.py-goal-n { font-variant-numeric: tabular-nums; }
 
 /* ---------- 8. Sheets: they rise from the bottom edge ---------- */
 dialog.py-sheet {
@@ -363,7 +377,7 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-sheet-panel { position: relative; display: grid; gap: var(--s3); max-height: 92vh; overflow: auto; overscroll-behavior: contain; border-radius: var(--r-card) var(--r-card) 0 0; padding: var(--s3) var(--gutter) calc(var(--s5) + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -18px 40px -24px rgba(43, 38, 40, 0.45); touch-action: pan-y; }
 .py-sheet-grip { justify-self: center; width: 40px; height: 5px; border-radius: 3px; background: rgba(43, 38, 40, 0.22); }
 .py-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
-.py-sheet-close { width: var(--tap); height: var(--tap); border-radius: 50%; display: grid; place-items: center; padding: 0; color: var(--ink); }
+.py-sheet-close { flex: none; width: var(--tap); height: var(--tap); border-radius: 50%; display: grid; place-items: center; padding: 0; color: var(--ink); }   /* never squeezed by a long title at large text */
 /* The sunny reward sheet: Headspace-style bands with Pengu's face rising like a sun. */
 .py-reward .py-sheet-panel { min-height: min(60vh, 560px); align-content: start; overflow: hidden; background: var(--sun); padding-bottom: 0; }
 .py-reward-title { font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
@@ -383,6 +397,7 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-reward-goal-pic svg { width: 54px; margin-top: 2px; }
 .py-reward-goal-pic.is-train svg { width: 60px; margin-top: 0; }
 .py-reward-goal-text { display: grid; gap: 2px; justify-items: start; min-width: 0; }
+.py-reward-goal-text .link { display: inline-flex; align-items: center; min-height: var(--tap); margin: -8px 0 -10px; text-align: left; }   /* "Preview on Pengu": a full 44px target */
 .py-reward-goal-name { font-size: 1.0625rem; font-weight: 700; }
 .py-reward-goal-sub { font-size: 0.875rem; color: var(--ink-2); }
 .py-reward-extra { justify-self: start; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: rgba(255, 255, 255, 0.6); }
@@ -432,6 +447,26 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-sheet-note .icon { width: 18px; height: 18px; margin-top: 1px; color: var(--ink); }
 .py-cal-text { display: grid; gap: 2px; }
 .py-cal-text .link { justify-self: start; display: inline-flex; align-items: center; min-height: 32px; }
+/* Pengu's window: a train window in the player's own paint (--win), a hand-drawn view with Pengu at the
+   sill, one line of story, and Next. The picture is decorative; the line under it says what it shows. */
+.py-winsheet .py-sheet-panel { background: var(--paper) var(--grain); }
+.py-win-title { font-size: 1.375rem; line-height: 1.75rem; font-weight: 700; }
+.py-win-frame { --win: #3C4862; position: relative; padding: 10px; border-radius: 30px; background: var(--win); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -10px 18px rgba(0, 0, 0, 0.2), var(--shadow); }
+.py-win-view { position: relative; aspect-ratio: 16 / 10; border-radius: 20px; overflow: hidden; background: var(--paper-2); box-shadow: inset 0 0 0 2px var(--brass); }
+.py-win-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.py-win-pengu { position: absolute; z-index: 1; left: 4%; bottom: -7%; width: 25%; overflow: visible; }
+.py-win-tap { position: absolute; inset: 10px; z-index: 1; border: 0; border-radius: 20px; background: transparent; cursor: pointer; }
+.py-win-tap:focus { outline: none; }
+.py-win-snow circle { animation: py-flake 3.4s ease-in-out infinite alternate; }
+.py-win-snow circle:nth-child(3n) { animation-duration: 4.4s; animation-delay: -1.3s; }
+.py-win-snow circle:nth-child(3n + 1) { animation-duration: 2.9s; animation-delay: -0.7s; }
+@keyframes py-flake { from { transform: translate(-2px, -4px); } to { transform: translate(2px, 5px); } }
+.py-win-line { min-height: 2.8em; font-size: 1.0625rem; line-height: 1.4; font-weight: 600; }
+.py-win-dots { justify-self: center; }
+.py-win-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.py-win-actions .btn { flex: 1 1 8rem; }
+.py-win-actions .py-win-next { flex-grow: 2; }
+.py-win-note { justify-content: center; text-align: center; }
 
 /* ---------- 9. Plan: a full-screen paper view, four quick steps, then a sunny summary ---------- */
 .py-plan { display: grid; gap: var(--s5); align-content: start; }
@@ -575,7 +610,7 @@ section.py-next.is-ready { box-shadow: inset 0 0 0 2px var(--coral-strong), var(
 .py-postcard-caption { font-size: 1.25rem; line-height: 1.3; font-weight: 700; }
 .py-postcard-meta { font-size: 0.875rem; color: var(--ink); }
 .py-postcard-pengu { display: block; width: 88px; }
-.py-postcard-prop { position: absolute; top: 12px; right: 16px; font-size: 1.75rem; line-height: 1; }
+.py-postcard-prop { position: absolute; top: 10px; right: 12px; width: 46px; height: 46px; }
 .py-share { display: grid; gap: 10px; padding: 16px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
 .py-share-h { font-size: 1.125rem; font-weight: 700; }
 .py-share-h:focus:not(:focus-visible) { outline: none; }
@@ -588,6 +623,14 @@ section.py-next.is-ready { box-shadow: inset 0 0 0 2px var(--coral-strong), var(
 .py-share-making { font-size: 0.875rem; color: var(--ink-2); }
 .py-share-how { margin-top: -4px; }
 .py-share-status:focus:not(:focus-visible) { outline: none; }
+/* The Pengyu link waits until this version is live: the chip is off, and this says why. */
+.py-link-note { display: flex; align-items: flex-start; gap: 8px; }
+.py-link-note .icon { width: 16px; height: 16px; flex: none; margin-top: 2px; }
+.py-share-friend .link { display: inline-flex; align-items: center; min-height: 32px; text-align: left; }
+/* Bring a friend along: the invitation, any time. */
+.py-friend { display: grid; gap: 10px; }
+/* The local-data note, read first in Your data, with Save a backup and Restore directly under it. */
+.py-handoff { font-weight: 600; color: var(--ink); }
 .py-data { display: grid; gap: 10px; padding: var(--s4); border-radius: var(--r-card); background: var(--card); box-shadow: var(--shadow); }
 .py-data-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .py-backup-when { margin-top: -2px; }
@@ -608,7 +651,9 @@ section.py-next.is-ready { box-shadow: inset 0 0 0 2px var(--coral-strong), var(
 /* The quiet footer under the Pengu and History tabs. */
 .py-foot { padding-top: var(--s2); text-align: center; font-size: 0.8125rem; color: var(--ink-2); }
 .py-foot a, .py-data-privacy a { color: var(--ink); font-weight: 600; }
-.py-data-privacy { font-size: 0.875rem; }
+/* The privacy links are full 44px targets, even though they read as quiet text. */
+.py-foot a, .py-data-privacy a { display: inline-flex; align-items: center; min-height: var(--tap); vertical-align: middle; }
+.py-data-privacy { font-size: 0.875rem; margin: -10px 0; }
 
 /* ---------- 12. 404 and privacy pages ---------- */
 .not-found { min-height: 100vh; display: grid; place-items: center; padding: var(--s7) var(--gutter); text-align: center; }

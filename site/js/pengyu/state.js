@@ -451,7 +451,7 @@ export function lookWith(id, base = look()) {
 
 // ---------- Progress, as the screens show it (reads only; nothing here changes the save) ----------
 // The goal Today and the reward sheet show: the next gear piece in its order, or the first train upgrade
-// not owned yet, against the Fish in hand ("Scarf: 10 / 40 Fish"). Null once everything is owned.
+// not owned yet, against the Fish in hand ("Scarf: 30 more Fish"). Null once everything is owned.
 export function nextGoal() {
   const item = nextGear() || TRAIN.find((t) => !owns(t.id)) || null;
   if (!item) return null;
@@ -478,6 +478,13 @@ export function reach(goal = nextGoal()) {
   const bonus = r && need > 0 && r.open >= need && !state.weekBonusPaid.includes(thisWeek()) ? FISH.weekBonus : 0;
   const potential = goal.balance + left * FISH.station + bonus;
   return { ...goal, left, bonus, potential, inWeek: !goal.ready && left > 0 && potential >= goal.price };
+}
+
+// The next goal as a distance in words, the way a coffee card counts stars: "30 more Fish", or "ready to
+// unlock" once the Fish in hand cover the price (never "55 / 40").
+export function goalWords(goal = nextGoal()) {
+  if (!goal) return '';
+  return goal.ready ? 'ready to unlock' : `${goal.price - goal.balance} more Fish`;
 }
 
 // The week's goal line. "one-left" and "more" only while every planned workout still open can hit the
@@ -520,10 +527,12 @@ export function firstFullWeek() {
 }
 
 // ---------- Sharing: only what the player picks, and only from a tap ----------
-// The Pengyu link is the address the site's owner wrote into the app page's
-// <meta name="pengyu-share-url"> after opening it and seeing Pengyu load. Until then it is empty and no
-// link is ever offered: Pengyu never guesses an address. Only a plain https address is accepted, with no
-// login, query or fragment, so it cannot carry a tracking code.
+// The Pengyu link is the address the site's owner verified and wrote into the app page's
+// <meta name="pengyu-share-url">. It is offered only while this page is itself running at that address,
+// which is when this version is live there. Anywhere else (a preview deploy, localhost) no link is offered
+// and the screen says LIVE_NOTE instead. Pengyu never guesses an address, and only a plain https address
+// is accepted, with no login, query or fragment, so it cannot carry a tracking code.
+export const LIVE_NOTE = 'Link will work once this version is live.';
 export function shareLink(raw) {
   const text = typeof raw === 'string' ? raw.trim() : '';
   if (!text) return '';
@@ -533,52 +542,61 @@ export function shareLink(raw) {
   if (!url.hostname.includes('.') || /^[\d.]+$/.test(url.hostname)) return '';
   return url.href;
 }
-export function appLink() {
+export function ownerLink() {
   const el = typeof document !== 'undefined' ? document.querySelector('meta[name="pengyu-share-url"]') : null;
   return shareLink(el ? el.getAttribute('content') : '');
 }
+const pageHost = () => (typeof location !== 'undefined' ? location.hostname : '');
+// This page is served from the link's own address (with or without "www.").
+export function isLiveAt(url, host = pageHost()) {
+  if (!url || !host) return false;
+  return host.replace(/^www\./, '') === new URL(url).hostname.replace(/^www\./, '');
+}
+// The link a share may include: the owner's address, and only once this version runs there.
+export const appLink = (url = ownerLink(), host = pageHost()) => (isLiveAt(url, host) ? url : '');
+// An address is set, but this page isn't running there yet: the screen says LIVE_NOTE, and no link is offered.
+export const linkPending = (url = ownerLink(), host = pageHost()) => Boolean(url) && !isLiveAt(url, host);
 
 const dayName = (key) => parseKey(key).toLocaleDateString('en-US', { weekday: 'long' });
 const andList = (names) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] || '');
 const clockText = (hhmm) => { const [hr, m] = hhmm.split(':').map(Number); return new Date(2000, 0, 1, hr, m).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); };
 
-// How a friend can try Pengyu: the owner's link when there is one; until then, an honest "ask me".
-export const inviteLine = (url = appLink()) => (url ? `Plan your own week with Pengyu: ${url}` : 'Plan your own week with Pengyu. Ask me for the link.');
+// The postcard's link line, only when there is a live link to give.
+export const inviteLine = (url = appLink()) => (url ? `Plan your own week with Pengyu: ${url}` : '');
 
-// The postcard: captions and props are chosen, never from anyone else; the dates and the workout count
-// are added only when switched on, and so is the invitation line (on unless the player turns it off). No
-// name or place, ever.
+// The postcard: captions and props are chosen, never from anyone else. The prop is drawn on the image (no
+// emoji). The dates, the workout count and the Pengyu link are added only when switched on, and the link
+// only while there is a live one. No name or place, ever.
 export const POSTCARD = {
   captions: ['Week complete with Pengu.', 'Every stop, start to finish.', 'Pengu and I reached the last station.'],
-  props: [{ id: 'confetti', name: 'Confetti', mark: '🎉' }, { id: 'sun', name: 'Sunshine', mark: '☀️' }, { id: 'train', name: 'Train', mark: '🚂' }],
+  props: [{ id: 'confetti', name: 'Confetti' }, { id: 'sun', name: 'Sunshine' }, { id: 'snow', name: 'Snowflakes' }],
 };
-export function postcardText({ caption = 0, prop = '', dates = false, workouts = false, invite = false } = {}, card = firstFullWeek(), url = appLink()) {
+export function postcardText({ caption = 0, dates = false, workouts = false, link = false } = {}, card = firstFullWeek(), url = appLink()) {
   if (!card) return '';
-  const p = POSTCARD.props.find((x) => x.id === prop);
-  const lines = [`${POSTCARD.captions[caption] || POSTCARD.captions[0]}${p ? ` ${p.mark}` : ''}`];
+  const lines = [POSTCARD.captions[caption] || POSTCARD.captions[0]];
   if (dates) {
     const fmt = (key) => parseKey(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     lines.push(`${fmt(card.monday)} – ${fmt(addDays(card.monday, 6))}`);
   }
   if (workouts) lines.push(`${card.done} of ${card.target} planned workouts`);
-  if (invite) lines.push(inviteLine(url));
+  if (link && url) lines.push(inviteLine(url));
   return lines.join('\n');
 }
 
-// The invitation after a first plan: the same few words for everyone, then the Pengyu link when the
-// owner set one, or "Ask me for the link." until then. The player's days, time and place appear only if
-// they switch each one on. It claims nothing about the friend and pays nothing.
+// The invitation: the same few words for everyone, then the Pengyu link while one is live (none is
+// invented otherwise). The player's days, time and place appear only if they switch each one on. It
+// claims nothing about the friend and pays nothing.
 export const INVITE = [
-  'I’m planning my workouts for the week with Pengyu.',
-  'You pick 2 to 4 workouts, and Pengu’s train moves as you log them.',
-  'Want to plan your own week?',
+  'I’m planning my week on Pengyu.',
+  `Plan ${TARGETS[0]} to ${TARGETS[TARGETS.length - 1]} workouts, log them, and watch your penguin’s train move.`,
+  'Want to plan yours?',
 ];
 export function inviteText({ days = false, time = false, place = false } = {}, plan = planFor(shownWeek()), url = appLink()) {
   const lines = [...INVITE];
   if (plan && days) lines.push(`My days: ${andList(stations(plan).map(dayName))}.`);
   if (plan && time) lines.push(`My time: ${plan.window.startsWith('at ') ? clockText(plan.time) : `${plan.window}, ${clockText(plan.time)}`}.`);
   if (plan && place) lines.push(`My place: ${plan.place}.`);
-  lines.push(url || 'Ask me for the link.');
+  if (url) lines.push(url);
   return lines.join('\n');
 }
 

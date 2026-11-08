@@ -1,9 +1,11 @@
 // Today, exactly: the Fish pill and Pengu's avatar; "good evening."; the stage, with Pengu's train on this
-// week's route, "Workouts this week: X of N" and one big Begin. Begin logs in one tap: the train rolls to
-// its station, the ring fills, the count and Fish update, Pengu celebrates and the sunny reward sheet
-// rises with the Fish earned and Pengu's next goal ("Scarf: 20 / 40 Fish", previewed on Pengu). The route,
-// or "View or move workout days", opens the week sheet (sessions, moves, the calendar file, the cover).
-// After a log, and on days between planned workouts, the stage names the next stop and what it pays.
+// week's route, "Workouts this week: X of N" and one big Begin. Begin logs in one tap: the Fish it paid
+// appear at once on the station ahead ("+10"), the train rolls there, the ring fills, the Fish fly into the
+// pill as it counts up, Pengu celebrates, and the sunny reward sheet rises with the Fish earned and Pengu's
+// next goal ("Scarf: 30 more Fish", previewed on Pengu). The route, or "View or move workout days", opens
+// the week sheet (sessions, moves, the calendar file, the cover).
+// After a log, and on days between planned workouts, the stage names the next stop and what it pays, and
+// offers "Look out the window": Pengu's window, a tiny story with nothing to earn (window.js).
 // Planned ahead on Sunday, the stage shows next week's route: "Your route starts Monday." With no plan
 // this week, the stage says how Pengyu works in three short steps before "Plan my week", or, for a
 // returning player, "Review last week's plan". Right after a very first plan, a sheet offers an optional
@@ -14,10 +16,12 @@ import * as S from './state.js';
 import { downloadIcs } from './ics.js';
 import { h, icon, weekday, monthDay, clock } from './ui.js';
 import { penguFigure, trainFigure, faceFigure, glyph } from './art.js';
-import { bindPengu, rollTrain, fillStation, sheetIn, sheetOut, rise, reducedMotion } from './motion.js';
+import { bindPengu, rollTrain, fillStation, sheetIn, sheetOut, rise, reducedMotion, fishToken } from './motion.js';
 import { wobblyLine, ring, check, softRect } from './ink.js';
 import { countTo, toast as fxToast } from '../fx.js';
 import { tipWanted, saveBackup } from './backup.js';
+import { buildWindow } from './window.js';
+import { inviteBody } from './invite.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 let pending = null;   // a log in flight: what the screen showed before Begin, then what it paid
@@ -70,14 +74,17 @@ const dayName = (stop) => (stop.week === S.thisWeek() ? weekday(S.parseKey(stop.
 // `said`: the caption above already says "Welcome back: +15 Fish for your comeback".
 const stopLine = (stop, said = false) => `Next stop: ${dayName(stop)} · +${stop.fish} Fish${stop.comeback && !said ? `, +${stop.comeback} welcome back` : ''}`;
 
-// Pengu's next goal, which is also the way to the Pengu tab: "Next upgrade: Scarf · 20 / 40 Fish".
+// Pengu's next goal, which is also the way to the Pengu tab: "Next upgrade: Scarf · 30 more Fish".
 function goalRow() {
   const g = S.nextGoal();
-  const words = !g ? ['Pengu has every upgrade.']
-    : g.ready ? [`Next upgrade: ${g.item.name} · ready to unlock`]
-      : [`Next upgrade: ${g.item.name} · `, h('span', { 'aria-hidden': 'true' }, `${g.balance} / ${g.price}`), h('span', { class: 'sr-only' }, `${g.balance} of ${g.price}`), ' Fish'];
+  const words = g ? `Next upgrade: ${g.item.name} · ${S.goalWords(g)}` : 'Pengu has every upgrade.';
   return h('button', { class: 'link py-onward-goal num', type: 'button', id: 'py-see-pengu', onclick: () => refs.onShop() },
-    ...words, h('span', { class: 'sr-only' }, g ? '. See Pengu’s next upgrade.' : '. See Pengu.'), h('span', { class: 'py-chev', 'aria-hidden': 'true' }, ' ›'));
+    words, h('span', { class: 'sr-only' }, g ? '. See Pengu’s next upgrade.' : '. See Pengu.'), h('span', { class: 'py-chev', 'aria-hidden': 'true' }, ' ›'));
+}
+// Pengu's window: a tiny story for a rest day (or any day after a log). Nothing to earn.
+const windowButton = () => h('button', { class: 'link py-window-btn', type: 'button', id: 'py-window', onclick: openWindow }, icon('i-window'), 'Look out the window');
+function openWindow() {
+  openSheet('py-winsheet', 'py-win-title', buildWindow, () => document.getElementById('py-window'));
 }
 
 // After a log, and on a day between planned workouts: where the route goes next and what that stop
@@ -90,7 +97,7 @@ function onward() {
   if (stop) first = h('p', { class: 'py-onward-stop' }, stopLine(stop, Boolean(p.comeback && p.kind === 'moved')));
   else if (S.canPlanNextWeek()) first = h('button', { class: 'link py-plan-next', type: 'button', id: 'py-plan-next', onclick: () => refs.onPlan() }, icon('i-calendar'), (S.reviewLabel && S.reviewLabel()) || 'Plan next week');
   else first = h('p', { class: 'py-onward-stop' }, 'You can plan next week on Sunday.');
-  return h('div', { class: 'py-onward' }, first, goalRow());
+  return h('div', { class: 'py-onward' }, first, goalRow(), windowButton());
 }
 
 // A first visit (also where a friend's link lands): what the player does, in three short steps, and the
@@ -152,7 +159,9 @@ function stationNode(s, i, count, arriving) {
       <path class="py-ring-line" d="${ring(20, 20, 15, { seed: 11 + i * 7 })}"/>
       <circle class="py-ring-fill" cx="20" cy="20" r="15.6"/>
       <path class="py-ring-check" d="${check(20, 20.6, 17, { seed: 5 + i })}"/>`),
-    h('span', { class: 'py-stop-day', 'aria-hidden': 'true' }, s.status === 'today' ? 'Today' : weekday(date, 'short')),
+    // With large text the weekdays shorten to two letters ("We"), so neighbours never run together.
+    h('span', { class: 'py-stop-day', 'aria-hidden': 'true' }, s.status === 'today' ? 'Today'
+      : [h('span', { class: 'py-stop-long' }, weekday(date, 'short')), h('span', { class: 'py-stop-short' }, weekday(date, 'short').slice(0, 2))]),
     stamped ? h('span', { class: `py-stamp${arriving ? ' is-new' : ''}`, 'aria-hidden': 'true' }, icon('i-stamp')) : null,
     h('span', { class: 'sr-only' }, `${weekday(date)}: ${SAY[s.status]}${stamped ? ', with a Comeback stamp' : ''}`));
   li.style.setProperty('--at', String((i + 1) / count));
@@ -185,20 +194,27 @@ function repeatPlan() {
   toast('Your week is planned.', 'Same days, time and place as last time.');
 }
 let requestFocus = false;   // after the one tap, focus goes to the week's count
+let token = null;           // the "+10" riding to the station, until it flies into the Fish pill
 function begin() {
   const r0 = S.route();
   const p = S.logPreview();
-  pending = { before: { fish: S.state.fish.balance, count: r0 ? r0.done : 0, goal: r0 ? goal() : null }, arriving: p.kind === 'planned' || p.kind === 'moved' };
+  pending = { before: { fish: S.state.fish.balance, count: r0 ? r0.done : 0, goal: r0 ? goal() : null, next: S.nextGoal() }, arriving: p.kind === 'planned' || p.kind === 'moved' };
   try { if (navigator.vibrate) navigator.vibrate(10); } catch { /* no haptics here */ }
   const res = S.logWorkout();   // Today re-renders right away and rolls the train in from where it stood
   if (!res) { pending = null; return; }
   pending.res = res;
+  // The Fish it paid show at once, on the station the train is heading for (never for an extra ride).
+  const total = res.fish + res.bonus + res.comeback;
+  if (token) token.drop();
+  token = total > 0 ? fishToken(document.querySelector('.py-station.is-arriving'), `+${total}`) : null;
 }
 
 function arrive(view) {
   const p = pending;
   pending = null;
-  if (!p || !p.res || !view.isConnected) return;
+  const tk = token;   // the "+10" is always sent home or cleared here, never left floating
+  token = null;
+  if (!p || !p.res || !view.isConnected) { if (tk) tk.drop(); return; }
   const r = S.route();
   const st = view.querySelector('.py-station.is-arriving');
   if (st) { st.classList.remove('is-arriving'); fillStation(st); }
@@ -210,6 +226,7 @@ function arrive(view) {
     line.classList.toggle('is-calm', g.calm);
   }
   const fishN = view.querySelector('.py-fish-n');
+  if (tk) tk.land(view.querySelector('.py-fishpill'));
   countTo(fishN, S.state.fish.balance);
   view.querySelector('.py-fishpill').setAttribute('aria-label', `${S.state.fish.balance} Fish`);
   // Pengu celebrates on the next frame. The sheet's art is usually drawn already (at idle time); if
@@ -221,7 +238,7 @@ function arrive(view) {
   announce(res.kind === 'extra'
     ? `Extra workout logged. No Fish.${res.extra ? ` You collected the ${res.extra.name}.` : ''}`
     : `Workout logged. ${r.done} of ${r.target}.${res.comeback ? ' Comeback stamp.' : ''}${r.hit ? ' You hit your week.' : ''} Plus ${total} Fish.`);
-  setTimeout(() => openReward(res), reducedMotion() ? 0 : 600);
+  setTimeout(() => openReward(res, p.before.next), reducedMotion() ? 0 : 600);
 }
 
 // ---------- Sheets ----------
@@ -302,11 +319,21 @@ function rewardCopy(res) {
   return { title, lines, stamp: Boolean(res.comeback), extra: res.kind === 'extra' ? res.extra : null, postcard: Boolean(card && card.monday === S.thisWeek()), stop };
 }
 
-// "Scarf: 20 / 40 Fish", read out as "20 of 40 Fish".
-const fishOf = (g) => [`${g.item.name}: `, h('span', { 'aria-hidden': 'true' }, `${g.balance} / ${g.price}`), h('span', { class: 'sr-only' }, `${g.balance} of ${g.price}`), ' Fish'];
+// "Scarf: 30 more Fish", or "Scarf: ready to unlock". When the log just brought the same goal closer, the
+// distance counts down from where it stood ("40" to "30"), so the step closer is seen; screen readers
+// hear only the final words.
+function fishOf(g, before) {
+  if (g.ready) return [`${g.item.name}: ready to unlock`];
+  const short = g.price - g.balance;
+  const was = before && before.item.id === g.item.id && !before.ready ? before.price - before.balance : short;
+  const n = h('span', { class: 'py-goal-n' }, String(was));
+  n.dataset.value = String(was);
+  if (was !== short) setTimeout(() => countTo(n, short), reducedMotion() ? 0 : 520);
+  return [`${g.item.name}: `, h('span', { 'aria-hidden': 'true' }, n, ' more Fish'), h('span', { class: 'sr-only' }, `${short} more Fish`)];
+}
 
-// The next goal on the reward sheet: Pengu (or the train) wearing it already, the Fish in hand against its
-// price, and a preview on the Pengu tab. A preview never unlocks or spends anything.
+// The next goal on the reward sheet: Pengu (or the train) wearing it already, the Fish still to go (or
+// "ready to unlock"), and a preview on the Pengu tab. A preview never unlocks or spends anything.
 // The goal's second line. "Finish your plan and it's yours" only when it is true: the planned workouts
 // still open this week, plus the week bonus if it can still be earned, cover the price. Comebacks and
 // extra workouts are never counted, and Fish already spent elsewhere are not in the balance.
@@ -320,7 +347,7 @@ function goalSub(g) {
   }
   return `${g.price - g.balance} more Fish to unlock it.`;
 }
-function goalBlock(close) {
+function goalBlock(close, before = null) {
   const g = S.nextGoal();
   if (!g) return h('p', { class: 'py-reward-next' }, 'Pengu has every upgrade. ', h('button', { class: 'link', type: 'button', onclick: () => { close(true); refs.onShop(); } }, 'See Pengu'));
   const gear = S.GEAR.some((x) => x.id === g.item.id);
@@ -328,7 +355,7 @@ function goalBlock(close) {
   return h('div', { class: 'py-reward-goal' },
     h('div', { class: `py-reward-goal-pic${gear ? '' : ' is-train'}`, 'aria-hidden': 'true' }, art),
     h('div', { class: 'py-reward-goal-text' },
-      h('p', { class: 'py-reward-goal-name num' }, ...fishOf(g)),
+      h('p', { class: 'py-reward-goal-name num' }, ...fishOf(g, before)),
       h('p', { class: 'py-reward-goal-sub' }, goalSub(g)),
       h('button', { class: 'link', type: 'button', id: 'py-reward-preview', onclick: () => { close(true); refs.onShop(g.item.id); } }, 'Preview on Pengu')));
 }
@@ -358,7 +385,7 @@ function primeRewardArt() {
 }
 const whenIdle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 1200));
 
-function openReward(res) {
+function openReward(res, before = null) {
   const copy = rewardCopy(res);
   openSheet('py-reward', 'py-reward-title', (panel, close) => {
     panel.append(...[
@@ -368,7 +395,7 @@ function openReward(res) {
       h('ul', { class: 'py-reward-lines' }, copy.lines.map((l) => h('li', { class: 'num' }, l))),
       copy.stop ? h('p', { class: 'py-reward-stop num' }, copy.stop) : null,
       copy.postcard ? h('p', { class: 'py-reward-postcard' }, icon('i-stamp'), h('span', {}, 'Your first postcard is ready. ', h('button', { class: 'link', type: 'button', id: 'py-reward-postcard', onclick: () => { close(true); refs.onPostcard(); } }, 'Preview your postcard'))) : null,
-      goalBlock(close),
+      goalBlock(close, before),
       h('button', { class: 'btn glass-coral py-reward-ok', type: 'button', autofocus: true, onclick: () => close() }, 'Nice'),
       h('div', { class: 'py-reward-art', 'aria-hidden': 'true' }, bandsArt(), h('div', { class: 'py-reward-face' }, faceArt())),
     ].filter(Boolean));
@@ -394,67 +421,39 @@ function openTip() {
       h('ol', { class: 'py-tip-steps' },
         h('li', {}, h('span', { class: 'py-tip-n', 'aria-hidden': 'true' }, '1'), h('span', {}, 'Tap ', icon('i-share', 'icon py-tip-share'), h('strong', {}, 'Share'), ' in Safari.')),
         h('li', {}, h('span', { class: 'py-tip-n', 'aria-hidden': 'true' }, '2'), h('span', {}, 'Choose ', h('strong', {}, 'Add to Home Screen'), '.'))),
+      // The local-data note, with Save a backup and Restore from a backup directly under it.
       h('p', { class: 'py-tip-note py-handoff' }, 'Progress is saved in this browser. Another browser or Home Screen app may have a separate save.'),
-      h('p', { class: 'py-tip-note' }, 'Already have progress here? Save a backup, then restore it in the Home Screen app.'),
-      h('div', { class: 'py-tip-actions' },
+      h('div', { class: 'py-tip-actions py-handoff-actions' },
         h('button', { class: 'btn glass-coral', type: 'button', id: 'py-tip-backup', onclick: () => { saveBackup(); status.textContent = 'Backup saved. Keep the file somewhere safe.'; } }, 'Save a backup'),
         // Restore asks first, as always: the file is checked, then Settings shows what it holds and waits for Restore.
-        h('button', { class: 'btn btn-secondary', type: 'button', id: 'py-tip-restore', onclick: () => file.click() }, 'Restore from a backup'),
-        h('button', { class: 'btn btn-ghost', type: 'button', autofocus: true, onclick: () => close() }, 'Got it')),
+        h('button', { class: 'btn btn-secondary', type: 'button', id: 'py-tip-restore', onclick: () => file.click() }, 'Restore from a backup')),
       file,
-      status);
+      status,
+      h('p', { class: 'py-tip-note' }, 'Already have progress here? Save a backup, then restore it in the Home Screen app.'),
+      h('div', { class: 'py-tip-actions' },
+        h('button', { class: 'btn btn-ghost', type: 'button', autofocus: true, onclick: () => close() }, 'Got it')));
   }, () => document.querySelector('.py-count'));
 }
 
 // ---------- The invitation, once, right after a very first plan ----------
-// The same few words for everyone, plus the Pengyu link when the owner set one. The player's days, time
-// and place join only when switched on. Nothing is shared until Share or Copy text is tapped, and
-// nothing is counted or rewarded either way.
+// (History keeps the same invitation, any time after.) The words are invite.js's: the same for everyone,
+// then the Pengyu link while this version is live. Nothing is shared until Share or Copy text is tapped,
+// and nothing is counted or rewarded either way.
 let invite = { days: false, time: false, place: false, status: '' };
 function openInvite(monday) {
   const plan = S.planFor(monday);
-  if (!plan || !S.inviteText || !document.querySelector('.py-today')) return;
+  if (!plan || !document.querySelector('.py-today')) return;
   invite = { days: false, time: false, place: false, status: '' };
   openSheet('py-invite', 'py-invite-title', function fill(panel, close, focusId = '') {
     for (const n of [...panel.children]) if (!n.classList.contains('py-sheet-grip')) n.remove();
-    const refill = (id) => fill(panel, close, id);
-    const text = S.inviteText(invite, plan);
-    const say = (msg, id = 'py-invite-status') => { invite.status = msg; refill(id); };
-    const toggle = (key, label) => h('button', {
-      class: 'chip glass py-share-chip', type: 'button', id: `py-invite-${key}`, 'aria-pressed': String(invite[key]),
-      onclick: () => { invite[key] = !invite[key]; invite.status = ''; refill(`py-invite-${key}`); },
-    }, label);
     panel.append(
       h('div', { class: 'py-sheet-head' },
         h('div', {},
           h('p', { class: 'eyebrow' }, 'Your week is planned'),
           h('h2', { class: 'py-invite-title', id: 'py-invite-title', tabindex: '-1', autofocus: !focusId }, 'Invite a friend to plan their own week')),
         h('button', { class: 'py-sheet-close glass', type: 'button', 'aria-label': 'Close', onclick: () => close() }, icon('i-close'))),
-      h('p', { class: 'py-sheet-note' }, 'Optional. Nothing is sent until you tap Share or Copy text.'),
-      h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Add your plan details' },
-        toggle('days', 'Add my days'), toggle('time', 'Add my time'), toggle('place', 'Add my place')),
-      h('label', { class: 'py-share-label', for: 'py-invite-text' }, 'What will be shared'),
-      h('textarea', { class: 'py-share-text', id: 'py-invite-text', readonly: true, rows: String(text.split('\n').length) }, text),
-      S.appLink() ? null : h('p', { class: 'py-sheet-note' }, 'No Pengyu link is set up yet. The message asks your friend to ask you.'),
-      h('div', { class: 'py-data-actions' },
-        typeof navigator.share === 'function' ? h('button', {
-          class: 'btn btn-primary btn-sm', type: 'button', id: 'py-invite-share',
-          onclick: async () => {
-            try { await navigator.share({ text }); say('Shared.'); } catch (err) { say(err && err.name === 'AbortError' ? 'Not shared.' : 'Sharing didn’t work here. Try Copy text.'); }
-          },
-        }, icon('i-share'), 'Share invitation') : null,
-        h('button', {
-          class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-invite-copy',
-          onclick: async () => {
-            try { await navigator.clipboard.writeText(text); say('Copied. Paste it wherever you like.'); } catch { say('Copying isn’t allowed here. Select the text above to copy it.', 'py-invite-text'); }
-          },
-        }, 'Copy text'),
-        h('button', { class: 'btn btn-ghost btn-sm', type: 'button', id: 'py-invite-later', onclick: () => close() }, 'Not now')),
-      h('p', { class: 'py-share-status', id: 'py-invite-status', role: 'status', tabindex: '-1' }, invite.status));
+      ...inviteBody({ st: invite, plan, refill: (id) => fill(panel, close, id), done: () => close() }));
     if (focusId) panel.querySelector(`#${focusId}`)?.focus({ preventScroll: true });
-    // The box grows to show every line it will share, wrapped or not.
-    const box = panel.querySelector('#py-invite-text');
-    requestAnimationFrame(() => { if (box.isConnected) { box.style.height = 'auto'; box.style.height = `${box.scrollHeight + 2}px`; } });
   }, () => document.querySelector('.py-count'));
 }
 
@@ -568,7 +567,7 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
       b.change ? h('p', { class: 'py-caption' }, h('button', { class: 'link', type: 'button', id: 'py-change-plan', onclick: () => onPlan() }, 'Change days, time or place')) : null,
       b.caption ? h('p', { class: 'py-caption' }, b.caption) : null,
       // After a log or on a day between planned workouts: the next stop and Pengu's next goal.
-      r && ahead ? h('div', { class: 'py-onward' }, goalRow()) : r && S.logPreview().kind !== 'planned' ? onward() : null));
+      r && ahead ? h('div', { class: 'py-onward' }, goalRow(), windowButton()) : r && S.logPreview().kind !== 'planned' ? onward() : null));
   root.append(view);
 
   // Roll the train in from where it stood, if a log just happened.

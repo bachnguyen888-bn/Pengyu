@@ -155,13 +155,13 @@ test('the first postcard: only after a week with every planned workout logged; i
   assert.equal(S.state.fish.balance, fish);
 });
 
-test('sharing text holds only what was picked: a caption, a prop, and dates or workouts only when switched on', async () => {
+test('sharing text holds only what was picked: a caption, and dates or workouts only when switched on (the prop is drawn, not typed)', async () => {
   const S = await freshApp(`${MON}T07:00`);
   assert.equal(S.postcardText(), '', 'nothing to share before the first full week');
   assert.ok(plan(S, MWF));
   for (const d of MWF) logOn(S, d);
   assert.equal(S.postcardText(), 'Week complete with Pengu.');
-  assert.equal(S.postcardText({ caption: 2, prop: 'train' }), 'Pengu and I reached the last station. 🚂');
+  assert.equal(S.postcardText({ caption: 2, prop: 'snow' }), 'Pengu and I reached the last station.', 'the prop is on the image only: no emoji in the text');
   assert.equal(S.postcardText({ caption: 1, dates: true }), 'Every stop, start to finish.\nNov 2 – Nov 8');
   assert.equal(S.postcardText({ workouts: true }), 'Week complete with Pengu.\n3 of 3 planned workouts');
   const all = S.postcardText({ caption: 0, prop: 'sun', dates: true, workouts: true });

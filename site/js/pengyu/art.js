@@ -324,6 +324,44 @@ export function glyph(id, { outline = false } = {}) {
   return svg;
 }
 
+// The postcard's props, drawn (no emoji): confetti, a sun and snowflakes, in the palette and set to read
+// on the sunny card. Seeded, so the same choice always draws the same picture.
+function propMarkup(id) {
+  const r = rng(id === 'confetti' ? 91 : 92);
+  const n = (v) => Math.round(v * 10) / 10;
+  if (id === 'confetti') {
+    const colors = ['#FF6B4A', '#2F3A52', '#F7BFDF', '#FFFFFF', '#E5532F'];
+    return Array.from({ length: 16 }, (_, i) => {
+      const x = n(8 + r() * 84); const y = n(8 + r() * 84); const a = Math.round(r() * 180); const c = colors[i % colors.length];
+      return i % 3 === 0 ? `<circle cx="${x}" cy="${y}" r="${n(3 + r() * 2)}" fill="${c}"/>`
+        : `<rect x="${n(x - 5)}" y="${n(y - 2.2)}" width="10" height="4.4" rx="1.6" fill="${c}" transform="rotate(${a} ${x} ${y})"/>`;
+    }).join('');
+  }
+  if (id === 'sun') {
+    const rays = Array.from({ length: 10 }, (_, i) => {
+      const a = (i / 10) * Math.PI * 2; const c = Math.cos(a); const s = Math.sin(a);
+      return `<path d="M${n(50 + c * 30)} ${n(50 + s * 30)}L${n(50 + c * (42 + (i % 2) * 5))} ${n(50 + s * (42 + (i % 2) * 5))}"/>`;
+    }).join('');
+    return `<g stroke="#E5532F" stroke-width="5" stroke-linecap="round">${rays}</g><circle cx="50" cy="50" r="22" fill="#FFE07A" stroke="#E5532F" stroke-width="4"/>
+      <path d="M41 51q9 9 18 0" fill="none" stroke="#2B2628" stroke-width="3" stroke-linecap="round"/><circle cx="42" cy="44" r="2.4" fill="#2B2628"/><circle cx="58" cy="44" r="2.4" fill="#2B2628"/>`;
+  }
+  if (id === 'snow') {
+    const flake = (cx, cy, s) => Array.from({ length: 3 }, (_, i) => {
+      const a = (i / 3) * Math.PI; const c = Math.cos(a) * s; const sn = Math.sin(a) * s;
+      return `M${n(cx - c)} ${n(cy - sn)}L${n(cx + c)} ${n(cy + sn)}`;
+    }).join('');
+    const spots = [[30, 32, 17], [70, 28, 11], [62, 70, 15], [24, 74, 9]];
+    const d = spots.map(([x, y, s]) => flake(x, y, s)).join('');
+    return `<path d="${d}" fill="none" stroke="#2F3A52" stroke-width="6.4" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round"/>`;
+  }
+  return '';
+}
+export function propFigure(id, cls = '') {
+  const svg = svgEl('0 0 100 100', `py-art py-prop ${cls}`.trim());
+  svg.innerHTML = propMarkup(id);
+  return svg;
+}
+
 // A tiny seeded sparkle field for celebrations: deterministic positions, so screenshots match.
 export function sparkleSpots(n, seed = 7) {
   const r = rng(seed);

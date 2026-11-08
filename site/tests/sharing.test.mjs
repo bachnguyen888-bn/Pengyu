@@ -1,7 +1,9 @@
 // Sharing and returning plans, as rules: the Pengyu link is only ever the owner's https address (never
-// a guess, never with a query or fragment that could track); the postcard and the invitation say only
-// what the player switched on; and reviewing last week's plan never fills in a passed day, never
-// assumes a number the week can't hold, and saves nothing on its own.
+// a guess, never with a query or fragment that could track), and only while this page runs at that
+// address (anywhere else, "Link will work once this version is live."); the postcard and the invitation
+// say only what the player switched on, with the postcard's link off by default; and reviewing last
+// week's plan never fills in a passed day, never assumes a number the week can't hold, and saves nothing
+// on its own.
 // Run with: node --test "site/tests/*.test.mjs"
 // Weeks used: Monday Nov 2 to Sunday Nov 8, 2026, then Monday Nov 9 and Monday Nov 16.
 import { test } from 'node:test';
@@ -31,56 +33,79 @@ test('the Pengyu link: only a plain https address the owner wrote; nothing else 
   assert.equal(S.shareLink('javascript:alert(1)'), '');
   assert.equal(S.shareLink(' https://pengyu.example '), 'https://pengyu.example/');
   assert.equal(S.shareLink('https://example.com/pengyu'), 'https://example.com/pengyu');
-  // In this test there is no page, so no owner-set address: no link.
+  // In this test there is no page, so no owner-set address: no link, and nothing pending either.
   assert.equal(S.appLink(), '');
+  assert.equal(S.linkPending(), false);
+});
+
+test('the live rule: the verified address is offered only while the page runs there; elsewhere it waits, and says so', async () => {
+  const S = await freshApp(`${MON}T07:00`);
+  const verified = S.shareLink('https://bachnguyenclearhealth.com');
+  assert.equal(verified, 'https://bachnguyenclearhealth.com/');
+  // Live: this version is the one serving bachnguyenclearhealth.com.
+  assert.equal(S.appLink(verified, 'bachnguyenclearhealth.com'), verified);
+  assert.equal(S.appLink(verified, 'www.bachnguyenclearhealth.com'), verified, 'the www twin is the same site');
+  assert.equal(S.linkPending(verified, 'bachnguyenclearhealth.com'), false);
+  // Not live: a preview deploy, localhost or any other host never offers the link.
+  for (const host of ['localhost', '127.0.0.1', 'deploy-preview-12--pengyu.netlify.app', 'bachnguyenclearhealth.com.evil.example', '']) {
+    assert.equal(S.appLink(verified, host), '', `no link on "${host}"`);
+    assert.equal(S.linkPending(verified, host), true, `pending on "${host}"`);
+  }
+  assert.equal(S.LIVE_NOTE, 'Link will work once this version is live.');
+  // With no verified address at all, nothing is offered and nothing is pending.
+  assert.equal(S.appLink('', 'bachnguyenclearhealth.com'), '');
+  assert.equal(S.linkPending('', 'localhost'), false);
 });
 
 // ---------- The postcard ----------
-test('postcard text: the caption alone unless the player adds more; the invitation line uses the owner’s link or asks', async () => {
+test('postcard text: the caption alone unless the player adds more; the link only when chosen and live, never invented', async () => {
   const S = await freshApp(`${MON}T07:00`);
   plan(S, MWF);
   for (const d of MWF) logOn(S, d);
   const card = S.firstFullWeek();
-  const url = 'https://pengyu.example/';
-  assert.equal(S.postcardText({}, card, url), 'Week complete with Pengu.', 'no dates, count or invitation unless chosen');
-  assert.equal(S.postcardText({ invite: true }, card, ''), 'Week complete with Pengu.\nPlan your own week with Pengyu. Ask me for the link.', 'no owner link: none is invented, the friend is told to ask');
-  assert.equal(S.postcardText({ invite: true }, card), 'Week complete with Pengu.\nPlan your own week with Pengyu. Ask me for the link.', 'and none without a page either');
-  assert.equal(S.postcardText({ invite: true }, card, url), `Week complete with Pengu.\nPlan your own week with Pengyu: ${url}`);
-  assert.equal(S.postcardText({ caption: 2, prop: 'train', dates: true, workouts: true, invite: true }, card, url),
-    `Pengu and I reached the last station. 🚂\nNov 2 – Nov 8\n3 of 3 planned workouts\nPlan your own week with Pengyu: ${url}`);
-  for (const opts of [{}, { invite: true }, { dates: true, workouts: true, invite: true }]) {
+  const url = 'https://bachnguyenclearhealth.com/';
+  assert.equal(S.postcardText({}, card, url), 'Week complete with Pengu.', 'no dates, count or link unless chosen: the link is off by default');
+  assert.equal(S.postcardText({ link: true }, card, ''), 'Week complete with Pengu.', 'chosen, but not live: no link and no stand-in line');
+  assert.equal(S.postcardText({ link: true }, card), 'Week complete with Pengu.', 'and none without a page either');
+  assert.equal(S.postcardText({ link: true }, card, url), `Week complete with Pengu.\nPlan your own week with Pengyu: ${url}`);
+  assert.equal(S.postcardText({ caption: 2, prop: 'snow', dates: true, workouts: true, link: true }, card, url),
+    `Pengu and I reached the last station.\nNov 2 – Nov 8\n3 of 3 planned workouts\nPlan your own week with Pengyu: ${url}`);
+  for (const opts of [{}, { link: true }, { dates: true, workouts: true, link: true }]) {
     const t = S.postcardText(opts, card, url);
     assert.ok(!/gym|after class|3:30|15:30|at the/i.test(t), `never the place or time: ${t}`);
+    assert.ok(!/\p{Extended_Pictographic}/u.test(t), `no emoji: ${t}`);
   }
-  assert.equal(S.inviteLine(''), 'Plan your own week with Pengyu. Ask me for the link.');
+  assert.ok(S.POSTCARD.props.every((p) => !('mark' in p)), 'props are drawn, not typed');
+  assert.equal(S.inviteLine(''), '');
   assert.equal(S.inviteLine(url), `Plan your own week with Pengyu: ${url}`);
 });
 
 // ---------- The invitation ----------
-test('invitation: the same words for everyone, then the link or "ask me"; days, time and place only when switched on', async () => {
+test('invitation: the same words for everyone, then the live link only; days, time and place only when switched on', async () => {
   const S = await freshApp(`${MON}T07:00`);
   plan(S, MWF);
   const p = S.planFor(MON);
   const base = S.INVITE.join('\n');
-  const ask = 'Ask me for the link.';
-  assert.equal(S.inviteText({}, p, ''), `${base}\n${ask}`, 'generic, and an honest "ask me" when no link is set');
-  assert.equal(S.inviteText({}, p), `${base}\n${ask}`, 'no page: no owner link');
-  assert.equal(S.inviteText({}, p, 'https://pengyu.example/'), `${base}\nhttps://pengyu.example/`);
-  assert.equal(S.inviteText({ days: true }, p, ''), `${base}\nMy days: Monday, Wednesday and Friday.\n${ask}`);
-  assert.equal(S.inviteText({ time: true }, p, ''), `${base}\nMy time: after class, 3:30 PM.\n${ask}`);
-  assert.equal(S.inviteText({ place: true }, p, ''), `${base}\nMy place: at the gym.\n${ask}`);
-  assert.equal(S.inviteText({ days: true, time: true, place: true }, p, 'https://pengyu.example/'),
-    `${base}\nMy days: Monday, Wednesday and Friday.\nMy time: after class, 3:30 PM.\nMy place: at the gym.\nhttps://pengyu.example/`);
+  assert.deepEqual(S.INVITE, ['I’m planning my week on Pengyu.', 'Plan 2 to 4 workouts, log them, and watch your penguin’s train move.', 'Want to plan yours?']);
+  assert.equal(S.inviteText({}, p, ''), base, 'no live link: the generic words only, nothing invented');
+  assert.equal(S.inviteText({}, p), base, 'no page: no owner link');
+  assert.equal(S.inviteText({}, p, 'https://bachnguyenclearhealth.com/'), `${base}\nhttps://bachnguyenclearhealth.com/`);
+  assert.equal(S.inviteText({ days: true }, p, ''), `${base}\nMy days: Monday, Wednesday and Friday.`);
+  assert.equal(S.inviteText({ time: true }, p, ''), `${base}\nMy time: after class, 3:30 PM.`);
+  assert.equal(S.inviteText({ place: true }, p, ''), `${base}\nMy place: at the gym.`);
+  assert.equal(S.inviteText({ days: true, time: true, place: true }, p, 'https://bachnguyenclearhealth.com/'),
+    `${base}\nMy days: Monday, Wednesday and Friday.\nMy time: after class, 3:30 PM.\nMy place: at the gym.\nhttps://bachnguyenclearhealth.com/`);
+  assert.equal(S.inviteText({ days: true }, null, ''), base, 'no plan yet (History): the generic words, with nothing to add');
   // The default words carry nothing personal and claim nothing.
   assert.ok(!/Monday|Wednesday|Friday|3:30|gym|after class/.test(base));
   assert.ok(!/joined|is in|reward|bonus|Fish|friends? (are|have)/i.test(base), base);
-  for (const line of [...S.INVITE, ask]) assert.ok(line.split(/\s+/).length < 15, `short: ${line}`);
+  for (const line of S.INVITE) assert.ok(line.split(/\s+/).length < 15, `short: ${line}`);
 });
 
 test('invitation: a typed time reads as a clock time', async () => {
   const S = await freshApp(`${MON}T07:00`);
   S.createPlan({ target: 2, days: ['2026-11-03', '2026-11-05'], time: '16:00', window: 'at 4:00 PM', place: 'at the pool' });
-  assert.equal(S.inviteText({ time: true, place: true }, S.planFor(MON), '').split('\n').slice(-3).join(' | '), 'My time: 4:00 PM. | My place: at the pool. | Ask me for the link.');
+  assert.equal(S.inviteText({ time: true, place: true }, S.planFor(MON), '').split('\n').slice(-2).join(' | '), 'My time: 4:00 PM. | My place: at the pool.');
 });
 
 // ---------- Reviewing last week's plan ----------

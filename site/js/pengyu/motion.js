@@ -235,3 +235,56 @@ export function rise(face) {
   if (!face || reducedMotion()) return;
   animate(face, { translateY: ['40%', '0%'], duration: 900, delay: 120, ease: 'outBack(1.2)' });
 }
+
+// Pengu's window: the next view rolls in from the side the train is heading, far hills slowly and the near
+// ground quickly, while the last view fades away. With reduced motion it is a 150ms fade.
+export function sceneIn(next, prev, dir = 1) {
+  const done = () => { if (prev) prev.remove(); };
+  if (!dir || reducedMotion()) {
+    if (prev) animate(prev, { opacity: [1, 0], duration: dir ? 150 : 0, onComplete: done });
+    if (dir) animate(next, { opacity: [0, 1], duration: 150 });
+    return;
+  }
+  for (const [sel, dx] of [['.py-win-far', 26], ['.py-win-mid', 60], ['.py-win-near', 120], ['.py-win-snow', 70]]) {
+    const layer = next.querySelector(sel);
+    if (layer) animate(layer, { translateX: [dx * dir, 0], duration: 640, ease: 'outQuint' });
+  }
+  animate(next, { opacity: [0, 1], duration: 260, ease: 'outQuad' });
+  if (prev) animate(prev, { opacity: [1, 0], duration: 240, ease: 'outQuad', onComplete: done });
+}
+
+// The three-second arrival: the Fish a log just paid appear at once on the station the train is heading
+// for, ride there with it, then fly into the Fish pill as the count goes up. Only transform and opacity
+// move. It is never drawn with reduced motion (the count simply changes). `land(pill)` sends it home.
+export function fishToken(station, text) {
+  const ring = station && station.querySelector('.py-ring');
+  if (!ring || reducedMotion()) return null;
+  const box = ring.getBoundingClientRect();
+  if (!box.width) return null;
+  const el = document.createElement('div');
+  el.className = 'py-fish-token';
+  el.setAttribute('aria-hidden', 'true');
+  el.style.setProperty('left', `${box.left + box.width / 2}px`);
+  el.style.setProperty('top', `${box.top - 6}px`);
+  el.innerHTML = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-fish"/></svg>';
+  el.append(document.createTextNode(text));
+  document.body.append(el);
+  animate(el, { scale: [0.4, 1.12, 1], opacity: [0, 1], translateY: [8, -10], duration: 380, ease: 'outBack(1.6)' });
+  return {
+    land(pill) {
+      const to = pill && pill.getBoundingClientRect();
+      if (!to || !el.isConnected) { el.remove(); return; }
+      const from = el.getBoundingClientRect();
+      animate(el, {
+        translateX: [0, to.left + to.width / 2 - (from.left + from.width / 2)],
+        translateY: [-10, to.top + to.height / 2 - (from.top + from.height / 2) - 10],
+        scale: [1, 0.55],
+        opacity: [1, 1, 0],
+        duration: 520,
+        ease: 'inQuad',
+        onComplete: () => el.remove(),
+      });
+    },
+    drop() { el.remove(); },
+  };
+}
