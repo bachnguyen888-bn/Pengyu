@@ -83,9 +83,7 @@ function goalRow() {
     words, h('span', { class: 'sr-only' }, g ? '. See Pengu’s next upgrade.' : '. See Pengu.'), h('span', { class: 'py-chev', 'aria-hidden': 'true' }, ' ›'));
 }
 // Pengu's window: a tiny story for a rest day (or any day after a log). Nothing to earn.
-const windowButton = () => h('div', { class: 'py-window-visit' },
-  h('button', { class: 'link py-window-btn', type: 'button', id: 'py-window', onclick: openWindow, 'aria-describedby': 'py-window-hint' }, icon('i-window'), 'Visit Pengu'),
-  h('p', { class: 'py-caption', id: 'py-window-hint' }, 'See the next moment.'));
+const windowButton = () => h('button', { class: 'link py-window-btn', type: 'button', id: 'py-window', onclick: openWindow }, icon('i-window'), 'Look out the window');
 function openWindow() {
   openSheet('py-winsheet', 'py-win-title', buildWindow, () => document.getElementById('py-window'));
 }
@@ -208,7 +206,6 @@ function begin() {
   const res = S.logWorkout();   // Today re-renders right away and rolls the train in from where it stood
   if (!res) { pending = null; return; }
   pending.res = res;
-  announce(res.kind === 'extra' ? 'Extra workout logged. No Fish.' : 'Workout logged.');
   // The Fish it paid show at once, on the station the train is heading for (never for an extra ride).
   const total = res.fish + res.bonus + res.comeback;
   if (token) token.drop();
@@ -338,16 +335,16 @@ function rewardCopy(res) {
   return { title, lines, stamp: Boolean(res.comeback), extra: res.kind === 'extra' ? res.extra : null, postcard: Boolean(card && card.monday === S.thisWeek()), stop };
 }
 
-// "Scarf: 10 / 40 Fish", or "Scarf: ready to unlock". The saved balance counts up from before the log,
-// so the step closer is seen; screen readers hear only the final amount. Spending elsewhere is reflected.
+// "Scarf: 30 more Fish", or "Scarf: ready to unlock": a distance in words, never "10 / 40". The number
+// counts down from before the log, so the step closer is seen; screen readers hear only the final distance.
 function fishOf(g, before) {
   if (g.ready) return [`${g.item.name}: ready to unlock`];
-  const balance = Math.min(g.balance, g.price);
-  const was = before && before.item.id === g.item.id ? Math.min(before.balance, g.price) : balance;
+  const short = g.price - g.balance;
+  const was = before && before.item.id === g.item.id && !before.ready ? before.price - before.balance : short;
   const n = h('span', { class: 'py-goal-n' }, String(was));
   n.dataset.value = String(was);
-  if (was !== balance) setTimeout(() => { if (n.isConnected) countTo(n, balance); }, reducedMotion() ? 0 : 150);
-  return [`${g.item.name}: `, h('span', { 'aria-hidden': 'true' }, n, ` / ${g.price} Fish`), h('span', { class: 'sr-only' }, `${balance} of ${g.price} Fish`)];
+  if (was !== short) setTimeout(() => { if (n.isConnected) countTo(n, short); }, reducedMotion() ? 0 : 150);
+  return [`${g.item.name}: `, h('span', { 'aria-hidden': 'true' }, n, ' more Fish'), h('span', { class: 'sr-only' }, `${short} more Fish`)];
 }
 
 // The next goal on the reward sheet: Pengu (or the train) wearing it already, the Fish still to go (or
@@ -412,7 +409,7 @@ function openReward(res, before = null) {
       copy.extra ? h('div', { class: 'py-reward-extra', 'aria-hidden': 'true' }, glyph(copy.extra.id)) : null,
       h('ul', { class: 'py-reward-lines' }, copy.lines.map((l) => h('li', { class: 'num' }, l))),
       copy.stop ? h('p', { class: 'py-reward-stop num' }, copy.stop) : null,
-      copy.postcard ? h('p', { class: 'py-reward-postcard' }, icon('i-stamp'), h('span', {}, 'Your first postcard is ready. ', h('button', { class: 'link', type: 'button', id: 'py-reward-postcard', onclick: () => { close(true); refs.onPostcard(); } }, 'Preview postcard'))) : null,
+      copy.postcard ? h('p', { class: 'py-reward-postcard' }, icon('i-stamp'), h('span', {}, 'Your first postcard is ready. ', h('button', { class: 'link', type: 'button', id: 'py-reward-postcard', onclick: () => { close(true); refs.onPostcard(); } }, 'Preview your postcard'))) : null,
       goalBlock(close, before),
       h('button', { class: 'btn glass-coral py-reward-ok', type: 'button', autofocus: true, onclick: () => close() }, 'Nice'),
       h('div', { class: 'py-reward-art', 'aria-hidden': 'true' }, bandsArt(), h('div', { class: 'py-reward-face' }, faceArt())),
@@ -440,7 +437,7 @@ function openTip() {
         h('li', {}, h('span', { class: 'py-tip-n', 'aria-hidden': 'true' }, '1'), h('span', {}, 'Tap ', icon('i-share', 'icon py-tip-share'), h('strong', {}, 'Share'), ' in Safari.')),
         h('li', {}, h('span', { class: 'py-tip-n', 'aria-hidden': 'true' }, '2'), h('span', {}, 'Choose ', h('strong', {}, 'Add to Home Screen'), '.'))),
       // The local-data note, with Save a backup and Restore from a backup directly under it.
-      h('p', { class: 'py-tip-note py-handoff' }, 'Progress stays in this browser. Another browser may have a separate save.'),
+      h('p', { class: 'py-tip-note py-handoff' }, 'Progress is saved in this browser. Another browser or Home Screen app may have a separate save.'),
       h('div', { class: 'py-tip-actions py-handoff-actions' },
         h('button', { class: 'btn glass-coral', type: 'button', id: 'py-tip-backup', onclick: () => { saveBackup(); status.textContent = 'Backup saved. Keep the file somewhere safe.'; } }, 'Save a backup'),
         // Restore asks first, as always: the file is checked, then Settings shows what it holds and waits for Restore.

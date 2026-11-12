@@ -136,7 +136,7 @@ test('Pengu’s window: the tunnel uses the player’s own headlamp; the last li
 });
 
 // ---------- Promises kept in the page's own source ----------
-const HANDOFF = 'Progress stays in this browser. Another browser may have a separate save.';
+const HANDOFF = 'Progress is saved in this browser. Another browser or Home Screen app may have a separate save.';
 test('local data: the exact words, with Save a backup and Restore from a backup directly under them (Settings, History, the tip)', () => {
   for (const [file, saveId] of [['js/pengyu/history.js', 'py-backup'], ['js/pengyu/route.js', 'py-tip-backup']]) {
     const src = read(file);

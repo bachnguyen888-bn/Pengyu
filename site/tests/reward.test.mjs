@@ -196,7 +196,7 @@ test('Fish counter finishes in 650ms; reduced motion cancels an in-flight count 
   time.frame(1400); assert.equal(n.textContent, '40 Fish');
 });
 
-test('a log acknowledges immediately, arrives at 1250ms and opens its exact reward at 1850ms', () => {
+test('a log shows its Fish at once, arrives at 1250ms with one announcement, and opens its exact reward at 1850ms', () => {
   const r = route();
   r.seed({ bound: [{ celebrate: () => r.events.push(['celebrate', r.time.now()]) }] });
   r.begin();
@@ -206,7 +206,7 @@ test('a log acknowledges immediately, arrives at 1250ms and opens its exact rewa
   assert.equal(r.events.find(([kind]) => kind === 'vibrate')[2], 10);
   const m = motion(r.time);
   m.rollTrain({ querySelectorAll: () => [], querySelector: () => null }, -180, { onArrive: () => r.arrive(r.view, pending) });
-  r.time.advance(60); assert.equal(r.live.textContent, 'Workout logged.', 'acknowledged before train arrival');
+  r.time.advance(60); assert.equal(r.live.textContent, '', 'one announcement only: nothing is said before the train arrives');
   r.time.advance(1249); assert.equal(r.events.some(([kind]) => kind === 'fill'), false);
   r.time.advance(1250);
   assert.equal(r.nodes['.py-count-n'].textContent, '1 of 3');
@@ -214,6 +214,7 @@ test('a log acknowledges immediately, arrives at 1250ms and opens its exact rewa
   assert.equal(r.events.find(([kind]) => kind === 'count')[2], 10);
   assert.equal(r.events.find(([kind]) => kind === 'land')[1], 1250);
   r.time.frame(1266); assert.equal(r.events.filter(([kind]) => kind === 'celebrate').length, 1);
+  r.time.advance(1310); assert.match(r.live.textContent, /^Workout logged\. 1 of 3\..* Plus 10 Fish\.$/, 'the full result, said once on arrival');
   r.time.advance(1849); assert.equal(r.events.some(([kind]) => kind === 'reward'), false);
   r.time.advance(1850);
   const reward = r.events.find(([kind]) => kind === 'reward');
@@ -317,15 +318,15 @@ test('a player-chosen sheet cancels the first-plan invitation and suppresses lat
   assert.equal(r.events.some(([kind]) => kind === 'reward'), false);
 });
 
-test('the next-gear display counts saved balance toward its price and never shows an overfilled unlock', () => {
+test('the next-gear display reads as a distance in words, counts down from before the log, and never shows an overfilled unlock', () => {
   const r = route();
   const goal = { item: { id: 'scarf', name: 'Scarf' }, balance: 10, price: 40, ready: false };
   const before = { ...goal, balance: 0 };
   const words = r.fishOf(goal, before);
   const display = words[1];
-  assert.equal(display.textContent, '0 / 40 Fish');
-  assert.equal(words[2].textContent, '10 of 40 Fish', 'assistive text announces only the final balance');
+  assert.equal(display.textContent, '40 more Fish');
+  assert.equal(words[2].textContent, '30 more Fish', 'assistive text announces only the final distance');
   r.time.advance(150); r.time.frame(800);
-  assert.equal(display.textContent, '10 / 40 Fish');
+  assert.equal(display.textContent, '30 more Fish');
   assert.equal(r.fishOf({ ...goal, balance: 55, ready: true }, before)[0], 'Scarf: ready to unlock');
 });

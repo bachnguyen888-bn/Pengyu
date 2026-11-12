@@ -1,4 +1,4 @@
-// "Visit Pengu" (Today): Pengu's window, a tiny story in three authored scenes (story.js has the
+// "Look out the window" (Today): Pengu's window, a tiny story in three authored scenes (story.js has the
 // words), one tap at a time, then Replay or Done. The scenes are drawn here in the hand-drawn style and the
 // locked palette. The frame wears the player's train paint and Pengu peeks in wearing their gear: both from
 // choices already made, and nothing new. No Fish, no score, no workout asked for, nothing random and
@@ -44,19 +44,6 @@ const SCENES = {
       <g class="py-win-near"><path d="M-40 158Q60 148 160 156T380 152V200H-40Z" fill="#FFFFFF"/><path d="${wobblyLine(-40, 380, 156, { seed: 8, amp: 1.2, step: 48 })}" fill="none" stroke="#E6DCD3" stroke-width="1.4"/>
         <path d="M40 176q18-9 36 0M210 184q22-10 44 0" fill="none" stroke="#E6DCD3" stroke-width="1.4" stroke-linecap="round"/></g>
       <g class="py-win-snow" fill="#FFFFFF" stroke="#D9D2CE" stroke-width=".6">${flakes}</g>`;
-  },
-  lake(id) {
-    const r = rng(52);
-    const glints = Array.from({ length: 9 }, () => { const x = f(20 + r() * 280); const y = f(138 + r() * 26); return `<path d="M${x} ${y}h${f(5 + r() * 7)}"/>`; }).join('');
-    return `<defs><linearGradient id="${id}-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE07A"/><stop offset=".85" stop-color="#FAF6F0"/></linearGradient></defs>
-      <rect width="320" height="200" fill="url(#${id}-sky)"/>
-      <g class="py-win-far"><circle cx="236" cy="60" r="30" fill="#FFE07A" opacity=".6"/><circle cx="236" cy="60" r="18" fill="#FFCE3A"/>
-        <path d="M-40 124C30 100 90 108 140 120S250 102 380 120V200H-40Z" fill="#F3ECE4" stroke="#E6DCD3" stroke-width="1.2"/></g>
-      <g class="py-win-mid"><path d="M-40 132Q160 118 380 134V172Q160 184 -40 170Z" fill="#4A5876" fill-opacity=".22"/>
-        <path d="M224 134L248 134L242 170L230 170Z" fill="#FFCE3A" opacity=".35"/>
-        <g fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round">${glints}</g></g>
-      <g class="py-win-near"><path d="M-40 174Q80 166 170 174T380 172V200H-40Z" fill="#FFFFFF"/><path d="${wobblyLine(-40, 380, 173, { seed: 12, amp: 1, step: 52 })}" fill="none" stroke="#E6DCD3" stroke-width="1.4"/>
-        <ellipse cx="58" cy="182" rx="11" ry="5" fill="#2F3A52"/><ellipse cx="74" cy="185" rx="6" ry="3.4" fill="#2F3A52"/><ellipse cx="268" cy="186" rx="9" ry="4" fill="#2F3A52"/></g>`;
   },
   tunnel(id, { headlamp = false } = {}) {
     const rings = [[10, 6, 300, 188, 0.5], [52, 32, 216, 136, 0.65], [88, 54, 144, 92, 0.8], [116, 72, 88, 56, 0.95]]

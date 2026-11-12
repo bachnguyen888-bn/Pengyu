@@ -2,7 +2,7 @@
 // planned workouts were done, the Fish it paid, its Comeback stamps, the free cover if one was used, and
 // the extras collected: words and small tags only, no charts, no ranking, only this player's own weeks.
 // At the top, the first postcard: a keepsake for the first week with every planned workout logged (its
-// condition is shown until then), with an optional "Preview postcard": the image (Pengu in their gear,
+// condition is shown until then), with an optional "Preview your postcard": the image (Pengu in their gear,
 // beside their train, with a drawn prop) and the text, exactly as they would be shared, then Share, Copy
 // text or Download postcard. Nothing is shared without a tap. Then "Bring a friend along": the invitation to plan
 // their own week, any time (invite.js).
@@ -128,7 +128,7 @@ function dataCard(rerender, onReset, onRestore) {
   // The local-data note first, with Save a backup and Restore from a backup directly under it.
   const card = h('section', { class: 'py-data', 'aria-labelledby': 'py-data-title' },
     h('h2', { class: 'py-section-title', id: 'py-data-title' }, 'Your data'),
-    h('p', { class: 'py-handoff' }, 'Progress stays in this browser. Another browser may have a separate save.'),
+    h('p', { class: 'py-handoff' }, 'Progress is saved in this browser. Another browser or Home Screen app may have a separate save.'),
     h('div', { class: 'py-data-actions py-handoff-actions' },
       h('button', {
         class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-backup',
@@ -336,7 +336,7 @@ function saveImage(rerender) {
   rerender();
 }
 
-// Preview postcard: pick the words, see the image and the text exactly as they would go, then share,
+// Preview your postcard: pick the words, see the image and the text exactly as they would go, then share,
 // copy or save. The Pengyu link is off until the player adds it, and is offered only while this version is
 // live at the owner's address; until then the chip waits and says so.
 function sharePanel(rerender, card) {
@@ -377,7 +377,7 @@ function sharePanel(rerender, card) {
   const box = h('textarea', { class: 'py-share-text', id: 'py-share-text', readonly: true, rows: String(text.split('\n').length) }, text);
   requestAnimationFrame(() => { if (box.isConnected) { box.style.height = 'auto'; box.style.height = `${box.scrollHeight + 2}px`; } });
   return h('div', { class: 'py-share', role: 'group', 'aria-labelledby': 'py-share-title' },
-    h('h3', { class: 'py-share-h', id: 'py-share-title', tabindex: '-1' }, 'Preview postcard'),
+    h('h3', { class: 'py-share-h', id: 'py-share-title', tabindex: '-1' }, 'Preview your postcard'),
     h('p', { class: 'small muted' }, 'Share your journey with a friend.'),
     h('p', { class: 'small muted' }, 'Pick a caption and a prop. Dates, the workout count and the link stay out unless you add them.'),
     h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Caption' },
@@ -399,7 +399,6 @@ function sharePanel(rerender, card) {
       go,
       h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-copy', onclick: () => copyNow(text, rerender) }, 'Copy text'),
       save,
-      h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-invite', onclick: () => { friend = { ...friend, open: true, status: '' }; refocus = 'py-friend-h'; rerender(); } }, 'Copy invite'),
       h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { share.open = false; share.status = ''; refocus = 'py-share-open'; rerender(); } }, 'Done')),
     h('p', { class: 'py-share-status', id: 'py-share-status', role: 'status', tabindex: '-1' }, share.status),
     h('p', { class: 'py-share-friend' }, h('button', {
@@ -445,14 +444,14 @@ function postcardSection(rerender) {
       h('div', { class: 'py-postcard-art', 'aria-hidden': 'true' }, pengu),
       prop ? propFigure(prop.id, 'py-postcard-prop') : null),
     share.open ? sharePanel(rerender, card) : h('div', { class: 'py-data-actions' },
-      h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-open', 'aria-expanded': 'false', onclick: () => { share.open = true; refocus = 'py-share-title'; rerender(); } }, icon('i-share'), 'Preview postcard')));
+      h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-open', 'aria-expanded': 'false', onclick: () => { share.open = true; refocus = 'py-share-title'; rerender(); } }, icon('i-share'), 'Preview your postcard')));
 }
 
 export function renderHistory(root, rerender, { onReset = () => {}, onRestore = () => {}, fresh = false, postcard = false } = {}) {
   for (const b of bound) if (b) b.stop();
   bound = [];
   if (fresh) { share = { ...share, open: false, status: '' }; friend = { ...friend, open: false, status: '' }; }
-  // From the reward sheet's "Preview postcard": the preview opens at once, with focus on it.
+  // From the reward sheet's "Preview your postcard": the preview opens at once, with focus on it.
   const opening = postcard && Boolean(S.firstFullWeek());
   if (opening) share = { ...share, open: true, status: '' };
   const info = S.streakInfo();

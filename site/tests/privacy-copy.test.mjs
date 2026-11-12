@@ -15,7 +15,7 @@ test('Privacy describes unlogged days neutrally without hiding comeback or weekl
 });
 
 test('Privacy keeps the local-save, export and explicit-share boundaries visible', () => {
-  for (const term of ['localStorage', 'sessionStorage', 'Cache Storage', 'host may keep request logs', 'Save a backup', 'Restore', 'Reset everything', 'Download calendar reminders', 'Preview postcard', 'Download postcard', 'Copy invite']) {
+  for (const term of ['localStorage', 'sessionStorage', 'Cache Storage', 'host may keep request logs', 'Save a backup', 'Restore', 'Reset everything', 'Download calendar reminders', 'Preview your postcard', 'Download postcard', 'Copy invite']) {
     assert.ok(visible.includes(term), term);
   }
   assert.match(visible, /preview explains what Share will send before you tap it/);
