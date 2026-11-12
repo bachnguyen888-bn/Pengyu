@@ -1,5 +1,5 @@
 // Pengu's window, as words: a tiny story for any visit, and the reason a rest day can still be a nice
-// visit. Four authored scenes in a fixed order, the same for everyone, then Replay or Done. Nothing here is
+// visit. Three authored scenes in a fixed order, the same for everyone, then Replay or Done. Nothing here is
 // random, nothing is earned or saved, and nothing asks for a workout. Two touches come from what the player
 // already chose: the tunnel is lit by their own headlamp once they unlocked it, and the last line names
 // their real next stop (or what is true when there is none). Pengu in the window wears their gear
@@ -23,7 +23,6 @@ function lastLine(S) {
 export function windowStory(S) {
   return [
     { id: 'pines', line: 'Snow on the pines. Pengu presses a flipper to the glass.' },
-    { id: 'lake', line: 'A frozen lake shines. Pengu counts the sparkles.' },
     { id: 'tunnel', line: S.owns('headlamp') ? 'Into the tunnel. Your headlamp lights the way.' : 'Into the tunnel. Lamps glow by: one, two, three.' },
     { id: 'hills', line: lastLine(S) },
   ];

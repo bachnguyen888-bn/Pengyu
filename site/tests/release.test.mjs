@@ -89,7 +89,7 @@ test('the first scarf: a full plan of 2, 3 or 4 pays 45, 55 or 65 against its 40
 });
 
 // ---------- Pengu's window ----------
-test('Pengu’s window: four fixed scenes, short lines, nothing to earn, nothing saved, the same every time', async () => {
+test('Pengu’s window: three fixed scenes, short lines, nothing to earn, nothing saved, the same every time', async () => {
   const S = await freshApp(`${MON}T12:00`);
   plan(S, ['2026-11-09', '2026-11-11', '2026-11-13']);
   logOn(S, '2026-11-09');
@@ -97,8 +97,8 @@ test('Pengu’s window: four fixed scenes, short lines, nothing to earn, nothing
   const before = snapshot(S);
   const story = windowStory(S);
   assert.equal(snapshot(S), before, 'reading the story saves nothing');
-  assert.ok(story.length >= 3 && story.length <= 5, 'three to five scenes');
-  assert.deepEqual(story.map((s) => s.id), ['pines', 'lake', 'tunnel', 'hills'], 'a fixed order, the same for everyone');
+  assert.equal(story.length, 3, 'a finite three-moment visit');
+  assert.deepEqual(story.map((s) => s.id), ['pines', 'tunnel', 'hills'], 'a fixed order, the same for everyone');
   assert.deepEqual(windowStory(S), story, 'deterministic: no randomness');
   assert.equal(WINDOW_TITLE, 'Pengu’s window');
   for (const { line } of story) {
@@ -106,37 +106,37 @@ test('Pengu’s window: four fixed scenes, short lines, nothing to earn, nothing
     assert.ok(!/Fish|streak|score|calorie|step|should|must|eat|don’t miss|log /i.test(line), `no reward, score or instruction: ${line}`);
   }
   assert.ok(story.map((s) => s.line).join(' ').split('!').length - 1 <= 1, 'at most one exclamation mark');
-  assert.equal(story[3].line, 'Out of the tunnel, the hills glow. Next stop: Wednesday.', 'the real next stop, nothing more');
+  assert.equal(story[2].line, 'Out of the tunnel, the hills glow. Next stop: Wednesday.', 'the real next stop, nothing more');
 });
 
 test('Pengu’s window: the tunnel uses the player’s own headlamp; the last line stays true in every week state', async () => {
   const S = await freshApp(`${MON}T07:00`, rich(60));
-  assert.equal(windowStory(S)[2].line, 'Into the tunnel. Lamps glow by: one, two, three.');
+  assert.equal(windowStory(S)[1].line, 'Into the tunnel. Lamps glow by: one, two, three.');
   assert.ok(S.buy('headlamp'));
-  assert.equal(windowStory(S)[2].line, 'Into the tunnel. Your headlamp lights the way.');
+  assert.equal(windowStory(S)[1].line, 'Into the tunnel. Your headlamp lights the way.');
   // No plan this week.
-  assert.equal(windowStory(S)[3].line, 'Out of the tunnel, the hills glow. A new route starts Monday.');
+  assert.equal(windowStory(S)[2].line, 'Out of the tunnel, the hills glow. A new route starts Monday.');
   // The week hit.
   plan(S, ['2026-11-09', '2026-11-10']);
   logOn(S, '2026-11-09'); logOn(S, '2026-11-10');
-  assert.equal(windowStory(S)[3].line, 'Out of the tunnel, the hills glow. Your week is complete.');
+  assert.equal(windowStory(S)[2].line, 'Out of the tunnel, the hills glow. Your week is complete.');
   // Sunday, next week planned too: Today still shows the hit week, and so does the window.
   at(S, '2026-11-15T10:00');
   assert.ok(plan(S, ['2026-11-16', '2026-11-18'], { week: NEXT }));
   assert.equal(S.shownWeek(), MON);
-  assert.equal(windowStory(S)[3].line, 'Out of the tunnel, the hills glow. Your week is complete.');
+  assert.equal(windowStory(S)[2].line, 'Out of the tunnel, the hills glow. Your week is complete.');
   // A planned day not logged yet: today, said plainly.
   at(S, '2026-11-16T09:00');
-  assert.equal(windowStory(S)[3].line, 'Out of the tunnel, the hills glow. Next stop: today.');
+  assert.equal(windowStory(S)[2].line, 'Out of the tunnel, the hills glow. Next stop: today.');
   // No plan this week, next week planned on Sunday: Today shows next week's route, and the window says so.
   const T = await freshApp('2026-11-15T10:00');
   assert.ok(plan(T, ['2026-11-16', '2026-11-18'], { week: NEXT }));
   assert.equal(T.shownWeek(), NEXT);
-  assert.equal(windowStory(T)[3].line, 'Out of the tunnel, the hills glow. Your route starts Monday.');
+  assert.equal(windowStory(T)[2].line, 'Out of the tunnel, the hills glow. Your route starts Monday.');
 });
 
 // ---------- Promises kept in the page's own source ----------
-const HANDOFF = 'Progress is saved in this browser. Another browser or Home Screen app may have a separate save.';
+const HANDOFF = 'Progress stays in this browser. Another browser may have a separate save.';
 test('local data: the exact words, with Save a backup and Restore from a backup directly under them (Settings, History, the tip)', () => {
   for (const [file, saveId] of [['js/pengyu/history.js', 'py-backup'], ['js/pengyu/route.js', 'py-tip-backup']]) {
     const src = read(file);

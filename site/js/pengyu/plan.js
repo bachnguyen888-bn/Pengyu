@@ -42,10 +42,11 @@ function choicesFrom(d, p) {
 // A first plan starts empty. A returning player starts from the review of their last plan.
 function startDraft() {
   const week = S.planningWeek();
-  const d = { week, step: 1, target: 0, days: [], timeId: '', customTime: '16:00', placeId: '', customPlace: '', icsFor: '', review: null };
+  const d = { week, step: 1, target: 0, days: [], timeId: '', customTime: '16:00', placeId: '', customPlace: '', icsFor: '', review: null, expired: [], chooseCount: false };
   const review = S.planReview ? S.planReview(week) : null;
   if (!review) return d;
   d.review = review;
+  d.chooseCount = review.target === 0;
   d.step = REVIEW;
   d.target = review.target;
   d.days = [...review.days];
@@ -56,7 +57,7 @@ function startDraft() {
 export function resetPlanDraft() { draft = null; }
 
 function timeChoice() {
-  if (draft.timeId === 'custom') return /^\d{2}:\d{2}$/.test(draft.customTime) ? { time: draft.customTime, window: `at ${clock(draft.customTime)}` } : null;
+  if (draft.timeId === 'custom') return /^([01]\d|2[0-3]):[0-5]\d$/.test(draft.customTime) ? { time: draft.customTime, window: `at ${clock(draft.customTime)}` } : null;
   const t = TIMES.find((x) => x.id === draft.timeId);
   return t ? { time: t.time, window: t.window } : null;
 }
@@ -96,6 +97,7 @@ function counter() {
   const n = draft.days.length;
   const t = draft.target;
   if (!S.TARGETS.includes(t)) return 'Choose how many workouts first.';
+  if (t > S.openDays(draft.week).length) return 'Fewer days are left this week. Choose a smaller number.';
   if (n > t) return `${n} picked. Unpick ${n - t} to keep ${t}.`;
   return `${n} of ${t} picked`;
 }
@@ -108,6 +110,15 @@ export function renderPlanFlow(root, rerender, { onExit = () => {} } = {}) {
   if (!draft || draft.week !== S.planningWeek()) draft = startDraft();
   const ahead = draft.week !== S.thisWeek();
   const open = S.openDays(draft.week);
+  // A draft may stay open overnight. Passed selections need a replacement, never a disabled chip
+  // that cannot be unpicked. Keep every choice that is still valid, including time and place.
+  const expired = draft.days.filter((d) => !open.includes(d));
+  if (expired.length) {
+    draft.expired = [...new Set([...draft.expired, ...expired])];
+    draft.days = draft.days.filter((d) => open.includes(d));
+    if (draft.step > 1) draft.step = draft.review ? REVIEW : 1;
+  }
+  if (draft.target > open.length) draft.chooseCount = true;
   const go = (step) => { draft.step = step; moveFocus = true; rerender(); };
   const set = (patch) => { refocusKey = document.activeElement?.dataset?.key || ''; Object.assign(draft, patch); rerender(); };
   const onReview = draft.step === REVIEW;
@@ -177,12 +188,12 @@ export function renderPlanFlow(root, rerender, { onExit = () => {} } = {}) {
     hint = 'Same days, time and place. Start it as it is, or edit it.';
     // Something from last time no longer fits this week: a weekday has passed, or fewer days are left than
     // the last number. The player chooses; this part stays on screen until Start, so focus never jumps.
-    const fixing = rv.missing.length > 0 || rv.target === 0;
-    const passed = rv.missing.map((d) => weekday(S.parseKey(d)));
+    const fixing = rv.missing.length > 0 || draft.expired.length > 0 || draft.chooseCount;
+    const passed = [...new Set([...rv.missing, ...draft.expired])].map((d) => weekday(S.parseKey(d)));
     const counted = S.TARGETS.includes(draft.target);
     const need = counted ? draft.target - draft.days.length : 0;
     const needs = [
-      rv.target === 0 ? `Only ${open.length} days are left this week, so pick a number.` : '',
+      draft.chooseCount ? `Only ${open.length} days are left this week, so pick a number.` : '',
       passed.length ? `${listOf(passed)} ${passed.length > 1 ? 'have' : 'has'} passed this week.` : '',
       !counted ? '' : need > 0 ? `Pick ${need} more ${need > 1 ? 'days' : 'day'} below.` : need < 0 ? counter() : 'Your days are set.',
     ].filter(Boolean).join(' ');
@@ -197,8 +208,8 @@ export function renderPlanFlow(root, rerender, { onExit = () => {} } = {}) {
         h('p', { class: 'py-summary-fish' }, `Each planned workout pays ${S.FISH.station} Fish, and the full week adds ${S.FISH.weekBonus}.`)),
       fixing ? h('div', { class: 'py-review-fix' },
         h('p', { class: 'py-review-needs', id: 'py-plan-needs' }, needs),
-        rv.target === 0 ? h('h2', { class: 'py-step-sub', id: 'py-plan-count-q' }, 'How many workouts?') : null,
-        rv.target === 0 ? counts('py-plan-count-q') : null,
+        draft.chooseCount ? h('h2', { class: 'py-step-sub', id: 'py-plan-count-q' }, 'How many workouts?') : null,
+        draft.chooseCount ? counts('py-plan-count-q') : null,
         h('h2', { class: 'py-step-sub', id: 'py-plan-days-q' }, 'Which days?'),
         dayChips('py-plan-days-q'),
         h('p', { class: 'py-counter', 'aria-live': 'polite' }, counter())) : null);
@@ -207,7 +218,7 @@ export function renderPlanFlow(root, rerender, { onExit = () => {} } = {}) {
       h('button', { class: 'btn btn-secondary py-review-edit', type: 'button', 'data-key': 'edit', onclick: () => go(1) }, 'Edit'),
       ...calendar());
   } else if (draft.step === 1) {
-    title = ahead ? 'Plan next week' : 'Plan your week';
+    title = 'Pick your workouts and days.';
     eyebrow = `${ahead ? 'Next week' : 'Plan your week'} · Step 1 of ${STEPS}`;
     hint = ahead ? 'Your route starts Monday. Any workout, any length, counts.' : 'Any workout, any length, counts. Pick a number you can keep.';
     body = h('div', { class: 'py-step-body' },
@@ -216,6 +227,7 @@ export function renderPlanFlow(root, rerender, { onExit = () => {} } = {}) {
       h('h2', { class: 'py-step-sub', id: 'py-plan-days-q' }, 'Which days?'),
       h('p', { class: 'py-hint' }, S.TARGETS.includes(draft.target) ? `Pick ${draft.target}. You can move one later, with no penalty.` : 'Pick a number first, then the days.'),
       dayChips('py-plan-days-q'),
+      draft.expired.length ? h('p', { class: 'py-hint' }, 'A chosen day has passed. Pick a replacement day.') : null,
       h('p', { class: 'py-counter', 'aria-live': 'polite' }, counter()));
   } else if (draft.step === 2) {
     title = 'When and where?';

@@ -1,4 +1,4 @@
-// "Look out the window" (Today): Pengu's window, a tiny story in four authored scenes (story.js has the
+// "Visit Pengu" (Today): Pengu's window, a tiny story in three authored scenes (story.js has the
 // words), one tap at a time, then Replay or Done. The scenes are drawn here in the hand-drawn style and the
 // locked palette. The frame wears the player's train paint and Pengu peeks in wearing their gear: both from
 // choices already made, and nothing new. No Fish, no score, no workout asked for, nothing random and
@@ -142,6 +142,7 @@ export function buildWindow(panel, close) {
     line,
     dots,
     h('div', { class: 'py-win-actions' }, back, next),
-    h('p', { class: 'py-sheet-note py-win-note' }, 'Just for looking. No Fish, nothing to do.'));
+    h('p', { class: 'py-sheet-note py-win-note' }, 'A quiet moment. No Fish or workout needed.'));
   show(0);
+  return () => alive?.stop();
 }

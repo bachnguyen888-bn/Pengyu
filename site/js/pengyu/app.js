@@ -3,7 +3,7 @@
 // browser (js/pengyu/state.js).
 
 import * as S from './state.js';
-import { renderToday } from './route.js';
+import { renderToday, leaveToday } from './route.js';
 import { renderShop } from './shop.js';
 // A namespace import, so one missing name cannot stop the app from starting if a launch still pairs
 // this file with an older history.js (an older offline copy refreshed its files one at a time).
@@ -111,6 +111,7 @@ export function initPengyu() {
   function render() {
     if (planning && S.planFor(S.planningWeek())) planning = false;   // the plan was made: back to Today
     const showPlan = planning && tab === 'today';
+    if (showPlan || tab !== 'today') leaveToday();
     if (main) main.classList.toggle('is-planning', showPlan);
     root.textContent = '';
     if (!S.storageOk()) {
