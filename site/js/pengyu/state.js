@@ -91,6 +91,8 @@ function normalize(saved) {
   for (const k of Object.keys(base)) out[k] = k in saved ? saved[k] : base[k];
   out.fish = { ...base.fish, ...(isObj(saved.fish) ? saved.fish : {}) };
   out.wear = { ...base.wear, ...(isObj(saved.wear) ? saved.wear : {}) };
+  // Older versions accepted malformed hat values in a restore. Keep the progress, drop only that value.
+  if (out.wear.hat !== null && typeof out.wear.hat !== 'string') out.wear.hat = null;
   for (const k of ['plans', 'log', 'owned']) if (!isObj(out[k])) out[k] = {};
   for (const k of ['weekBonusPaid', 'extras', 'coversAnnounced', 'events']) if (!Array.isArray(out[k])) out[k] = [];
   for (const plan of Object.values(out.plans)) if (isObj(plan) && !Array.isArray(plan.moves)) plan.moves = [];
@@ -246,7 +248,8 @@ export function createPlan({ week = planningWeek(), target, days, time, window, 
   if (!TIME.test(String(time)) || !isText(window, 40) || !isText(place, 60)) return null;
   state.plans[week] = { target, days: picked, time, window: window.trim(), place: place.trim(), createdAt: now().toISOString(), moves: [] };
   if (calendar) state.plans[week].icsSeq = 0;
-  logEvent('plan_created', { week, target, days: picked, time, window: window.trim(), place: place.trim() });
+  // The action list records what happened, without duplicating the player's workout schedule.
+  logEvent('plan_created');
   return commit({ type: 'plan', week });
 }
 
@@ -268,7 +271,7 @@ export function moveStation(from, to) {
   const plan = planFor(monday);
   plan.days[plan.days.indexOf(from)] = to;   // same slot, so a re-exported calendar updates that event
   plan.moves.push({ from, to, at: now().toISOString() });
-  logEvent('plan_moved', { week: monday, from, to });
+  logEvent('plan_moved');
   return commit({ type: 'move', from, to });
 }
 
@@ -310,11 +313,8 @@ export function logWorkout() {
     bonus = FISH.weekBonus;
   }
   const r = route(monday);
-  logEvent('workout_logged', {
-    day: t, kind, movedFrom: preview.kind === 'moved' ? preview.from : undefined,
-    fish: fish + bonus + comeback, done: r.done, target: r.target, weekHit: r.hit,
-  });
-  if (comeback) logEvent('comeback_earned', { day: t, after: preview.comeback, fish: comeback });
+  logEvent('workout_logged', { fish: fish + bonus + comeback });
+  if (comeback) logEvent('comeback_earned', { fish: comeback });
   if (extra) logEvent('extra_earned', { day: t, id: extra.id });
   return commit({
     type: 'log', kind, fish, bonus, comeback, extra,
@@ -392,10 +392,12 @@ export function buy(id) {
 
 // Wearing changes only what shows. One hat at a time; the conductor outfit brings its own cap.
 export function canWear(id) {
+  if (typeof id !== 'string') return false;
   if (['scarf', 'cap', 'backpack', 'conductor'].includes(id)) return owns(id);
   return hasExtra(id);
 }
 export function isWorn(id) {
+  if (typeof id !== 'string') return false;
   const w = state.wear;
   if (id === 'scarf') return w.scarf;
   if (id === 'backpack') return w.backpack;
@@ -591,12 +593,12 @@ export const INVITE = [
   `Plan ${TARGETS[0]} to ${TARGETS[TARGETS.length - 1]} workouts, log them, and watch your penguin’s train move.`,
   'Want to plan yours?',
 ];
-export function inviteText({ days = false, time = false, place = false } = {}, plan = planFor(shownWeek()), url = appLink()) {
+export function inviteText({ days = false, time = false, place = false, link = false } = {}, plan = planFor(shownWeek()), url = appLink()) {
   const lines = [...INVITE];
   if (plan && days) lines.push(`My days: ${andList(stations(plan).map(dayName))}.`);
   if (plan && time) lines.push(`My time: ${plan.window.startsWith('at ') ? clockText(plan.time) : `${plan.window}, ${clockText(plan.time)}`}.`);
   if (plan && place) lines.push(`My place: ${plan.place}.`);
-  if (url) lines.push(url);
+  if (link && url) lines.push(url);
   return lines.join('\n');
 }
 
@@ -654,7 +656,9 @@ export const BACKUP_ERRORS = {
 };
 const isDay = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && dayKey(parseKey(s)) === s;
 const isMonday = (s) => isDay(s) && weekStart(s) === s;
-const isCount = (n) => Number.isInteger(n) && n >= 0;
+const isCount = (n) => Number.isSafeInteger(n) && n >= 0;
+const isStamp = (s) => typeof s === 'string' && Number.isFinite(Date.parse(s));
+const optional = (value, ok) => value === undefined || ok(value);
 const listOf = (a, ok) => a === undefined || (Array.isArray(a) && a.every(ok));
 function shapeOk(d) {
   if (!isObj(d.plans) || !isObj(d.log) || !isObj(d.fish)) return false;
@@ -663,16 +667,27 @@ function shapeOk(d) {
     if (!isMonday(monday) || !isObj(p) || !TARGETS.includes(p.target) || !Array.isArray(p.days)) return false;
     const week = weekDays(monday);
     if (p.days.length !== p.target || new Set(p.days).size !== p.days.length || !p.days.every((x) => week.includes(x))) return false;
-    if (!TIME.test(String(p.time)) || !isText(p.window, 40) || !isText(p.place, 60) || !listOf(p.moves, isObj)) return false;
+    if (typeof p.time !== 'string' || !TIME.test(p.time) || !isText(p.window, 40) || !isText(p.place, 60)) return false;
+    if (!optional(p.createdAt, isStamp) || !optional(p.icsSeq, isCount)) return false;
+    if (!listOf(p.moves, (m) => isObj(m) && isDay(m.from) && isDay(m.to) && isStamp(m.at))) return false;
   }
   for (const [day, l] of Object.entries(d.log)) {
     if (!isDay(day) || !isObj(l) || !['planned', 'extra'].includes(l.kind)) return false;
+    if (!optional(l.at, isStamp)) return false;
     if ((l.comeback !== undefined && !isDay(l.comeback)) || (l.extra !== undefined && !extraById(l.extra))) return false;
   }
-  if (!listOf(d.weekBonusPaid, isMonday) || !listOf(d.coversAnnounced, isMonday) || !listOf(d.events, isObj)) return false;
+  if (!listOf(d.weekBonusPaid, isMonday) || !listOf(d.coversAnnounced, isMonday)) return false;
+  if (!listOf(d.events, (e) => isObj(e) && typeof e.type === 'string' && isStamp(e.at))) return false;
   if (!listOf(d.extras, (x) => isObj(x) && extraById(x.id) && isDay(x.earnedOn))) return false;
   if (d.owned !== undefined && (!isObj(d.owned) || !Object.keys(d.owned).every((id) => unlockById(id)))) return false;
-  return d.wear === undefined || isObj(d.wear);
+  if (!optional(d.createdAt, isStamp)) return false;
+  if (d.wear === undefined) return true;
+  if (!isObj(d.wear)) return false;
+  const w = d.wear;
+  const hat = (id) => id === null || id === 'cap' || EXTRAS.some((x) => x.id === id && x.kind === 'hat');
+  const decal = (id) => id === null || EXTRAS.some((x) => x.id === id && x.kind === 'train decal');
+  return optional(w.hat, hat) && optional(w.decal, decal) && optional(w.paint, (p) => typeof p === 'string')
+    && ['scarf', 'backpack', 'outfit'].every((k) => optional(w[k], (v) => typeof v === 'boolean'));
 }
 
 // Reads a backup without changing anything: { ok, summary: { weeks, fish } } or { ok: false, error }.

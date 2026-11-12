@@ -1,6 +1,6 @@
 // Bring a friend along: the invitation to plan their own week, shown word for word before anything is
 // shared. The same few words for everyone (state.js INVITE), then the Pengyu link while this version is
-// live at the owner's address. Until then no link is offered and the note says so. The player's days, time
+// live at the owner's address and the player switches it on. Until then no link is offered and the note says so. The player's days, time
 // and place join only when switched on. Nothing is sent without a tap on Share or Copy invite, and nothing
 // is counted, claimed or rewarded either way. Today's sheet (after a first plan), History and the postcard
 // all use this one body.
@@ -26,10 +26,11 @@ export async function sharePreview(data, api = navigator) {
   catch (err) { return err && err.name === 'AbortError' ? 'cancelled' : 'failed'; }
 }
 
-// `st` holds the picks and the last result ({ days, time, place, status }) and belongs to the caller;
+// `st` holds the picks and the last result ({ days, time, place, link, status }) and belongs to the caller;
 // `refill(focusId)` redraws the body with focus on that control; `done()` closes it.
 export function inviteBody({ st, plan, refill, done, ids = 'py-invite' }) {
   const text = S.inviteText(st, plan);
+  const live = S.appLink();
   const say = (msg, id = `${ids}-status`) => { st.status = msg; refill(id); };
   const toggle = (key, label) => h('button', {
     class: 'chip glass py-share-chip', type: 'button', id: `${ids}-${key}`, 'aria-pressed': String(Boolean(st[key])),
@@ -42,9 +43,14 @@ export function inviteBody({ st, plan, refill, done, ids = 'py-invite' }) {
     h('p', { class: 'py-sheet-note' }, 'Optional. Nothing is sent until you tap Share or Copy invite.'),
     plan ? h('div', { class: 'py-share-row', role: 'group', 'aria-label': 'Add your plan details' },
       toggle('days', 'Add my days'), toggle('time', 'Add my time'), toggle('place', 'Add my place')) : null,
+    h('div', { class: 'py-share-row' }, h('button', {
+      class: 'chip glass py-share-chip', type: 'button', id: `${ids}-link`, disabled: !live,
+      'aria-pressed': String(Boolean(live && st.link)), 'aria-describedby': live ? null : `${ids}-link-note`,
+      onclick: () => { if (!live) return; st.link = !st.link; st.status = ''; refill(`${ids}-link`); },
+    }, 'Include Pengyu link')),
     h('label', { class: 'py-share-label', for: `${ids}-text` }, 'What will be shared'),
     box,
-    S.linkPending() ? h('p', { class: 'py-sheet-note py-link-note' }, icon('i-clock'), h('span', {}, S.LIVE_NOTE)) : null,
+    !live ? h('p', { class: 'py-sheet-note py-link-note', id: `${ids}-link-note` }, icon('i-clock'), h('span', {}, S.LIVE_NOTE)) : null,
     h('div', { class: 'py-data-actions' },
       typeof navigator.share === 'function' ? h('button', {
         class: 'btn btn-primary btn-sm', type: 'button', id: `${ids}-share`,

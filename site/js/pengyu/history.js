@@ -20,15 +20,33 @@ import { inviteBody, postcardPayload, sharePreview } from './invite.js';
 let resetStep = 0;        // Reset everything: 0 closed, 1 "start over?", 2 "save a backup first?"
 let resetSaved = false;   // a backup was saved from the second step
 let restore = null;       // a checked backup waiting for the player's yes ({ text, summary }), or { error }
+let restoreRead = 0;      // only the latest picked file may finish; navigation/reset cancels older reads
 let refocus = '';
 // Sharing the postcard: what the player picked (nothing is saved), and the last result to say.
 // Dates, the workout count and the Pengyu link are all off until the player adds them.
 let share = { open: false, caption: 0, prop: '', dates: false, workouts: false, link: false, status: '' };
 // The invitation in History: open or not, and the picks (nothing is saved).
-let friend = { open: false, days: false, time: false, place: false, status: '' };
+let friend = { open: false, days: false, time: false, place: false, link: false, status: '' };
 let picture = { key: '', url: '', file: null, failed: false, job: null };   // the postcard image, made on this device
 let cheered = false;      // Pengu cheers for the postcard once each time the app is opened
 let bound = [];           // the postcard's Pengu, brought to life
+
+// An imported or reset save is a new privacy decision. Choices made for the previous save must not
+// carry its dates, plan details or enabled link into a later player's preview.
+S.subscribe(({ type }) => {
+  if (type !== 'restore' && type !== 'reset') return;
+  share = { open: false, caption: 0, prop: '', dates: false, workouts: false, link: false, status: '' };
+  friend = { open: false, days: false, time: false, place: false, link: false, status: '' };
+  picture = { key: '', url: '', file: null, failed: false, job: null };
+  restore = null;
+  restoreRead += 1;
+  resetStep = 0;
+  resetSaved = false;
+  refocus = '';
+  cheered = false;
+  for (const b of bound) if (b) b.stop();
+  bound = [];
+});
 
 // Mondays from the first planned (or logged) week up to this one, newest first. A week planned ahead
 // (on Sunday) is not history yet.
@@ -106,8 +124,18 @@ async function readPicked(e, rerender) {
 // A picked file, checked: the Restore question (or what is wrong with the file) waits in "Your data".
 // The Home Screen tip uses this too, then opens Settings, where the same question asks first.
 export async function checkRestoreFile(f) {
+  const read = ++restoreRead;
+  // Check before reading/decoding a large file. A mistaken selection must not freeze the interface.
+  if (f.size > 10 * 1024 * 1024) {
+    restore = { error: 'This backup is too large to open here. Nothing was changed.' };
+    resetStep = 0;
+    resetSaved = false;
+    refocus = 'py-restore';
+    return true;
+  }
   let text = '';
   try { text = await f.text(); } catch { text = ''; }
+  if (read !== restoreRead) return false;
   const checked = S.checkBackup(text);
   restore = checked.ok ? { text, summary: checked.summary } : { error: checked.error };
   resetStep = 0;
@@ -487,7 +515,7 @@ export function renderHistory(root, rerender, { onReset = () => {}, onRestore = 
 // Both Settings and History use these same controls and confirmation steps. `fresh` means the tab was
 // just opened: a reset or restore step left open elsewhere starts closed here.
 export function renderData(root, rerender, { onReset = () => {}, onRestore = () => {}, fresh = false } = {}) {
-  if (fresh) { resetStep = 0; resetSaved = false; restore = null; refocus = ''; }
+  if (fresh) { resetStep = 0; resetSaved = false; restore = null; restoreRead += 1; refocus = ''; }
   root.append(dataCard(rerender, onReset, onRestore));
   if (refocus) {
     const el = root.querySelector(`#${refocus}`);

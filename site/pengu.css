@@ -147,7 +147,7 @@ button:active.glass::before, button:active.glass-coral::before, button:active.gl
 .btn-sm { min-height: var(--tap); padding: 0 18px; font-size: 0.9375rem; }
 .btn-block { width: 100%; }
 .btn .icon { width: 18px; height: 18px; }
-.link { padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+.link { min-height: var(--tap); padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
 .link:hover { color: var(--coral-ink); }
 .chip {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -250,7 +250,7 @@ html.is-splash .py-splash { display: grid; }
 /* The route: the train rides a hand-drawn rail; the stations sit on the route line below. Stations and
    the train share --at, from 0 (the depot) to 1 (the last station). The train is --tw wide and its front
    is --front from its left edge, so its front stops right above the station it has reached. */
-.py-route-wrap { --th: 72px; --tw: calc(var(--th) * 1.786); --front: calc(var(--tw) * 0.96); position: relative; height: calc(var(--th) + 22px + 2.5rem); }   /* 62px; the station names grow with larger text */
+.py-route-wrap { --th: 72px; --tw: calc(var(--th) * 1.786); --front: calc(var(--tw) * 0.96); position: relative; container-type: inline-size; height: calc(var(--th) + 22px + 2.5rem); }   /* station names grow with larger text */
 .py-route-wrap.has-car2 { --th: 62px; --tw: calc(var(--th) * 2.452); --front: calc(var(--tw) * 0.9709); }
 /* No plan yet: only the depot sits on the route line, so the empty row for station names goes. */
 .py-route-wrap.is-empty { height: calc(var(--th) + 38px); }
@@ -276,9 +276,10 @@ html.is-splash .py-splash { display: grid; }
 .py-stop-day { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; color: var(--on-stage-2); white-space: nowrap; }
 .py-station.is-today .py-stop-day { color: var(--on-stage); }
 .py-station.is-missed .py-stop-day { font-weight: 400; }
-/* Large text (a text-size setting or page zoom, both of which shrink the width in em): two-letter days. */
+/* Container em units follow enlarged text, unlike viewport em queries. Full dates remain in the week sheet. */
 .py-stop-short { display: none; }
 @media (max-width: 18em) { .py-stop-long { display: none; } .py-stop-short { display: inline; } }
+@container (max-width: 18em) { .py-stop-long { display: none; } .py-stop-short { display: inline; } }
 /* A comeback stamp sits on the ring where the player came back. */
 .py-stamp { position: absolute; top: -7px; right: -10px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--sun); color: var(--ink); box-shadow: 0 0 0 2px var(--stage); }
 .py-stamp .icon { width: 14px; height: 14px; stroke-width: 2.2; }
@@ -352,16 +353,37 @@ html.is-splash .py-splash { display: grid; }
 .py-repeat-when { padding-left: 26px; font-size: 0.875rem; color: var(--on-stage-2); }
 .py-onward { display: grid; justify-items: start; gap: 4px; padding-top: 10px; border-top: 1px solid rgba(247, 242, 238, 0.16); font-size: 0.9375rem; }
 .py-onward-stop { font-weight: 600; color: var(--on-stage); }
-/* Links here have 32px targets (above the 24px minimum) whose extra height sits in small negative margins,
-   with enough gap that one link's target never covers the other's words. */
-.py-onward-goal { display: inline-block; padding: 5px 0; margin: -5px 0; text-align: left; }
-.py-plan-next { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; margin: -5px 0; }
+/* Each onward link has its own 44px target, without overlapping negative margins. */
+.py-onward-goal { display: inline-flex; align-items: center; padding: 0; margin: 0; text-align: left; }
+.py-plan-next { display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap); margin: 0; }
 .py-plan-next .icon { width: 18px; height: 18px; color: var(--coral-on-stage); }
 .py-chev { text-decoration: none; }
-/* "Look out the window": the quiet door to Pengu's window, a 32px link with a 44px tap strip. */
-.py-window-btn { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 32px; margin: -3px 0 -5px; text-align: left; }
-.py-window-btn::before { content: ""; position: absolute; inset: -6px 0; }
+/* "Look out the window": the quiet door to Pengu's window, with a full 44px target. */
+.py-window-btn { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap); margin: 0; text-align: left; }
 .py-window-btn .icon { width: 18px; height: 18px; flex: none; color: var(--coral-on-stage); }
+/* Short phones keep the same controls and readable type; only empty space and train height tighten. */
+@media (max-height: 720px) and (max-width: 430px) {
+  .py-today { gap: 8px; }
+  .py-stage { gap: 8px; padding-top: 12px; }
+  .py-stage.is-full { gap: 4px; }
+  .py-stage.is-full .py-onward { padding-top: 0; gap: 0; }
+  .py-route-wrap { --th: 56px; }
+  .py-route-wrap.has-car2 { --th: 48px; }
+  .py-stage.is-first .py-route-wrap { --th: 50px; }
+}
+@media (max-width: 359px) {
+  :root { --gutter: 12px; }
+  .py-today { gap: 6px; }
+  .py-stage { padding: 10px 12px; gap: 6px; }
+  .py-stage.is-first { gap: 6px; }
+  .py-stage.is-full { gap: 2px; }
+  .py-route-wrap, .py-stage.is-first .py-route-wrap { --th: 44px; }
+  .py-route-wrap.has-car2 { --th: 42px; }
+  .py-first-goal { gap: 8px; padding-right: 8px; }
+  .py-first-goal-pic { width: 36px; height: 40px; }
+  .py-first-goal-pic svg { width: 34px; }
+  .py-begin-btn { min-height: 56px; padding: 4px 12px; }
+}
 /* The three-second arrival: the Fish a log paid ("+10") ride to the station, then fly into the Fish pill.
    Placed with left/top once, then moved with transform only; `translate` centres it above the ring. */
 .py-fish-token { position: fixed; z-index: 60; display: inline-flex; align-items: center; gap: 4px; padding: 4px 11px 4px 8px; border-radius: var(--r-pill); background: var(--sun); color: var(--ink); font-size: 0.9375rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; box-shadow: 0 0 0 2px var(--stage), 0 8px 18px -8px rgba(0, 0, 0, 0.6); pointer-events: none; translate: -50% -100%; }
@@ -379,7 +401,7 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
 .py-sheet-close { flex: none; width: var(--tap); height: var(--tap); border-radius: 50%; display: grid; place-items: center; padding: 0; color: var(--ink); }   /* never squeezed by a long title at large text */
 /* The sunny reward sheet: Headspace-style bands with Pengu's face rising like a sun. */
-.py-reward .py-sheet-panel { min-height: min(60vh, 560px); align-content: start; overflow: hidden; background: var(--sun); padding-bottom: 0; }
+.py-reward .py-sheet-panel { min-height: min(60vh, 560px); align-content: start; overflow-y: auto; overflow-x: clip; background: var(--sun); padding-bottom: 0; }
 .py-reward-title { font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
 .py-reward-lines { display: grid; gap: 4px; font-size: 1.0625rem; font-weight: 600; }
 .py-reward-lines .num { font-variant-numeric: tabular-nums; }
@@ -439,14 +461,14 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-session-status .icon { width: 16px; height: 16px; stroke-width: 2.4; }
 .py-session.is-today .py-session-status { padding: 2px 10px; border-radius: var(--r-pill); background: var(--ink); color: #FFFFFF; }
 .py-session.is-missed .py-session-status { color: var(--ink-2); font-weight: 400; }
-.py-session-move { min-height: 32px; font-size: 0.875rem; }
+.py-session-move { min-height: var(--tap); font-size: 0.875rem; }
 .py-move { display: grid; gap: var(--s2); padding: 14px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
 .py-move-title { font-weight: 600; }
 .py-choices { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .py-sheet-note { display: flex; align-items: flex-start; gap: 10px; font-size: 0.875rem; color: var(--ink-2); }
 .py-sheet-note .icon { width: 18px; height: 18px; margin-top: 1px; color: var(--ink); }
 .py-cal-text { display: grid; gap: 2px; }
-.py-cal-text .link { justify-self: start; display: inline-flex; align-items: center; min-height: 32px; }
+.py-cal-text .link { justify-self: start; display: inline-flex; align-items: center; min-height: var(--tap); }
 /* Pengu's window: a train window in the player's own paint (--win), a hand-drawn view with Pengu at the
    sill, one line of story, and Next. The picture is decorative; the line under it says what it shows. */
 .py-winsheet .py-sheet-panel { background: var(--paper) var(--grain); }
@@ -626,7 +648,7 @@ section.py-next.is-ready { box-shadow: inset 0 0 0 2px var(--coral-strong), var(
 /* The Pengyu link waits until this version is live: the chip is off, and this says why. */
 .py-link-note { display: flex; align-items: flex-start; gap: 8px; }
 .py-link-note .icon { width: 16px; height: 16px; flex: none; margin-top: 2px; }
-.py-share-friend .link { display: inline-flex; align-items: center; min-height: 32px; text-align: left; }
+.py-share-friend .link { display: inline-flex; align-items: center; min-height: var(--tap); text-align: left; }
 /* Bring a friend along: the invitation, any time. */
 .py-friend { display: grid; gap: 10px; }
 /* The local-data note, read first in Your data, with Save a backup and Restore directly under it. */
@@ -662,7 +684,8 @@ section.py-next.is-ready { box-shadow: inset 0 0 0 2px var(--coral-strong), var(
 .not-found h1 { font-size: 2.125rem; line-height: 2.5rem; font-weight: 700; letter-spacing: -0.02em; }
 .lead { font-size: 1.0625rem; color: var(--ink-2); }
 /* Privacy: plain words on paper, one card per question. */
-.doc-page { display: grid; gap: var(--s4); max-width: 38rem; margin: 0 auto; padding: calc(var(--s4) + env(safe-area-inset-top, 0px)) var(--gutter) calc(var(--s7) + env(safe-area-inset-bottom, 0px)); }
+.doc-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); max-width: 38rem; margin: 0 auto; padding: calc(var(--s4) + env(safe-area-inset-top, 0px)) var(--gutter) calc(var(--s7) + env(safe-area-inset-bottom, 0px)); overflow-wrap: anywhere; }
+.doc-head, .doc-sec, .doc-list { min-width: 0; }
 .doc-head { display: grid; gap: var(--s2); }
 .doc-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
 .doc-back { display: inline-flex; align-items: center; gap: 4px; min-height: var(--tap); padding: 0 16px 0 10px; border-radius: var(--r-pill); color: var(--ink); font-weight: 600; text-decoration: none; }

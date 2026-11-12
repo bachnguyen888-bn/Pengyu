@@ -66,7 +66,7 @@ function goal(monday = S.thisWeek()) {
   if (g.kind === 'hit') return { text: 'You hit your week.', calm: false };
   if (g.kind === 'one-left') return { text: `One planned workout left · +${S.FISH.weekBonus} Fish when your week is complete.`, calm: false };
   if (g.kind === 'more') return { text: `${g.need} more to hit your week`, calm: false };
-  if (g.kind === 'out-of-reach') return { text: `Every planned workout left still pays ${S.FISH.station} Fish.`, calm: true };
+  if (g.kind === 'out-of-reach') return { text: `Planned workouts still earn ${S.FISH.station} Fish.`, calm: true };
   return { text: 'A new route starts Monday.', calm: true };
 }
 
@@ -106,8 +106,8 @@ function onward() {
 function howItWorks() {
   const steps = [
     ['i-calendar', 'Plan', ` ${S.TARGETS[0]} to ${S.TARGETS[S.TARGETS.length - 1]} workouts this week.`],
-    ['i-check', 'Log', ' each one you finish.'],
-    ['i-fish', 'Earn Fish', ' for Pengu’s gear.'],
+    ['i-check', 'Log', ' each finished workout. Your train moves one station.'],
+    ['i-fish', 'Earn Fish', ' for Pengu’s gear and train upgrades.'],
   ];
   return h('ol', { class: 'py-how' }, steps.map(([name, lead, rest]) => h('li', {}, icon(name), h('span', {}, h('strong', {}, lead), rest))));
 }
@@ -118,7 +118,7 @@ function firstGoalCard() {
     h('div', { class: 'py-first-goal-pic', 'aria-hidden': 'true' }, penguFigure(S.lookWith(f.item.id), { pose: 'bust' })),
     h('p', {},
       h('strong', {}, `First goal: Pengu’s ${f.item.name.toLowerCase()}`), ' ',
-      h('span', {}, `${f.price} Fish. A full week of ${f.smallest} planned workouts earns ${f.earns}.`)));
+      h('span', {}, `${f.price} Fish. A full ${f.smallest}-workout week earns ${f.earns}.`)));
 }
 // A returning player with no plan yet: last plan, on one card, ready to start again in one tap.
 function repeatCard(review) {
@@ -144,8 +144,8 @@ function beginState(r, ahead) {
   if (ahead) return { label: `First stop: ${weekday(S.parseKey(r.stations[0].day))}`, waiting: true, caption: ifThen(r.plan) };
   const p = S.logPreview();
   if (p.kind === 'logged') return { label: 'Logged today', logged: true, caption: '' };   // the next stop follows
-  if (p.comeback && p.kind === 'moved') return { label: 'Log finished workout', caption: `Welcome back: +${S.FISH.comeback} Fish for your comeback.` };
-  if (p.comeback) return { label: 'Log finished workout', caption: `Finished exercising? Log it now. Welcome back: +${S.FISH.comeback} Fish for your comeback.` };
+  if (p.comeback && p.kind === 'moved') return { label: 'Log finished workout', caption: `Welcome back: +${S.FISH.comeback} comeback Fish.` };
+  if (p.comeback) return { label: 'Log finished workout', caption: `Finished exercising? Welcome back: +${S.FISH.comeback} comeback Fish.` };
   if (p.kind === 'planned') return { label: 'Log finished workout', caption: `Finished exercising? Log it now. ${ifThen(r.plan)}` };
   if (p.kind === 'moved') return { label: 'Log finished workout', caption: `Exercised today? It counts for ${weekday(S.parseKey(p.from))}.` };
   return { label: 'Log finished workout', caption: 'Extra workouts: looks only, no Fish.' };
@@ -161,8 +161,9 @@ function stationNode(s, i, count, arriving) {
       <circle class="py-ring-fill" cx="20" cy="20" r="15.6"/>
       <path class="py-ring-check" d="${check(20, 20.6, 17, { seed: 5 + i })}"/>`),
     // With large text the weekdays shorten to two letters ("We"), so neighbours never run together.
-    h('span', { class: 'py-stop-day', 'aria-hidden': 'true' }, s.status === 'today' ? 'Today'
-      : [h('span', { class: 'py-stop-long' }, weekday(date, 'short')), h('span', { class: 'py-stop-short' }, weekday(date, 'short').slice(0, 2))]),
+    h('span', { class: 'py-stop-day', 'aria-hidden': 'true' },
+      h('span', { class: 'py-stop-long' }, s.status === 'today' ? 'Today' : weekday(date, 'short')),
+      h('span', { class: 'py-stop-short' }, weekday(date, 'short').slice(0, 2))),
     stamped ? h('span', { class: `py-stamp${arriving ? ' is-new' : ''}`, 'aria-hidden': 'true' }, icon('i-stamp')) : null,
     h('span', { class: 'sr-only' }, `${weekday(date)}: ${SAY[s.status]}${stamped ? ', with a Comeback stamp' : ''}`));
   li.style.setProperty('--at', String((i + 1) / count));
@@ -404,14 +405,14 @@ function openReward(res, before = null) {
   const copy = rewardCopy(res);
   openSheet('py-reward', 'py-reward-title', (panel, close) => {
     panel.append(...[
-      h('h2', { class: 'py-reward-title', id: 'py-reward-title' }, copy.title),
+      h('h2', { class: 'py-reward-title', id: 'py-reward-title', tabindex: '-1', autofocus: true }, copy.title),
       copy.stamp ? stampArt() : null,
       copy.extra ? h('div', { class: 'py-reward-extra', 'aria-hidden': 'true' }, glyph(copy.extra.id)) : null,
       h('ul', { class: 'py-reward-lines' }, copy.lines.map((l) => h('li', { class: 'num' }, l))),
       copy.stop ? h('p', { class: 'py-reward-stop num' }, copy.stop) : null,
       copy.postcard ? h('p', { class: 'py-reward-postcard' }, icon('i-stamp'), h('span', {}, 'Your first postcard is ready. ', h('button', { class: 'link', type: 'button', id: 'py-reward-postcard', onclick: () => { close(true); refs.onPostcard(); } }, 'Preview your postcard'))) : null,
       goalBlock(close, before),
-      h('button', { class: 'btn glass-coral py-reward-ok', type: 'button', autofocus: true, onclick: () => close() }, 'Nice'),
+      h('button', { class: 'btn glass-coral py-reward-ok', type: 'button', onclick: () => close() }, 'Nice'),
       h('div', { class: 'py-reward-art', 'aria-hidden': 'true' }, bandsArt(), h('div', { class: 'py-reward-face' }, faceArt())),
     ].filter(Boolean));
     rise(panel.querySelector('.py-reward-face'));
@@ -454,11 +455,11 @@ function openTip() {
 // (History keeps the same invitation, any time after.) The words are invite.js's: the same for everyone,
 // then the Pengyu link while this version is live. Nothing is shared until Share or Copy text is tapped,
 // and nothing is counted or rewarded either way.
-let invite = { days: false, time: false, place: false, status: '' };
+let invite = { days: false, time: false, place: false, link: false, status: '' };
 function openInvite(monday) {
   const plan = S.planFor(monday);
   if (!plan || !document.querySelector('.py-today')) return;
-  invite = { days: false, time: false, place: false, status: '' };
+  invite = { days: false, time: false, place: false, link: false, status: '' };
   openSheet('py-invite', 'py-invite-title', function fill(panel, close, focusId = '') {
     for (const n of [...panel.children]) if (!n.classList.contains('py-sheet-grip')) n.remove();
     panel.append(
@@ -579,7 +580,7 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
   // No plan yet: a first visit sells the journey; a returning player sees last plan, ready to repeat.
   const review = !r && S.planReview ? S.planReview() : null;
   const gap = review && review.from !== S.addDays(review.week, -7);
-  let countText = review ? (b.repeat ? (gap ? 'Welcome back. Same route as last time?' : 'New week, same route?') : 'Welcome back.') : 'Your planned workouts move Pengu’s train.';
+  let countText = review ? (b.repeat ? (gap ? 'Welcome back. Same route as last time?' : 'New week, same route?') : 'Welcome back.') : 'Your week with Pengu.';
   if (r && ahead) countText = 'Your route starts Monday.';
   else if (r) countText = ['Workouts this week: ', h('span', { class: 'py-count-n' }, `${before ? before.count : r.done} of ${r.target}`)];
   const count = h('h2', { class: 'py-count', id: 'py-count', tabindex: '-1' }, countText);

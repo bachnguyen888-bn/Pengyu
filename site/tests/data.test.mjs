@@ -139,7 +139,7 @@ test('events: plan_moved, backup_saved, backup_restored, and app_opened at most 
   const types = T.state.events.map((e) => e.type);
   for (const t of ['plan_created', 'plan_moved', 'backup_saved', 'app_opened', 'backup_restored']) assert.ok(types.includes(t), t);
   assert.equal(types.filter((t) => t === 'app_opened').length, 2);
-  assert.deepEqual(T.state.events.find((e) => e.type === 'plan_moved'), { type: 'plan_moved', at: T.state.events.find((e) => e.type === 'plan_moved').at, week: '2026-10-26', from: '2026-10-27', to: '2026-10-28' });
+  assert.deepEqual(T.state.events.find((e) => e.type === 'plan_moved'), { type: 'plan_moved', at: T.state.events.find((e) => e.type === 'plan_moved').at });
 });
 
 test('saving a backup or noting an open is saved straight away', async () => {

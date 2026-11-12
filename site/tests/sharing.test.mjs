@@ -89,11 +89,13 @@ test('invitation: the same words for everyone, then the live link only; days, ti
   assert.deepEqual(S.INVITE, ['I’m planning my week on Pengyu.', 'Plan 2 to 4 workouts, log them, and watch your penguin’s train move.', 'Want to plan yours?']);
   assert.equal(S.inviteText({}, p, ''), base, 'no live link: the generic words only, nothing invented');
   assert.equal(S.inviteText({}, p), base, 'no page: no owner link');
-  assert.equal(S.inviteText({}, p, 'https://bachnguyenclearhealth.com/'), `${base}\nhttps://bachnguyenclearhealth.com/`);
+  assert.equal(S.inviteText({}, p, 'https://bachnguyenclearhealth.com/'), base, 'even a live link stays off by default');
+  assert.equal(S.inviteText({ link: true }, p, ''), base, 'chosen, but unavailable: no link');
+  assert.equal(S.inviteText({ link: true }, p, 'https://bachnguyenclearhealth.com/'), `${base}\nhttps://bachnguyenclearhealth.com/`);
   assert.equal(S.inviteText({ days: true }, p, ''), `${base}\nMy days: Monday, Wednesday and Friday.`);
   assert.equal(S.inviteText({ time: true }, p, ''), `${base}\nMy time: after class, 3:30 PM.`);
   assert.equal(S.inviteText({ place: true }, p, ''), `${base}\nMy place: at the gym.`);
-  assert.equal(S.inviteText({ days: true, time: true, place: true }, p, 'https://bachnguyenclearhealth.com/'),
+  assert.equal(S.inviteText({ days: true, time: true, place: true, link: true }, p, 'https://bachnguyenclearhealth.com/'),
     `${base}\nMy days: Monday, Wednesday and Friday.\nMy time: after class, 3:30 PM.\nMy place: at the gym.\nhttps://bachnguyenclearhealth.com/`);
   assert.equal(S.inviteText({ days: true }, null, ''), base, 'no plan yet (History): the generic words, with nothing to add');
   // The default words carry nothing personal and claim nothing.
