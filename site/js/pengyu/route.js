@@ -66,7 +66,7 @@ function goal(monday = S.thisWeek()) {
   if (g.kind === 'hit') return { text: 'You hit your week.', calm: false };
   if (g.kind === 'one-left') return { text: `One planned workout left · +${S.FISH.weekBonus} Fish when your week is complete.`, calm: false };
   if (g.kind === 'more') return { text: `${g.need} more to hit your week`, calm: false };
-  if (g.kind === 'out-of-reach') return { text: `Planned workouts still earn ${S.FISH.station} Fish.`, calm: true };
+  if (g.kind === 'out-of-reach') return { text: `Every planned workout left still pays ${S.FISH.station} Fish.`, calm: true };
   return { text: 'A new route starts Monday.', calm: true };
 }
 
@@ -118,7 +118,7 @@ function firstGoalCard() {
     h('div', { class: 'py-first-goal-pic', 'aria-hidden': 'true' }, penguFigure(S.lookWith(f.item.id), { pose: 'bust' })),
     h('p', {},
       h('strong', {}, `First goal: Pengu’s ${f.item.name.toLowerCase()}`), ' ',
-      h('span', {}, `${f.price} Fish. A full ${f.smallest}-workout week earns ${f.earns}.`)));
+      h('span', {}, `${f.price} Fish. A full week of ${f.smallest} planned workouts earns ${f.earns}.`)));
 }
 // A returning player with no plan yet: last plan, on one card, ready to start again in one tap.
 function repeatCard(review) {
@@ -144,8 +144,8 @@ function beginState(r, ahead) {
   if (ahead) return { label: `First stop: ${weekday(S.parseKey(r.stations[0].day))}`, waiting: true, caption: ifThen(r.plan) };
   const p = S.logPreview();
   if (p.kind === 'logged') return { label: 'Logged today', logged: true, caption: '' };   // the next stop follows
-  if (p.comeback && p.kind === 'moved') return { label: 'Log finished workout', caption: `Welcome back: +${S.FISH.comeback} comeback Fish.` };
-  if (p.comeback) return { label: 'Log finished workout', caption: `Finished exercising? Welcome back: +${S.FISH.comeback} comeback Fish.` };
+  if (p.comeback && p.kind === 'moved') return { label: 'Log finished workout', caption: `Welcome back: +${S.FISH.comeback} Fish for your comeback.` };
+  if (p.comeback) return { label: 'Log finished workout', caption: `Finished exercising? Log it now. Welcome back: +${S.FISH.comeback} Fish for your comeback.` };
   if (p.kind === 'planned') return { label: 'Log finished workout', caption: `Finished exercising? Log it now. ${ifThen(r.plan)}` };
   if (p.kind === 'moved') return { label: 'Log finished workout', caption: `Exercised today? It counts for ${weekday(S.parseKey(p.from))}.` };
   return { label: 'Log finished workout', caption: 'Extra workouts: looks only, no Fish.' };
@@ -455,11 +455,11 @@ function openTip() {
 // (History keeps the same invitation, any time after.) The words are invite.js's: the same for everyone,
 // then the Pengyu link while this version is live. Nothing is shared until Share or Copy text is tapped,
 // and nothing is counted or rewarded either way.
-let invite = { days: false, time: false, place: false, link: false, status: '' };
+let invite = { days: false, time: false, place: false, status: '' };
 function openInvite(monday) {
   const plan = S.planFor(monday);
   if (!plan || !document.querySelector('.py-today')) return;
-  invite = { days: false, time: false, place: false, link: false, status: '' };
+  invite = { days: false, time: false, place: false, status: '' };
   openSheet('py-invite', 'py-invite-title', function fill(panel, close, focusId = '') {
     for (const n of [...panel.children]) if (!n.classList.contains('py-sheet-grip')) n.remove();
     panel.append(
@@ -580,7 +580,7 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
   // No plan yet: a first visit sells the journey; a returning player sees last plan, ready to repeat.
   const review = !r && S.planReview ? S.planReview() : null;
   const gap = review && review.from !== S.addDays(review.week, -7);
-  let countText = review ? (b.repeat ? (gap ? 'Welcome back. Same route as last time?' : 'New week, same route?') : 'Welcome back.') : 'Your week with Pengu.';
+  let countText = review ? (b.repeat ? (gap ? 'Welcome back. Same route as last time?' : 'New week, same route?') : 'Welcome back.') : 'Your planned workouts move Pengu’s train.';
   if (r && ahead) countText = 'Your route starts Monday.';
   else if (r) countText = ['Workouts this week: ', h('span', { class: 'py-count-n' }, `${before ? before.count : r.done} of ${r.target}`)];
   const count = h('h2', { class: 'py-count', id: 'py-count', tabindex: '-1' }, countText);

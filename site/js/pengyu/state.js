@@ -593,12 +593,12 @@ export const INVITE = [
   `Plan ${TARGETS[0]} to ${TARGETS[TARGETS.length - 1]} workouts, log them, and watch your penguin’s train move.`,
   'Want to plan yours?',
 ];
-export function inviteText({ days = false, time = false, place = false, link = false } = {}, plan = planFor(shownWeek()), url = appLink()) {
+export function inviteText({ days = false, time = false, place = false } = {}, plan = planFor(shownWeek()), url = appLink()) {
   const lines = [...INVITE];
   if (plan && days) lines.push(`My days: ${andList(stations(plan).map(dayName))}.`);
   if (plan && time) lines.push(`My time: ${plan.window.startsWith('at ') ? clockText(plan.time) : `${plan.window}, ${clockText(plan.time)}`}.`);
   if (plan && place) lines.push(`My place: ${plan.place}.`);
-  if (link && url) lines.push(url);
+  if (url) lines.push(url);   // the invitation carries the live link automatically (the postcard's stays opt-in)
   return lines.join('\n');
 }
 

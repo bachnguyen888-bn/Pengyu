@@ -170,3 +170,26 @@ test('Pengu’s window, the invitation and the token save nothing and track noth
     assert.doesNotMatch(src, /localStorage|sessionStorage|logEvent|fetch\(|sendBeacon|XMLHttpRequest|Math\.random/, `${file} keeps and sends nothing, and draws nothing at random`);
   }
 });
+
+test('review copy, word for word: the spec goal line, the first heading, the first goal, the comeback captions', () => {
+  const src = read('js/pengyu/route.js');
+  for (const words of [
+    '`Every planned workout left still pays ${S.FISH.station} Fish.`',
+    '\'Your planned workouts move Pengu’s train.\'',
+    '`${f.price} Fish. A full week of ${f.smallest} planned workouts earns ${f.earns}.`',
+    '`Welcome back: +${S.FISH.comeback} Fish for your comeback.`',
+    '`Finished exercising? Log it now. Welcome back: +${S.FISH.comeback} Fish for your comeback.`',
+  ]) assert.ok(src.includes(words), words);
+});
+
+test('the invitation carries the live link automatically with no link chip; the postcard link stays opt-in', () => {
+  assert.doesNotMatch(read('js/pengyu/invite.js'), /Include Pengyu link|-link`/);
+  assert.match(read('js/pengyu/history.js'), /chip\('link', 'Include Pengyu link'/);
+  assert.match(read('privacy.html'), /the same short message for everyone, then the Pengyu link when it’s available\. Your days, time or place are added only if you switch them on\./);
+});
+
+test('"Today" stays whole wherever it fits; only the tightest widths in em shorten it', () => {
+  const css = read('pengu.css').replace(/\s+/g, ' ');
+  assert.match(css, /@container \(min-width: 13\.5em\) and \(max-width: 18em\) \{ \.py-station\.is-today \.py-stop-long \{ display: inline; \} \.py-station\.is-today \.py-stop-short \{ display: none; \} \}/);
+  assert.match(css, /\.py-reward-art \{[^}]*overflow: clip;/, 'the sunk face never makes the reward sheet scroll');
+});

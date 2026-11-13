@@ -27,7 +27,7 @@ function history() {
     picks: () => ({ share, friend, picture, restore, resetStep, resetSaved }),
     picked: () => {
       share = { open: true, caption: 2, prop: 'snow', dates: true, workouts: true, link: true, status: 'old' };
-      friend = { open: true, days: true, time: true, place: true, link: true, status: 'old' };
+      friend = { open: true, days: true, time: true, place: true, status: 'old' };
       picture = { file: 'old image' };
     },
   };`);
@@ -39,7 +39,7 @@ test('reset and restore clear all postcard/invitation details and old image choi
     const H = history(); H.picked(); H.notify(type);
     const picks = H.picks();
     for (const key of ['dates', 'workouts', 'link']) assert.equal(picks.share[key], false, key);
-    for (const key of ['days', 'time', 'place', 'link']) assert.equal(picks.friend[key], false, key);
+    for (const key of ['days', 'time', 'place']) assert.equal(picks.friend[key], false, key);
     assert.equal(picks.share.caption, 0);
     assert.equal(picks.share.prop, '');
     assert.equal(picks.share.open, false);
@@ -88,27 +88,24 @@ test('user-entered markup is appended as literal text and never parsed as HTML',
   assert.equal(label.children[0], entered);
 });
 
-test('the live invitation starts private and its explicit link choice shares exactly the preview', async () => {
+test('the live invitation carries only the generic words and the live link, with no link chip, and shares exactly the preview', async () => {
   const S = await freshApp('2026-11-09T08:00');
   plan(S, ['2026-11-09', '2026-11-11']);
   const url = 'https://bachnguyenclearhealth.com/';
   const sent = [];
   const h = (tag, attrs, ...children) => ({ tag, attrs, children: children.flat().filter(Boolean) });
   const I = module('invite.js', {
-    S: { appLink: () => url, inviteText: (choices, p) => S.inviteText(choices, p, url) },
+    S: { appLink: () => url, linkPending: () => false, inviteText: (choices, p) => S.inviteText(choices, p, url) },
     h, icon: () => null, navigator: { share: async (payload) => { sent.push(payload); } }, requestAnimationFrame() {},
   }, 'globalThis.__api = { inviteBody };');
-  const st = { days: false, time: false, place: false, link: false, status: '' };
+  const st = { days: false, time: false, place: false, status: '' };
   const render = () => I.inviteBody({ st, plan: S.planFor(), refill() {}, done() {} });
   const all = (nodes) => nodes.flatMap((n) => typeof n === 'object' ? [n, ...all(n.children)] : []);
-  let controls = all(render());
+  const controls = all(render());
   const preview = () => controls.find((n) => n.tag === 'textarea').children[0];
-  assert.equal(preview(), S.INVITE.join('\n'));
-  assert.equal(controls.find((n) => n.attrs.id === 'py-invite-link').attrs['aria-pressed'], 'false');
-  assert.equal(sent.length, 0);
-  controls.find((n) => n.attrs.id === 'py-invite-link').attrs.onclick();
-  controls = all(render());
-  assert.equal(preview(), `${S.INVITE.join('\n')}\n${url}`);
+  assert.equal(preview(), `${S.INVITE.join('\n')}\n${url}`, 'live: the link is added automatically');
+  assert.equal(controls.some((n) => n.attrs.id === 'py-invite-link'), false, 'no link chip on the invitation');
+  assert.equal(sent.length, 0, 'nothing is sent before Share');
   assert.doesNotMatch(preview(), /Monday|Wednesday|gym|3:30/);
   await controls.find((n) => n.attrs.id === 'py-invite-share').attrs.onclick();
   assert.equal(sent.length, 1);

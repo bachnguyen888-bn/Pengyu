@@ -26,7 +26,7 @@ let refocus = '';
 // Dates, the workout count and the Pengyu link are all off until the player adds them.
 let share = { open: false, caption: 0, prop: '', dates: false, workouts: false, link: false, status: '' };
 // The invitation in History: open or not, and the picks (nothing is saved).
-let friend = { open: false, days: false, time: false, place: false, link: false, status: '' };
+let friend = { open: false, days: false, time: false, place: false, status: '' };
 let picture = { key: '', url: '', file: null, failed: false, job: null };   // the postcard image, made on this device
 let cheered = false;      // Pengu cheers for the postcard once each time the app is opened
 let bound = [];           // the postcard's Pengu, brought to life
@@ -36,7 +36,7 @@ let bound = [];           // the postcard's Pengu, brought to life
 S.subscribe(({ type }) => {
   if (type !== 'restore' && type !== 'reset') return;
   share = { open: false, caption: 0, prop: '', dates: false, workouts: false, link: false, status: '' };
-  friend = { open: false, days: false, time: false, place: false, link: false, status: '' };
+  friend = { open: false, days: false, time: false, place: false, status: '' };
   picture = { key: '', url: '', file: null, failed: false, job: null };
   restore = null;
   restoreRead += 1;
