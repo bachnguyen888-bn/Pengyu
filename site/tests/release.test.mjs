@@ -185,7 +185,42 @@ test('review copy, word for word: the spec goal line, the first heading, the fir
 test('the invitation carries the live link automatically with no link chip; the postcard link stays opt-in', () => {
   assert.doesNotMatch(read('js/pengyu/invite.js'), /Include Pengyu link|-link`/);
   assert.match(read('js/pengyu/history.js'), /chip\('link', 'Include Pengyu link'/);
-  assert.match(read('privacy.html'), /the same short message for everyone, then the Pengyu link when it’s available\. Your days, time or place are added only if you switch them on\./);
+  // Privacy tells the two links apart: automatic on the live invitation, opt-in on the postcard, details opt-in.
+  const policy = read('privacy.html');
+  assert.match(policy, /On the live Pengyu site the invitation adds that link automatically, with no switch, because the link is not a personal detail\. Your days, time or place are added only if you switch them on\./);
+  assert.match(policy, /An invitation includes it automatically, and a postcard includes it only if you add it, in both cases only while you use Pengyu at that address/);
+  assert.match(policy, /The dates, a workout count and the Pengyu link are added only if you choose them\./);
+});
+
+test('the free cover is called safe only while the streak it kept is still running', async () => {
+  const S = await freshApp('2026-11-02T07:00');
+  at(S, '2026-11-02T07:00'); plan(S, ['2026-11-03', '2026-11-05']); logOn(S, '2026-11-03'); logOn(S, '2026-11-05');
+  at(S, '2026-11-16T09:00');   // one week without a completed plan: covered, streak still 1
+  assert.equal(S.weekStreak(), 1);
+  assert.equal(S.coverKeptStreak(), true);
+  const T = await freshApp('2026-11-02T07:00');
+  at(T, '2026-11-02T07:00'); plan(T, ['2026-11-03', '2026-11-05']); logOn(T, '2026-11-03'); logOn(T, '2026-11-05');
+  at(T, '2026-11-23T09:00');   // two such weeks in one month: the cover is on record, but the streak is over
+  assert.deepEqual(T.streakInfo().covered, ['2026-11-09']);
+  assert.equal(T.weekStreak(), 0);
+  assert.equal(T.coverKeptStreak(), false);
+  assert.deepEqual(T.announceCovers(), ['2026-11-09'], 'recorded once, so it is never announced late');
+  assert.deepEqual(T.announceCovers(), []);
+  assert.match(read('js/pengyu/app.js'), /!weeks\.length \|\| \(S\.coverKeptStreak && !S\.coverKeptStreak\(\)\)/, 'the app asks before saying "safe"');
+});
+
+test('weekday labels shorten only on tight routes, and the last stop keeps a full-size ring', () => {
+  const css = read('pengu.css').replace(/\s+/g, ' ');
+  assert.match(css, /@container \(max-width: 15em\) \{ \.py-stop-long \{ display: none; \} \.py-stop-short \{ display: inline; \} \}/);
+  assert.match(css, /@container \(max-width: 18em\) \{ \.py-route-wrap\.is-n4 \.py-stop-long \{ display: none; \}/);
+  assert.match(read('js/pengyu/route.js'), /r\.stations\.length > 3 \? ' is-n4' : ''/);
+  assert.match(css, /\.py-station \{[^}]*width: max-content;/);
+  assert.match(css, /\.py-session-move \{[^}]*min-width: var\(--tap\)/);
+  assert.match(css, /\.tabbar-list \{[^}]*column-gap: 8px/);
+});
+
+test('reduced motion keeps Pengu still: no blink', () => {
+  assert.match(read('js/pengyu/motion.js'), /if \(active\(\) && !reducedMotion\(\)\) \{ blink\(\);/);
 });
 
 test('"Today" stays whole wherever it fits; only the tightest widths in em shorten it', () => {

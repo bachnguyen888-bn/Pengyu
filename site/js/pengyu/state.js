@@ -341,6 +341,9 @@ export function announceCovers() {
   commit({ type: 'cover', weeks: fresh });
   return fresh;
 }
+// True while the week streak a cover protected is still running. A second week without a completed plan
+// in the same month ends it; the cover then kept nothing safe, and the app must not say that it did.
+export const coverKeptStreak = () => streakInfo().streak > 0;
 
 // ---------- The unlock tree (M2) ----------
 // Pengu's gear comes in a fixed order; train upgrades can be bought in any order. Every price is fixed

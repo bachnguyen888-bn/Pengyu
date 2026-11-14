@@ -148,7 +148,8 @@ export function initPengyu() {
   // When a free streak cover kicks in, Pengu says so once, kindly.
   function covers() {
     const weeks = S.announceCovers();
-    if (!weeks.length) return;
+    // Said only while it is true: after a longer break the streak may already be over.
+    if (!weeks.length || (S.coverKeptStreak && !S.coverKeptStreak())) return;
     toast('Your week streak is safe.', 'Pengu used this month’s free cover.', bust());
   }
 

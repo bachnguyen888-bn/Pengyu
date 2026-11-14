@@ -65,7 +65,7 @@ export function bindPengu(svg, { follow = true, hop = true, waddle = false, wave
   // Blink: eyes squeeze shut for about 140ms every 2.5 to 6s, now and then twice.
   const blink = () => animate(eyes, { scaleY: [1, 0.1, 1], duration: 140, ease: 'inOutQuad' });
   const blinkLoop = () => later(() => {
-    if (active()) { blink(); if (Math.random() < 0.2) later(blink, 230); }
+    if (active() && !reducedMotion()) { blink(); if (Math.random() < 0.2) later(blink, 230); }   // reduced motion: Pengu stays still
     blinkLoop();
   }, 2500 + Math.random() * 3500);
 

@@ -217,7 +217,7 @@ html.is-splash .py-splash { display: grid; }
   position: fixed; z-index: 50; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
   width: min(406px, calc(100% - 24px)); border-radius: 26px;
 }
-.tabbar-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tabbar-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 8px; }
 .tabbar-btn {
   position: relative; display: grid; justify-items: center; align-content: start; gap: 2px; width: 100%; min-height: var(--tabbar-h);
   padding: 7px 0 10px; border: 0; background: none; color: var(--ink-2); font-size: 0.8125rem; font-weight: 600;
@@ -262,7 +262,7 @@ html.is-splash .py-splash { display: grid; }
 .py-station, .py-depot { position: absolute; left: calc(var(--front) + var(--at, 0) * (100% - var(--front) - 18px)); transform: translateX(-50%); }
 .py-depot { top: 11px; width: 14px; height: 14px; }
 .py-depot path { fill: rgba(247, 242, 238, 0.28); }
-.py-station { top: 0; display: grid; justify-items: center; gap: 3px; }
+.py-station { top: 0; display: grid; justify-items: center; gap: 3px; width: max-content; }   /* its own width: the last stop, 18px from the edge, must not squeeze its ring */
 .py-ring { width: 34px; height: 34px; overflow: visible; }
 .py-ring-line { fill: none; stroke: var(--line-strong); stroke-width: 2.4; stroke-linejoin: round; }
 .py-ring-fill { fill: var(--coral-strong); opacity: 0; transform-box: fill-box; transform-origin: 50% 50%; }
@@ -276,13 +276,18 @@ html.is-splash .py-splash { display: grid; }
 .py-stop-day { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; color: var(--on-stage-2); white-space: nowrap; }
 .py-station.is-today .py-stop-day { color: var(--on-stage); }
 .py-station.is-missed .py-stop-day { font-weight: 400; }
-/* Container em units follow enlarged text, unlike viewport em queries. Full dates remain in the week sheet. */
+/* Container em units follow enlarged text, unlike viewport em queries. Full dates remain in the week sheet.
+   Weekdays shorten to two letters only where three would run together: on any route under 15em wide
+   (large text), and on a four-stop route under 18em (a 360px phone, where the stops sit closest). */
 .py-stop-short { display: none; }
 @media (max-width: 18em) { .py-stop-long { display: none; } .py-stop-short { display: inline; } }
-@container (max-width: 18em) { .py-stop-long { display: none; } .py-stop-short { display: inline; } }
+@container (max-width: 15em) { .py-stop-long { display: none; } .py-stop-short { display: inline; } }
+@container (max-width: 18em) { .py-route-wrap.is-n4 .py-stop-long { display: none; } .py-route-wrap.is-n4 .py-stop-short { display: inline; } }
 /* "Today" stays whole wherever it still fits (a 320px phone at normal text); it shortens only at the
    tightest widths in em, where its neighbours would run into it. */
 @container (min-width: 13.5em) and (max-width: 18em) { .py-station.is-today .py-stop-long { display: inline; } .py-station.is-today .py-stop-short { display: none; } }
+/* Four stops behind the longer two-car train leave the least room: with enlarged text "Today" shortens too. */
+@container (max-width: 16em) { .py-route-wrap.has-car2.is-n4 .py-station.is-today .py-stop-long { display: none; } .py-route-wrap.has-car2.is-n4 .py-station.is-today .py-stop-short { display: inline; } }
 /* A comeback stamp sits on the ring where the player came back. */
 .py-stamp { position: absolute; top: -7px; right: -10px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--sun); color: var(--ink); box-shadow: 0 0 0 2px var(--stage); }
 .py-stamp .icon { width: 14px; height: 14px; stroke-width: 2.2; }
@@ -465,7 +470,7 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-session-status .icon { width: 16px; height: 16px; stroke-width: 2.4; }
 .py-session.is-today .py-session-status { padding: 2px 10px; border-radius: var(--r-pill); background: var(--ink); color: #FFFFFF; }
 .py-session.is-missed .py-session-status { color: var(--ink-2); font-weight: 400; }
-.py-session-move { min-height: var(--tap); font-size: 0.875rem; }
+.py-session-move { min-height: var(--tap); min-width: var(--tap); font-size: 0.875rem; }
 .py-move { display: grid; gap: var(--s2); padding: 14px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
 .py-move-title { font-weight: 600; }
 .py-choices { display: flex; flex-wrap: wrap; gap: var(--s2); }
@@ -541,7 +546,7 @@ dialog.py-sheet::backdrop { background: rgba(20, 18, 19, 0.42); }
 .py-summary-days li { display: flex; align-items: center; gap: 10px; }
 .py-summary-days .icon { width: 18px; height: 18px; stroke-width: 2.4; }
 .py-summary-fish { font-size: 0.9375rem; }
-@media (min-width: 400px) { .py-days { grid-template-columns: repeat(auto-fit, minmax(2.9rem, 1fr)); gap: 6px; } }
+@media (min-width: 400px) { .py-days { grid-template-columns: repeat(auto-fit, minmax(2.75rem, 1fr)); gap: 8px; } }
 
 /* ---------- 10. Pengu tab: the lamp-base showcase, the next unlock, gear, train and extras (words, no bars) ---------- */
 .py-shop { display: grid; gap: var(--s5); }
@@ -587,10 +592,10 @@ section.py-next.is-ready { box-shadow: inset 0 0 0 2px var(--coral-strong), var(
 .py-wear[aria-pressed="true"] { background: var(--coral-tint); box-shadow: inset 0 0 0 1.5px var(--coral-strong); }
 /* Owned, previewed and locked never look alike: "Yours" and Wearing; a dashed line while previewed. */
 .py-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--coral-tint); font-size: 0.75rem; font-weight: 600; vertical-align: 1px; }
-.py-row-side { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 8px; }
+.py-row-side { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 .py-preview-btn[aria-pressed="true"] { background: var(--coral-tint); box-shadow: inset 0 0 0 1.5px var(--coral-strong); text-decoration: none; }
 .py-row.is-previewing, .py-show.is-preview .py-show-stage { outline: 2px dashed var(--coral-strong); outline-offset: -2px; }
-.py-next-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.py-next-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
 .py-show-stage { position: relative; }
 .py-preview-badge { position: absolute; top: 12px; left: 12px; padding: 3px 10px; border-radius: var(--r-pill); background: var(--ink); color: #FFFFFF; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .py-preview-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 14px; border-radius: 18px; background: var(--coral-tint); }
@@ -679,7 +684,7 @@ section.py-next.is-ready { box-shadow: inset 0 0 0 2px var(--coral-strong), var(
 .py-foot a, .py-data-privacy a { color: var(--ink); font-weight: 600; }
 /* The privacy links are full 44px targets, even though they read as quiet text. */
 .py-foot a, .py-data-privacy a { display: inline-flex; align-items: center; min-height: var(--tap); vertical-align: middle; }
-.py-data-privacy { font-size: 0.875rem; margin: -10px 0; }
+.py-data-privacy { font-size: 0.875rem; margin: -10px 0 -2px; }   /* 8px clear of Reset everything below */
 
 /* ---------- 12. 404 and privacy pages ---------- */
 .not-found { min-height: 100vh; display: grid; place-items: center; padding: var(--s7) var(--gutter); text-align: center; }

@@ -172,7 +172,8 @@ function stationNode(s, i, count, arriving) {
 
 function routeBlock(r, look, arriving, ahead) {
   const ties = Array.from({ length: 30 }, (_, i) => `M${18 + i * 33.5 + (i % 3) * 1.4} ${1.4 + (i % 2) * 0.5}V${6.6 - (i % 4) * 0.4}`).join('');
-  const wrap = h('div', { class: `py-route-wrap${look.car ? ' has-car2' : ''}${r ? '' : ' is-empty'}` },
+  // is-n4: four stops sit closest together, so their weekday labels shorten sooner (pengu.css).
+  const wrap = h('div', { class: `py-route-wrap${look.car ? ' has-car2' : ''}${r ? (r.stations.length > 3 ? ' is-n4' : '') : ' is-empty'}` },
     lineArt('py-rail', '0 0 1000 8', `<path d="${wobblyLine(0, 1000, 4, { seed: 5, amp: 0.7, step: 64 })}"/><path d="${ties}"/>`, true),
     lineArt('py-route-line', '0 0 1000 6', `<path d="${wobblyLine(0, 1000, 3, { seed: 9, amp: 0.9, step: 72 })}"/>`, true),
     h('ol', { class: 'py-route', 'aria-label': !r ? 'No workouts planned yet' : ahead ? 'Workouts next week' : 'Workouts this week' },
