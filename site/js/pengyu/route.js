@@ -621,7 +621,7 @@ export function renderToday(root, rerender, { onShop = () => {}, onPlan = () => 
   }
   lastAt = at;
 
-  bound.push(bindPengu(train.querySelector('svg'), { follow: true, hop: true, wave: true }));
+  bound.push(bindPengu(train.querySelector('svg'), { follow: true, hop: true }));
   bound.push(bindPengu(view.querySelector('.py-avatar-btn svg'), { follow: true, hop: false }));
   if (focus || requestFocus) { requestFocus = false; count.focus({ preventScroll: true }); }
   if (focus === 'first-plan') inviteTimer = setTimeout(() => {

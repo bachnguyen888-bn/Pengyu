@@ -1,8 +1,8 @@
 // Motion for Pengu and the train, built on anime.js 4.5.0 (npm "animejs", published 2026-06-22), vendored
 // as js/vendor/anime.esm.min.js with its MIT license. Nothing else imports anime.js.
-// Rules: only transform and opacity move; loops pause while the page is hidden or Pengu is offscreen;
-// with reduced motion there is no waddle, hop, eye-follow, wave, wheel spin or steam (the blink stays).
-// Random numbers here only pick animation timing (when Pengu blinks), never what anything looks like.
+// Rules: only transform and opacity move, and nothing loops: Pengu holds still until something happens.
+// A completed action gets one short reaction, under a second (celebrate); a tap on Pengu gets a hop.
+// With reduced motion there is no hop, eye-follow, wheel spin or steam: Pengu is a still picture.
 
 import { animate, createTimeline, spring, stagger, utils } from '../vendor/anime.esm.min.js';
 import { sparkleSpots } from './art.js';
@@ -38,16 +38,16 @@ function sparkle(svg) {
     scale: [0.2, 1, 0.5],
     opacity: [1, 1, 0],
     rotate: (el, i) => [0, (i % 2 ? 1 : -1) * 90],
-    delay: stagger(26),
-    duration: 820,
+    delay: stagger(20),
+    duration: 560,
     ease: 'outCubic',
     onComplete: () => layer.remove(),
   });
 }
 
-// Bring a Pengu drawing to life. Options: follow (eyes follow the pointer), hop (tap to hop), waddle
-// (idle waddle every 4–7s), wave (the cab Pengu waves every 6–9s). Returns { hop, celebrate, stop }.
-export function bindPengu(svg, { follow = true, hop = true, waddle = false, wave = false } = {}) {
+// Bring a Pengu drawing to life. Options: follow (eyes follow the pointer), hop (tap to hop).
+// Returns { hop, celebrate, stop }.
+export function bindPengu(svg, { follow = true, hop = true } = {}) {
   const root = svg && svg.querySelector('.py-pengu');
   if (!root) return null;
   const eyes = [...svg.querySelectorAll('.py-eye')];
@@ -61,13 +61,6 @@ export function bindPengu(svg, { follow = true, hop = true, waddle = false, wave
   let busy = false;
   const active = () => alive && svg.isConnected && onscreen && !pageHidden;
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); if (!svg.isConnected) { stop(); return; } fn(); }, ms); timers.add(t); };
-
-  // Blink: eyes squeeze shut for about 140ms every 2.5 to 6s, now and then twice.
-  const blink = () => animate(eyes, { scaleY: [1, 0.1, 1], duration: 140, ease: 'inOutQuad' });
-  const blinkLoop = () => later(() => {
-    if (active() && !reducedMotion()) { blink(); if (Math.random() < 0.2) later(blink, 230); }   // reduced motion: Pengu stays still
-    blinkLoop();
-  }, 2500 + Math.random() * 3500);
 
   // Scarf lag: the tail follows the body a beat late, overshoots, then settles after it.
   const lagScarf = (k = 1) => {
@@ -88,26 +81,24 @@ export function bindPengu(svg, { follow = true, hop = true, waddle = false, wave
     lagScarf(1);
   };
 
-  // Celebrate: two hops, flippers up, scarf flutter, belly glow pulse, sparkles.
+  // Celebrate: one hop with flippers up, a scarf flutter, a belly glow and sparkles. All of it is over
+  // inside a second (the hop 600ms; the sparkles, the last to fade, by about 900ms).
   const celebrate = () => {
     if (!svg.isConnected) return;
-    if (reducedMotion()) { if (glow) animate(glow, { opacity: [0.85, 1], duration: 150 }); return; }
+    if (reducedMotion()) return;   // a still picture; the words around Pengu say what happened
     busy = true;
-    const tl = createTimeline({ onComplete: () => { busy = false; } });
-    for (const at of [0, '+=40']) {
-      tl.add(root, { scaleX: 1.06, scaleY: 0.92, duration: 80, ease: 'outQuad' }, at)
-        .add(root, { translateY: -16, scaleX: 0.96, scaleY: 1.06, duration: 170, ease: 'outQuad' })
-        .add(root, { translateY: 0, scaleX: 1, scaleY: 1, duration: 150, ease: 'inQuad' })
-        .add(root, { scaleX: 1.03, scaleY: 0.94, duration: 70, ease: 'outQuad' })
-        .add(root, { scaleX: 1, scaleY: 1, duration: 130, ease: 'outQuad' });
-    }
-    if (flipL) animate(flipL, { rotate: [0, 30, 30, 0], duration: 1150, ease: 'inOutQuad' });
-    if (flipR) animate(flipR, { rotate: [0, -30, -30, 0], duration: 1150, ease: 'inOutQuad' });
-    if (glow) animate(glow, { opacity: [0.85, 1, 0.9, 1], duration: 1150, ease: 'inOutSine' });
+    createTimeline({ onComplete: () => { busy = false; } })
+      .add(root, { scaleX: 1.06, scaleY: 0.92, duration: 80, ease: 'outQuad' })
+      .add(root, { translateY: -16, scaleX: 0.96, scaleY: 1.06, duration: 170, ease: 'outQuad' })
+      .add(root, { translateY: 0, scaleX: 1, scaleY: 1, duration: 150, ease: 'inQuad' })
+      .add(root, { scaleX: 1.03, scaleY: 0.94, duration: 70, ease: 'outQuad' })
+      .add(root, { scaleX: 1, scaleY: 1, duration: 130, ease: 'outQuad' });
+    if (flipL) animate(flipL, { rotate: [0, 30, 30, 0], duration: 600, ease: 'inOutQuad' });
+    if (flipR) animate(flipR, { rotate: [0, -30, -30, 0], duration: 600, ease: 'inOutQuad' });
+    if (glow) animate(glow, { opacity: [0.85, 1, 0.9, 1], duration: 600, ease: 'inOutSine' });
     lagScarf(1.3);
-    later(() => lagScarf(1), 520);
-    // At the top of the first hop, and clear of the frame where the count and Fish change.
-    later(() => sparkle(svg), 200);
+    // At the top of the hop, and clear of the frame where the count and Fish change.
+    later(() => sparkle(svg), 150);
   };
 
   // Eyes follow the pointer, up to 1.6 units in Pengu's space, smoothed each frame. After a touch they
@@ -138,19 +129,6 @@ export function bindPengu(svg, { follow = true, hop = true, waddle = false, wave
   if (follow) { window.addEventListener('pointermove', look, { passive: true }); window.addEventListener('pointerdown', look, { passive: true }); }
   if (hop) svg.addEventListener('click', doHop);
 
-  // Idle loops.
-  const waddleLoop = () => later(() => {
-    if (active() && !busy && !reducedMotion()) {
-      animate(root, { rotate: [0, -4, 4, 0], translateX: [0, -6, 6, 0], duration: 1100, ease: 'inOutSine' });
-      lagScarf(0.7);
-    }
-    waddleLoop();
-  }, 4000 + Math.random() * 3000);
-  const waveLoop = () => later(() => {
-    if (active() && !busy && !reducedMotion() && flipR) animate(flipR, { rotate: [0, -26, 6, -26, 0], duration: 1300, ease: 'inOutSine' });
-    waveLoop();
-  }, 6000 + Math.random() * 3000);
-
   const io = 'IntersectionObserver' in window ? new IntersectionObserver(([e]) => { onscreen = e.isIntersecting; }) : null;
   if (io) io.observe(svg);
 
@@ -167,15 +145,12 @@ export function bindPengu(svg, { follow = true, hop = true, waddle = false, wave
     if (io) io.disconnect();
   }
 
-  blinkLoop();
-  if (waddle) waddleLoop();
-  if (wave) waveLoop();
   return { hop: doHop, celebrate, lagScarf, stop };
 }
 
 // The train rolls into its new station. It is already drawn at the new spot, `fromX` pixels back (from
 // where it last stood); it slides in (transform only) with a small overshoot, its red spokes turning with
-// the distance, three puffs of steam rising and Pengu swaying. `onArrive` runs as the front reaches the
+// the distance and three puffs of steam rising (Pengu rides steady, then hops once on arrival). `onArrive` runs as the front reaches the
 // station. With reduced motion it is simply there.
 export function rollTrain(train, fromX, { wheelPx = 7, onArrive = () => {} } = {}) {
   if (!fromX || reducedMotion()) { onArrive(); return; }
@@ -185,8 +160,6 @@ export function rollTrain(train, fromX, { wheelPx = 7, onArrive = () => {} } = {
   animate(train, { translateX: [{ from: fromX, to: 3.5 * dir, duration: 1250, ease: 'inOutSine' }, { to: 0, duration: 230, ease: 'outQuad' }] });
   animate(train.querySelectorAll('.py-spokes'), { rotate: [0, turn], duration: 1480, ease: 'inOutSine' });
   animate(train.querySelectorAll('.py-puff'), { translateX: [0, -12], translateY: [0, -16], scale: [0.7, 1.6], opacity: [0.9, 0], delay: stagger(260), duration: 900, ease: 'outQuad' });
-  const rider = train.querySelector('.py-rider');
-  if (rider) animate(rider, { rotate: [0, -3, 2.5, -1.5, 0], duration: 1450, ease: 'inOutSine' });
   setTimeout(onArrive, 1250);
 }
 
@@ -233,7 +206,7 @@ export function sheetOut(panel, done) {
 }
 export function rise(face) {
   if (!face || reducedMotion()) return;
-  animate(face, { translateY: ['40%', '0%'], duration: 900, delay: 120, ease: 'outBack(1.2)' });
+  animate(face, { translateY: ['40%', '0%'], duration: 600, delay: 100, ease: 'outBack(1.2)' });   // with the sheet, done inside a second
 }
 
 // Pengu's window: the next view rolls in from the side the train is heading, far hills slowly and the near

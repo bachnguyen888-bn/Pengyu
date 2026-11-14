@@ -219,8 +219,30 @@ test('weekday labels shorten only on tight routes, and the last stop keeps a ful
   assert.match(css, /\.tabbar-list \{[^}]*column-gap: 8px/);
 });
 
-test('reduced motion keeps Pengu still: no blink', () => {
-  assert.match(read('js/pengyu/motion.js'), /if \(active\(\) && !reducedMotion\(\)\) \{ blink\(\);/);
+test('motion rules: nothing loops, one reaction under a second, and reduced motion is a still picture', () => {
+  const motion = read('js/pengyu/motion.js');
+  assert.doesNotMatch(motion, /blinkLoop|waddleLoop|waveLoop|Math\.random|loop:\s*true/, 'no idle loops');
+  assert.doesNotMatch(read('pengu.css'), /infinite/, 'no CSS animation repeats forever');
+  const celebrate = motion.slice(motion.indexOf('const celebrate'), motion.indexOf('// Eyes follow the pointer'));
+  assert.match(celebrate, /if \(reducedMotion\(\)\) return;/, 'reduced motion: no reaction is drawn');
+  const hop = [...celebrate.slice(0, celebrate.indexOf('if (flipL)')).matchAll(/duration: (\d+)/g)].reduce((sum, m) => sum + Number(m[1]), 0);
+  assert.equal(hop, 600, 'one hop');
+  for (const m of celebrate.matchAll(/duration: (\d+)/g)) assert.ok(Number(m[1]) < 1000);
+  assert.match(motion, /delay: stagger\(20\),\s*duration: 560/, 'sparkles start at 150ms and are gone by about 900ms');
+  assert.doesNotMatch(read('js/pengyu/window.js'), /alive\.hop\(\)/, 'Next is a routine choice: no reaction');
+  assert.doesNotMatch(read('js/pengyu/history.js'), /cheered|\.celebrate\(/, 'opening History is no cause for a cheer');
+});
+
+test('one primary action per screen, no blur, a light stage, and Pengu on every screen', () => {
+  const css = read('pengu.css');
+  assert.doesNotMatch(css, /backdrop-filter/);
+  assert.match(css, /--stage: var\(--card\);/);
+  assert.doesNotMatch(css, /#141213|radial-gradient\(130%/, 'no dark card');
+  assert.match(read('js/pengyu/shop.js'), /primary === `unlock-\$\{key\}` \? 'glass-coral' : 'btn-secondary'/);
+  const history = read('js/pengyu/history.js');
+  assert.match(history, /share = \{ \.\.\.share, open: false, status: '' \}; refocus = 'py-friend-h'/, 'opening the invitation closes the postcard preview');
+  assert.match(history, /friend = \{ \.\.\.friend, open: false, status: '' \}; refocus = 'py-share-title'/, 'and the other way round');
+  for (const file of ['js/pengyu/history.js', 'js/pengyu/app.js', 'js/pengyu/plan.js']) assert.match(read(file), /cls: 'py-head-art', pose: 'bust'/, `${file} shows Pengu`);
 });
 
 test('"Today" stays whole wherever it fits; only the tightest widths in em shorten it', () => {

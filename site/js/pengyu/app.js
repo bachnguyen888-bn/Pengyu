@@ -25,9 +25,9 @@ const TABS = [
 // Settings: where the data lives, then the same data controls as History.
 function renderSettings(root, rerender, data) {
   root.append(
-    h('h1', { class: 'py-view-title' }, 'Settings'),
+    h('div', { class: 'py-view-head' }, h('h1', { class: 'py-view-title' }, 'Settings'), penguFigure(S.look(), { cls: 'py-head-art', pose: 'bust' })),
     h('p', { class: 'small muted' }, 'Your plans and progress stay in this browser. No account, cloud sync, tracking or ads.'));
-  if (History.renderData) History.renderData(root, rerender, data);
+  if (History.renderData) History.renderData(root, rerender, { ...data, primary: true });
   root.append(appFooter());
 }
 

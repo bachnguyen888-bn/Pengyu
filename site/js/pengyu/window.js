@@ -112,7 +112,6 @@ export function buildWindow(panel, close) {
     back.textContent = last ? 'Replay' : 'Back';
     back.hidden = i === 0;
     next.textContent = last ? 'Done' : 'Next';
-    if (dir && alive) alive.hop();
   }
   function step(d) {
     if (at + d >= story.length) return;   // the end waits for Replay or Done

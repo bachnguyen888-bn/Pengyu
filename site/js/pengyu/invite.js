@@ -31,6 +31,7 @@ export async function sharePreview(data, api = navigator) {
 export function inviteBody({ st, plan, refill, done, ids = 'py-invite' }) {
   const text = S.inviteText(st, plan);
   const say = (msg, id = `${ids}-status`) => { st.status = msg; refill(id); };
+  const canShare = typeof navigator.share === 'function';   // without a share sheet, Copy invite is the one primary action
   const toggle = (key, label) => h('button', {
     class: 'chip glass py-share-chip', type: 'button', id: `${ids}-${key}`, 'aria-pressed': String(Boolean(st[key])),
     onclick: () => { st[key] = !st[key]; st.status = ''; refill(`${ids}-${key}`); },
@@ -46,7 +47,7 @@ export function inviteBody({ st, plan, refill, done, ids = 'py-invite' }) {
     box,
     S.linkPending() ? h('p', { class: 'py-sheet-note py-link-note', id: `${ids}-link-note` }, icon('i-clock'), h('span', {}, S.LIVE_NOTE)) : null,
     h('div', { class: 'py-data-actions' },
-      typeof navigator.share === 'function' ? h('button', {
+      canShare ? h('button', {
         class: 'btn btn-primary btn-sm', type: 'button', id: `${ids}-share`,
         onclick: async () => {
           const result = await sharePreview({ text });
@@ -54,7 +55,7 @@ export function inviteBody({ st, plan, refill, done, ids = 'py-invite' }) {
         },
       }, icon('i-share'), 'Share invitation') : null,
       h('button', {
-        class: 'btn btn-secondary btn-sm', type: 'button', id: `${ids}-copy`,
+        class: `btn ${canShare ? 'btn-secondary' : 'btn-primary'} btn-sm`, type: 'button', id: `${ids}-copy`,
         onclick: async () => {
           try { await navigator.clipboard.writeText(text); say('Copied. Paste it wherever you like.'); } catch { say('Copying isn’t allowed here. Select the text above to copy it.', `${ids}-text`); }
         },

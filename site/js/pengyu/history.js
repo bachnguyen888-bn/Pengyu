@@ -28,7 +28,6 @@ let share = { open: false, caption: 0, prop: '', dates: false, workouts: false, 
 // The invitation in History: open or not, and the picks (nothing is saved).
 let friend = { open: false, days: false, time: false, place: false, status: '' };
 let picture = { key: '', url: '', file: null, failed: false, job: null };   // the postcard image, made on this device
-let cheered = false;      // Pengu cheers for the postcard once each time the app is opened
 let bound = [];           // the postcard's Pengu, brought to life
 
 // An imported or reset save is a new privacy decision. Choices made for the previous save must not
@@ -43,7 +42,6 @@ S.subscribe(({ type }) => {
   resetStep = 0;
   resetSaved = false;
   refocus = '';
-  cheered = false;
   for (const b of bound) if (b) b.stop();
   bound = [];
 });
@@ -150,7 +148,9 @@ function lastBackupLine() {
   if (!at) return 'No backup saved yet.';
   return `Last backup saved ${new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`;
 }
-function dataCard(rerender, onReset, onRestore) {
+// `primary`: in Settings, Save a backup is the screen's one primary action, except while a picked backup
+// waits for its own Restore answer.
+function dataCard(rerender, onReset, onRestore, primary = false) {
   const file = h('input', { class: 'sr-only', type: 'file', accept: 'application/json,.json', tabindex: '-1', 'aria-hidden': 'true', onchange: (e) => readPicked(e, rerender) });
   const closeReset = () => { resetStep = 0; resetSaved = false; refocus = 'py-reset'; rerender(); };
   // The local-data note first, with Save a backup and Restore from a backup directly under it.
@@ -159,7 +159,7 @@ function dataCard(rerender, onReset, onRestore) {
     h('p', { class: 'py-handoff' }, 'Progress is saved in this browser. Another browser or Home Screen app may have a separate save.'),
     h('div', { class: 'py-data-actions py-handoff-actions' },
       h('button', {
-        class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-backup',
+        class: `btn ${primary && !(restore && !restore.error) ? 'btn-primary' : 'btn-secondary'} btn-sm`, type: 'button', id: 'py-backup',
         onclick: () => {
           saveBackup();
           toast('Backup saved.', 'Keep the file somewhere safe.');
@@ -425,13 +425,13 @@ function sharePanel(rerender, card) {
     how,
     h('div', { class: 'py-data-actions' },
       go,
-      h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-copy', onclick: () => copyNow(text, rerender) }, 'Copy text'),
+      h('button', { class: `btn ${go ? 'btn-secondary' : 'btn-primary'} btn-sm`, type: 'button', id: 'py-share-copy', onclick: () => copyNow(text, rerender) }, 'Copy text'),
       save,
       h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { share.open = false; share.status = ''; refocus = 'py-share-open'; rerender(); } }, 'Done')),
     h('p', { class: 'py-share-status', id: 'py-share-status', role: 'status', tabindex: '-1' }, share.status),
     h('p', { class: 'py-share-friend' }, h('button', {
       class: 'link', type: 'button', id: 'py-share-friend',
-      onclick: () => { friend = { ...friend, open: true, status: '' }; refocus = 'py-friend-h'; rerender(); },
+      onclick: () => { friend = { ...friend, open: true, status: '' }; share = { ...share, open: false, status: '' }; refocus = 'py-friend-h'; rerender(); },
     }, 'Invite a friend to plan their own week')));
 }
 
@@ -447,7 +447,8 @@ function friendSection(rerender) {
         ...inviteBody({ st: friend, plan, refill: (id) => { refocus = id; rerender(); }, done: close, ids: 'py-friend' }))
       : [h('p', { class: 'small muted' }, 'They plan their own week, with their own Pengu, saved on their own phone. You see every word first.'),
         h('div', { class: 'py-data-actions' },
-          h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-friend-open', 'aria-expanded': 'false', onclick: () => { friend = { ...friend, open: true, status: '' }; refocus = 'py-friend-h'; rerender(); } }, icon('i-share'), 'Invite a friend'))]);
+          // The screen's one primary action until there is a postcard to preview. One panel is open at a time.
+          h('button', { class: `btn ${S.firstFullWeek() ? 'btn-secondary' : 'btn-primary'} btn-sm`, type: 'button', id: 'py-friend-open', 'aria-expanded': 'false', onclick: () => { friend = { ...friend, open: true, status: '' }; share = { ...share, open: false, status: '' }; refocus = 'py-friend-h'; rerender(); } }, icon('i-share'), 'Invite a friend'))]);
 }
 
 function postcardSection(rerender) {
@@ -472,7 +473,7 @@ function postcardSection(rerender) {
       h('div', { class: 'py-postcard-art', 'aria-hidden': 'true' }, pengu),
       prop ? propFigure(prop.id, 'py-postcard-prop') : null),
     share.open ? sharePanel(rerender, card) : h('div', { class: 'py-data-actions' },
-      h('button', { class: 'btn btn-secondary btn-sm', type: 'button', id: 'py-share-open', 'aria-expanded': 'false', onclick: () => { share.open = true; refocus = 'py-share-title'; rerender(); } }, icon('i-share'), 'Preview your postcard')));
+      h('button', { class: `btn ${friend.open ? 'btn-secondary' : 'btn-primary'} btn-sm`, type: 'button', id: 'py-share-open', 'aria-expanded': 'false', onclick: () => { share.open = true; friend = { ...friend, open: false, status: '' }; refocus = 'py-share-title'; rerender(); } }, icon('i-share'), 'Preview your postcard')));
 }
 
 export function renderHistory(root, rerender, { onReset = () => {}, onRestore = () => {}, fresh = false, postcard = false } = {}) {
@@ -481,12 +482,12 @@ export function renderHistory(root, rerender, { onReset = () => {}, onRestore = 
   if (fresh) { share = { ...share, open: false, status: '' }; friend = { ...friend, open: false, status: '' }; }
   // From the reward sheet's "Preview your postcard": the preview opens at once, with focus on it.
   const opening = postcard && Boolean(S.firstFullWeek());
-  if (opening) share = { ...share, open: true, status: '' };
+  if (opening) { share = { ...share, open: true, status: '' }; friend = { ...friend, open: false, status: '' }; }
   const info = S.streakInfo();
   const weeks = mondays();
   const toFriend = refocus === 'py-friend-h';
   const view = h('div', { class: 'py-view' },
-    h('h1', { class: 'py-view-title' }, 'History'),
+    h('div', { class: 'py-view-head' }, h('h1', { class: 'py-view-title' }, 'History'), penguFigure(S.look(), { cls: 'py-head-art', pose: 'bust' })),
     postcardSection(rerender),
     friendSection(rerender),
     h('section', { class: 'py-weeks-sec', 'aria-labelledby': 'py-weeks-title' },
@@ -495,13 +496,9 @@ export function renderHistory(root, rerender, { onReset = () => {}, onRestore = 
         ? h('ol', { class: 'py-weeks' }, weeks.map((m) => weekCard(m, info.covered.includes(m))))
         : h('p', { class: 'muted' }, 'Your weeks show up here once you plan your first one.')));
   root.append(view);
-  // Pengu cheers for the postcard, once each time the app is opened.
+  // The postcard's Pengu follows a finger and hops when tapped; opening a tab is no cause for a cheer.
   const art = view.querySelector('.py-postcard-pengu');
-  if (art) {
-    const pengu = bindPengu(art, { follow: true, hop: true });
-    bound.push(pengu);
-    if (!cheered && pengu) { cheered = true; setTimeout(() => pengu.celebrate(), reducedMotion() ? 0 : 350); }
-  }
+  if (art) bound.push(bindPengu(art, { follow: true, hop: true }));
   renderData(view, rerender, { onReset, onRestore, fresh });
   view.append(appFooter());
   if (opening) {
@@ -514,9 +511,9 @@ export function renderHistory(root, rerender, { onReset = () => {}, onRestore = 
 
 // Both Settings and History use these same controls and confirmation steps. `fresh` means the tab was
 // just opened: a reset or restore step left open elsewhere starts closed here.
-export function renderData(root, rerender, { onReset = () => {}, onRestore = () => {}, fresh = false } = {}) {
+export function renderData(root, rerender, { onReset = () => {}, onRestore = () => {}, fresh = false, primary = false } = {}) {
   if (fresh) { resetStep = 0; resetSaved = false; restore = null; restoreRead += 1; refocus = ''; }
-  root.append(dataCard(rerender, onReset, onRestore));
+  root.append(dataCard(rerender, onReset, onRestore, primary));
   if (refocus) {
     const el = root.querySelector(`#${refocus}`);
     refocus = '';

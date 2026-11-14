@@ -18,6 +18,18 @@ let bound = [];        // the showcase Pengu, brought to life
 let previewing = '';   // an unlock shown on the showcase before it is owned (looks only, nothing saved)
 let previewFrom = '';  // the Preview button that started it, where Stop preview returns focus
 let keep = null;       // after an unlock with no backup saved yet: { ask, id }, then { saved } (until the tab is left)
+let primary = '';      // the one coral control on this tab right now (its id), worked out on each draw
+
+// One primary action per screen: the Unlock waiting for its second tap, else the first Unlock on the page
+// that is ready (the next-unlock card, then the rows). Every other Unlock is an outline button.
+function primaryUnlock() {
+  const cid = confirming.slice(confirming.indexOf('-') + 1);
+  if (confirming && S.unlockStatus(cid)?.state === 'ready') return `yes-${confirming}`;
+  const next = S.nextGear() || S.TRAIN.find((t) => !S.owns(t.id));
+  if (next && S.unlockStatus(next.id).state === 'ready') return `unlock-next-${next.id}`;
+  const row = [...S.GEAR, ...S.TRAIN].find((u) => S.unlockStatus(u.id).state === 'ready');
+  return row ? `unlock-row-${row.id}` : '';
+}
 
 const night = () => { const hr = S.now().getHours(); return hr >= 19 || hr < 6; };
 const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
@@ -61,7 +73,7 @@ function previewButton(item, rerender, where = 'row') {
 function unlockButton(item, where, rerender) {
   const key = `${where}-${item.id}`;
   return h('button', {
-    class: 'btn glass-coral btn-sm py-unlock', type: 'button', id: `unlock-${key}`, 'aria-expanded': String(confirming === key),
+    class: `btn ${primary === `unlock-${key}` ? 'glass-coral' : 'btn-secondary'} btn-sm py-unlock`, type: 'button', id: `unlock-${key}`, 'aria-expanded': String(confirming === key),
     onclick: () => { confirming = confirming === key ? '' : key; refocus = confirming ? `yes-${key}` : `unlock-${key}`; rerender(); },
   }, 'Unlock', h('span', { class: 'sr-only' }, ` ${the(item)}`));
 }
@@ -212,6 +224,7 @@ export function renderShop(root, rerender, { preview = '', fresh = false } = {})
   if (fresh) keep = null;
   if (preview && S.unlockById(preview) && !S.owns(preview)) { previewing = preview; previewFrom = `preview-next-${preview}`; refocus = 'py-preview-stop'; }
   if (previewing && S.owns(previewing)) previewing = '';
+  primary = primaryUnlock();
   const look = S.look();
   const moment = unlocked;
   unlocked = null;
@@ -252,7 +265,7 @@ export function renderShop(root, rerender, { preview = '', fresh = false } = {})
     h('p', { class: 'py-shop-note' }, 'Prices never change, and nothing is random. Fish only come from planned workouts.'),
     appFooter()));
 
-  const pengu = bindPengu(scene, { follow: true, hop: true, waddle: true });
+  const pengu = bindPengu(scene, { follow: true, hop: true });
   bound.push(pengu);
 
   // The unlock moment: the piece drops onto Pengu, Pengu hops with sparkles, the Fish pill counts down.

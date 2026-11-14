@@ -8,6 +8,7 @@
 import * as S from './state.js';
 import { downloadIcs } from './ics.js';
 import { h, icon, weekday, monthDay, clock } from './ui.js';
+import { penguFigure } from './art.js';
 
 const TIMES = [
   { id: 'before', label: 'Before class', time: '07:00', window: 'before class' },
@@ -274,7 +275,8 @@ export function renderPlanFlow(root, rerender, { onExit = () => {} } = {}) {
   root.append(h('div', { class: 'py-plan' },
     h('div', { class: 'py-plan-top' },
       h('button', { class: 'py-back glass', type: 'button', 'aria-label': toToday ? 'Back to Today' : 'Back', onclick: back }, icon('i-back')),
-      onReview ? null : h('ol', { class: 'py-dots', 'aria-hidden': 'true' }, Array.from({ length: STEPS }, (_, i) => h('li', { class: i < draft.step ? 'is-on' : '' })))),
+      onReview ? null : h('ol', { class: 'py-dots', 'aria-hidden': 'true' }, Array.from({ length: STEPS }, (_, i) => h('li', { class: i < draft.step ? 'is-on' : '' }))),
+      penguFigure(S.look(), { cls: 'py-head-art', pose: 'bust' })),
     h('div', { class: 'py-plan-head' },
       onSummary ? null : h('p', { class: 'eyebrow' }, eyebrow),
       heading,
